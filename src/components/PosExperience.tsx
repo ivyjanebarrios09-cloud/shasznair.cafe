@@ -25,6 +25,8 @@ export const PosExperience: React.FC = () => {
     logout
   } = useCoffeeApp();
 
+  const isLight = settings?.branding?.theme === 'light';
+
   // Selected Category filter & search
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -273,23 +275,31 @@ export const PosExperience: React.FC = () => {
 
   // Render the Cart Content component (reusable in desktop sidebar and mobile bottom-sheet)
   const renderCartContent = (isMobileSheet = false) => (
-    <div className={`flex flex-col ${isMobileSheet ? 'h-full' : 'h-full'} bg-[#0e1017]`}>
+    <div className={`flex flex-col ${isMobileSheet ? 'h-full' : 'h-full'} ${isLight ? 'bg-stone-50' : 'bg-[#0e1017]'}`}>
       {/* CART HEADER */}
-      <div className="p-3.5 sm:p-4 border-b border-white/[0.08] flex justify-between items-center bg-[#13151f]">
+      <div className={`p-3.5 sm:p-4 border-b flex justify-between items-center ${
+        isLight ? 'bg-white border-stone-200' : 'bg-[#13151f] border-white/[0.08]'
+      }`}>
         <div className="flex items-center gap-2">
           <div className="p-1.5 rounded-lg bg-[#c5a059]/15 text-[#c5a059]">
             <ShoppingCart className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="font-extrabold text-white text-xs sm:text-sm uppercase tracking-wider font-serif">Register Invoice</h3>
-            <p className="text-[10px] text-white/40">{totalItemCount} {totalItemCount === 1 ? 'item' : 'items'} in order</p>
+            <h3 className={`font-extrabold text-xs sm:text-sm uppercase tracking-wider font-serif ${
+              isLight ? 'text-stone-900' : 'text-white'
+            }`}>Register Invoice</h3>
+            <p className={`text-[10px] ${isLight ? 'text-stone-500' : 'text-white/40'}`}>
+              {totalItemCount} {totalItemCount === 1 ? 'item' : 'items'} in order
+            </p>
           </div>
         </div>
 
         {isMobileSheet && (
           <button 
             onClick={() => setIsMobileCartOpen(false)}
-            className="p-1.5 text-white/50 hover:text-white rounded-full bg-white/5 hover:bg-white/10"
+            className={`p-1.5 rounded-full ${
+              isLight ? 'text-stone-500 hover:text-stone-900 bg-stone-100 hover:bg-stone-200' : 'text-white/50 hover:text-white bg-white/5 hover:bg-white/10'
+            }`}
           >
             <X className="w-5 h-5" />
           </button>
@@ -299,17 +309,23 @@ export const PosExperience: React.FC = () => {
       {/* CUSTOMER IDENTIFICATION SECTION */}
       <div className="mx-3 mt-3 space-y-2">
         {associatedCustomer ? (
-          <div className="p-2.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 flex items-center justify-between">
+          <div className={`p-2.5 rounded-xl border flex items-center justify-between ${
+            isLight ? 'bg-emerald-50 border-emerald-300' : 'bg-emerald-950/40 border-emerald-500/30'
+          }`}>
             <div className="flex items-center gap-2 min-w-0">
-              <div className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-300 flex items-center justify-center font-bold text-xs">
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs ${
+                isLight ? 'bg-emerald-200 text-emerald-800' : 'bg-emerald-500/20 text-emerald-300'
+              }`}>
                 <UserCheck className="w-3.5 h-3.5" />
               </div>
               <div className="truncate">
                 <div className="flex items-center gap-1.5">
-                  <p className="text-xs font-bold text-emerald-200 truncate">{associatedCustomer.name}</p>
-                  <span className="text-[9px] bg-emerald-500/20 text-emerald-300 px-1 py-0.2 rounded font-bold">Loyalty Member</span>
+                  <p className={`text-xs font-bold truncate ${isLight ? 'text-emerald-900' : 'text-emerald-200'}`}>{associatedCustomer.name}</p>
+                  <span className={`text-[9px] px-1 py-0.2 rounded font-bold ${
+                    isLight ? 'bg-emerald-200 text-emerald-800' : 'bg-emerald-500/20 text-emerald-300'
+                  }`}>Loyalty Member</span>
                 </div>
-                <p className="text-[10px] text-emerald-400/80 font-mono">{associatedCustomer.loyaltyPoints} loyalty pts • {associatedCustomer.phone || associatedCustomer.email}</p>
+                <p className={`text-[10px] font-mono ${isLight ? 'text-emerald-700' : 'text-emerald-400/80'}`}>{associatedCustomer.loyaltyPoints} loyalty pts • {associatedCustomer.phone || associatedCustomer.email}</p>
               </div>
             </div>
             <button
@@ -317,21 +333,27 @@ export const PosExperience: React.FC = () => {
                 setAssociatedCustomer(null);
                 setCustomerNameInput('');
               }}
-              className="text-[10px] text-emerald-300 hover:text-emerald-100 font-bold px-2 py-1 rounded-lg bg-emerald-900/50 hover:bg-emerald-900 border border-emerald-700/40 cursor-pointer"
+              className={`text-[10px] font-bold px-2 py-1 rounded-lg border cursor-pointer ${
+                isLight ? 'text-emerald-800 hover:text-emerald-950 bg-emerald-100 hover:bg-emerald-200 border-emerald-300' : 'text-emerald-300 hover:text-emerald-100 bg-emerald-900/50 hover:bg-emerald-900 border-emerald-700/40'
+              }`}
             >
               Detach
             </button>
           </div>
         ) : (
-          <div className="bg-[#0b0c10] p-2.5 rounded-xl border border-white/10 space-y-2">
+          <div className={`p-2.5 rounded-xl border space-y-2 ${
+            isLight ? 'bg-white border-stone-200' : 'bg-[#0b0c10] border-white/10'
+          }`}>
             <div className="flex items-center justify-between">
-              <label className="text-[10px] uppercase font-extrabold text-white/50 tracking-wider flex items-center gap-1">
+              <label className={`text-[10px] uppercase font-extrabold tracking-wider flex items-center gap-1 ${
+                isLight ? 'text-stone-600' : 'text-white/50'
+              }`}>
                 <User className="w-3 h-3 text-[#c5a059]" /> Customer Name (Walk-in)
               </label>
               <button
                 type="button"
                 onClick={() => setShowCustomerModal(true)}
-                className="text-[10px] text-[#c5a059] hover:text-[#e0be77] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                className="text-[10px] text-[#c5a059] hover:text-[#b08c47] font-bold flex items-center gap-1 transition-colors cursor-pointer"
               >
                 <UserPlus className="w-3 h-3" /> Link Loyalty Acc
               </button>
@@ -342,13 +364,17 @@ export const PosExperience: React.FC = () => {
                 value={customerNameInput}
                 onChange={(e) => setCustomerNameInput(e.target.value)}
                 placeholder="Enter customer name (e.g. Maria, John)..."
-                className="w-full bg-[#171922] border border-white/10 focus:border-[#c5a059] rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-white/30 outline-none pr-7 transition-colors"
+                className={`w-full border rounded-lg px-2.5 py-1.5 text-xs outline-none pr-7 transition-colors ${
+                  isLight ? 'bg-stone-100 border-stone-300 text-stone-900 placeholder-stone-400 focus:border-amber-600' : 'bg-[#171922] border-white/10 text-white placeholder-white/30 focus:border-[#c5a059]'
+                }`}
               />
               {customerNameInput && (
                 <button
                   type="button"
                   onClick={() => setCustomerNameInput('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-white/40 hover:text-white p-0.5 cursor-pointer"
+                  className={`absolute right-2 top-1/2 -translate-y-1/2 p-0.5 cursor-pointer ${
+                    isLight ? 'text-stone-400 hover:text-stone-700' : 'text-white/40 hover:text-white'
+                  }`}
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -361,13 +387,15 @@ export const PosExperience: React.FC = () => {
       {/* SCROLLABLE CART ITEM LIST */}
       <div className="flex-1 overflow-y-auto p-3 space-y-2.5 scrollbar-none min-h-[160px]">
         {posCart.length === 0 ? (
-          <div className="text-center py-16 sm:py-24 text-white/30 space-y-3 px-4">
-            <div className="w-14 h-14 mx-auto rounded-2xl bg-white/[0.03] border border-white/5 flex items-center justify-center text-2xl">
+          <div className="text-center py-16 sm:py-24 space-y-3 px-4">
+            <div className={`w-14 h-14 mx-auto rounded-2xl border flex items-center justify-center text-2xl ${
+              isLight ? 'bg-stone-100 border-stone-200' : 'bg-white/[0.03] border-white/5'
+            }`}>
               ☕
             </div>
             <div>
-              <p className="text-xs font-bold text-white/60">Cart is Empty</p>
-              <p className="text-[11px] text-white/30 max-w-[200px] mx-auto mt-1">Tap coffee or pastry items from the menu to build an invoice ticket.</p>
+              <p className={`text-xs font-bold ${isLight ? 'text-stone-700' : 'text-white/60'}`}>Cart is Empty</p>
+              <p className={`text-[11px] max-w-[200px] mx-auto mt-1 ${isLight ? 'text-stone-500' : 'text-white/30'}`}>Tap coffee or pastry items from the menu to build an invoice ticket.</p>
             </div>
           </div>
         ) : (
@@ -379,11 +407,13 @@ export const PosExperience: React.FC = () => {
             return (
               <div 
                 key={index} 
-                className="bg-[#141620] p-3 rounded-xl border border-white/[0.07] hover:border-white/15 transition-all flex items-center justify-between text-xs gap-2.5 shadow-sm"
+                className={`p-3 rounded-xl border transition-all flex items-center justify-between text-xs gap-2.5 shadow-sm ${
+                  isLight ? 'bg-white border-stone-200 hover:border-stone-300' : 'bg-[#141620] border-white/[0.07] hover:border-white/15'
+                }`}
               >
                 <div className="min-w-0 flex-1 space-y-1">
                   <div className="flex items-baseline justify-between gap-1">
-                    <h4 className="font-bold text-white text-xs truncate">{item.product.name}</h4>
+                    <h4 className={`font-bold text-xs truncate ${isLight ? 'text-stone-900' : 'text-white'}`}>{item.product.name}</h4>
                     <span className="font-mono font-extrabold text-[#c5a059] text-xs">₱{unitPrice * item.quantity}</span>
                   </div>
 
@@ -392,7 +422,7 @@ export const PosExperience: React.FC = () => {
                       {item.selectedSize.name}
                     </span>
                     {item.selectedAddOns.length > 0 && (
-                      <span className="text-white/40 truncate max-w-[150px]">
+                      <span className={`truncate max-w-[150px] ${isLight ? 'text-stone-500' : 'text-white/40'}`}>
                         +{item.selectedAddOns.map(a => a.name).join(', ')}
                       </span>
                     )}
@@ -400,7 +430,9 @@ export const PosExperience: React.FC = () => {
                 </div>
 
                 {/* QUANTITY CONTROLLERS (Touch Friendly >= 36px) */}
-                <div className="flex items-center gap-1 bg-[#0a0b0f] border border-white/10 p-1 rounded-lg">
+                <div className={`flex items-center gap-1 border p-1 rounded-lg ${
+                  isLight ? 'bg-stone-100 border-stone-300' : 'bg-[#0a0b0f] border-white/10'
+                }`}>
                   <button
                     onClick={() => {
                       if (item.quantity > 1) {
@@ -409,16 +441,20 @@ export const PosExperience: React.FC = () => {
                         setPosCart(prev => prev.filter((_, idx) => idx !== index));
                       }
                     }}
-                    className="w-7 h-7 flex items-center justify-center bg-white/5 hover:bg-white/15 active:scale-95 rounded text-white/80 transition-all cursor-pointer"
+                    className={`w-7 h-7 flex items-center justify-center rounded transition-all cursor-pointer ${
+                      isLight ? 'bg-stone-200 hover:bg-stone-300 text-stone-700' : 'bg-white/5 hover:bg-white/15 text-white/80'
+                    }`}
                   >
                     <Minus className="w-3.5 h-3.5" />
                   </button>
-                  <span className="font-mono font-bold text-xs text-white w-5 text-center">{item.quantity}</span>
+                  <span className={`font-mono font-bold text-xs w-5 text-center ${isLight ? 'text-stone-900' : 'text-white'}`}>{item.quantity}</span>
                   <button
                     onClick={() => {
                       setPosCart(prev => prev.map((it, idx) => idx === index ? { ...it, quantity: it.quantity + 1 } : it));
                     }}
-                    className="w-7 h-7 flex items-center justify-center bg-white/5 hover:bg-white/15 active:scale-95 rounded text-white/80 transition-all cursor-pointer"
+                    className={`w-7 h-7 flex items-center justify-center rounded transition-all cursor-pointer ${
+                      isLight ? 'bg-stone-200 hover:bg-stone-300 text-stone-700' : 'bg-white/5 hover:bg-white/15 text-white/80'
+                    }`}
                   >
                     <Plus className="w-3.5 h-3.5" />
                   </button>
@@ -431,7 +467,9 @@ export const PosExperience: React.FC = () => {
 
       {/* POS CART CONTROL FOOTER */}
       {posCart.length > 0 && (
-        <div className="p-3.5 sm:p-4 border-t border-white/[0.08] bg-[#11131c] space-y-3 flex-shrink-0">
+        <div className={`p-3.5 sm:p-4 border-t space-y-3 flex-shrink-0 ${
+          isLight ? 'bg-white border-stone-200' : 'bg-[#11131c] border-white/[0.08]'
+        }`}>
           {/* Promo code application */}
           <div className="space-y-1">
             <div className="flex gap-2">
@@ -441,7 +479,11 @@ export const PosExperience: React.FC = () => {
                 value={voucherCodeInput}
                 onChange={(e) => setVoucherCodeInput(e.target.value)}
                 disabled={!!appliedPosVoucher}
-                className="flex-1 text-xs bg-[#090a0e] border border-white/10 outline-none px-3 py-2 rounded-xl uppercase font-mono disabled:bg-[#090a0e]/40 disabled:text-white/30 text-white placeholder:normal-case placeholder:text-white/30 focus:border-[#c5a059]"
+                className={`flex-1 text-xs border outline-none px-3 py-2 rounded-xl uppercase font-mono transition-colors ${
+                  isLight 
+                    ? 'bg-stone-100 border-stone-300 text-stone-900 placeholder:text-stone-400 focus:border-amber-600 disabled:bg-stone-200 disabled:text-stone-400' 
+                    : 'bg-[#090a0e] border-white/10 text-white placeholder:text-white/30 focus:border-[#c5a059] disabled:bg-[#090a0e]/40 disabled:text-white/30'
+                }`}
               />
               {appliedPosVoucher ? (
                 <button
@@ -463,13 +505,15 @@ export const PosExperience: React.FC = () => {
           </div>
 
           {/* Subtotal & Discount breakdown */}
-          <div className="text-xs text-white/60 space-y-1.5 bg-[#0a0b0f] p-3 rounded-xl border border-white/[0.05]">
+          <div className={`text-xs space-y-1.5 p-3 rounded-xl border ${
+            isLight ? 'bg-stone-50 border-stone-200 text-stone-600' : 'bg-[#0a0b0f] border-white/[0.05] text-white/60'
+          }`}>
             <div className="flex justify-between">
               <span>Subtotal ({totalItemCount} items)</span>
-              <span className="text-white font-mono font-medium">₱{posSubtotal}</span>
+              <span className={`font-mono font-medium ${isLight ? 'text-stone-900' : 'text-white'}`}>₱{posSubtotal}</span>
             </div>
             {posDiscount > 0 && (
-              <div className="flex justify-between text-emerald-400 font-bold">
+              <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-bold">
                 <span>Voucher Discount</span>
                 <span className="font-mono">-₱{posDiscount}</span>
               </div>
@@ -480,7 +524,9 @@ export const PosExperience: React.FC = () => {
                 <span>+{Math.floor(posTotal / (settings.loyaltySettings.amountRequired || 100))} pts</span>
               </div>
             )}
-            <div className="flex justify-between border-t border-white/10 pt-2 text-sm font-black text-white">
+            <div className={`flex justify-between border-t pt-2 text-sm font-black ${
+              isLight ? 'border-stone-200 text-stone-900' : 'border-white/10 text-white'
+            }`}>
               <span>Total Due</span>
               <span className="text-[#c5a059] font-mono text-base">₱{posTotal}</span>
             </div>
@@ -495,9 +541,11 @@ export const PosExperience: React.FC = () => {
                 setAppliedPosVoucher(null);
                 setIsMobileCartOpen(false);
               }}
-              className="border border-white/10 bg-white/[0.03] hover:bg-white/[0.08] active:scale-95 text-white/70 hover:text-white font-bold py-2.5 rounded-xl text-xs flex justify-center items-center gap-1.5 cursor-pointer transition-all"
+              className={`border font-bold py-2.5 rounded-xl text-xs flex justify-center items-center gap-1.5 cursor-pointer transition-all ${
+                isLight ? 'border-stone-300 bg-stone-100 hover:bg-stone-200 text-stone-700' : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.08] text-white/70 hover:text-white'
+              }`}
             >
-              <Trash2 className="w-3.5 h-3.5 text-rose-400" /> Clear
+              <Trash2 className="w-3.5 h-3.5 text-rose-500" /> Clear
             </button>
             <button
               onClick={handleHoldOrder}
@@ -528,8 +576,6 @@ export const PosExperience: React.FC = () => {
     </div>
   );
 
-  const isLight = settings?.branding?.theme === 'light';
-
   return (
     <div 
       className={`min-h-screen ${isLight ? 'bg-stone-100 text-stone-900' : 'bg-[#07080c] text-[#f2f2f2]'} flex flex-col font-sans select-none overflow-x-hidden pb-20 lg:pb-6 transition-colors duration-300`}
@@ -541,7 +587,7 @@ export const PosExperience: React.FC = () => {
         <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[var(--color-primary)] to-transparent opacity-80" />
 
         <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-white flex items-center justify-center overflow-hidden shrink-0">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-white flex items-center justify-center overflow-hidden shrink-0 shadow-sm border border-stone-200">
             {settings.branding.logoUrl ? (
               <img src={settings.branding.logoUrl} alt="Logo" className="w-full h-full object-cover" />
             ) : (
@@ -562,21 +608,25 @@ export const PosExperience: React.FC = () => {
               </span>
               <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold border ${
                 settings?.storeStatus?.isOpen !== false
-                  ? 'bg-emerald-950/80 text-emerald-300 border-emerald-600/40'
-                  : 'bg-rose-950/80 text-rose-300 border-rose-600/40'
+                  ? isLight ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-emerald-950/80 text-emerald-300 border-emerald-600/40'
+                  : isLight ? 'bg-rose-100 text-rose-800 border-rose-300' : 'bg-rose-950/80 text-rose-300 border-rose-600/40'
               }`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${settings?.storeStatus?.isOpen !== false ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'}`} />
+                <span className={`w-1.5 h-1.5 rounded-full ${settings?.storeStatus?.isOpen !== false ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
                 <span>{settings?.storeStatus?.isOpen !== false ? 'OPEN' : 'CLOSED'}</span>
               </div>
             </div>
 
             {/* BOLD POS CASHIER & COMMAND CENTER POS SUBTITLE BANNER */}
             <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-              <span className="text-[10px] sm:text-xs font-mono font-black text-emerald-400 uppercase tracking-widest">
+              <span className={`text-[10px] sm:text-xs font-mono font-black uppercase tracking-widest ${
+                isLight ? 'text-emerald-700' : 'text-emerald-400'
+              }`}>
                 POS CASHIER
               </span>
-              <span className="text-white/20 hidden sm:inline">•</span>
-              <span className="text-[9px] sm:text-[10px] font-sans font-bold text-white/50 tracking-wider uppercase hidden xs:inline">
+              <span className={`${isLight ? 'text-stone-300' : 'text-white/20'} hidden sm:inline`}>•</span>
+              <span className={`text-[9px] sm:text-[10px] font-sans font-bold tracking-wider uppercase hidden xs:inline ${
+                isLight ? 'text-stone-500' : 'text-white/50'
+              }`}>
                 COMMAND CENTER POS
               </span>
             </div>
@@ -588,15 +638,23 @@ export const PosExperience: React.FC = () => {
           <InstallAppButton />
 
           {/* CASHIER PROFILE & LOGOUT */}
-          <div className="flex items-center gap-2 border-l border-white/10 pl-2 sm:pl-3">
-            <span className="text-[11px] text-stone-400 font-medium hidden md:inline">
-              Cashier: <strong className="text-white uppercase">{currentUser?.name}</strong>
+          <div className={`flex items-center gap-2 border-l pl-2 sm:pl-3 ${
+            isLight ? 'border-stone-200' : 'border-white/10'
+          }`}>
+            <span className={`text-[11px] font-medium hidden md:inline ${
+              isLight ? 'text-stone-600' : 'text-stone-400'
+            }`}>
+              Cashier: <strong className={isLight ? 'text-stone-900 uppercase' : 'text-white uppercase'}>{currentUser?.name}</strong>
             </span>
             <button
               id="pos-signout-btn"
               onClick={() => logout()}
               title="Sign Out of Cashier Station"
-              className="text-[10px] font-bold bg-rose-950/40 hover:bg-rose-900/60 border border-rose-500/30 text-rose-200 p-1.5 sm:px-2.5 sm:py-1 rounded-lg flex items-center gap-1 transition-all cursor-pointer"
+              className={`text-[10px] font-bold p-1.5 sm:px-2.5 sm:py-1 rounded-lg flex items-center gap-1 transition-all cursor-pointer border ${
+                isLight
+                  ? 'bg-rose-50 hover:bg-rose-100 border-rose-300 text-rose-800'
+                  : 'bg-rose-950/40 hover:bg-rose-900/60 border border-rose-500/30 text-rose-200'
+              }`}
             >
               <LogOut className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Sign Out</span>
@@ -607,16 +665,24 @@ export const PosExperience: React.FC = () => {
 
       {/* STORE CLOSED BANNER */}
       {settings.storeStatus?.isOpen === false && (
-        <div className="bg-rose-950/90 border-b border-rose-900 text-rose-200 text-xs py-2 px-4 sticky top-[49px] sm:top-[57px] z-35 shadow-md flex items-center justify-center gap-2">
-          <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
-          <span className="font-bold text-center">Store Operations Status: <strong className="text-white uppercase">CLOSED</strong>. POS new register orders are paused.</span>
+        <div className={`border-b text-xs py-2 px-4 sticky top-[49px] sm:top-[57px] z-35 shadow-md flex items-center justify-center gap-2 ${
+          isLight
+            ? 'bg-rose-100 border-rose-300 text-rose-900'
+            : 'bg-rose-950/90 border-rose-900 text-rose-200'
+        }`}>
+          <AlertCircle className={`w-4 h-4 shrink-0 ${isLight ? 'text-rose-600' : 'text-rose-400'}`} />
+          <span className="font-bold text-center">Store Operations Status: <strong className="uppercase">CLOSED</strong>. POS new register orders are paused.</span>
         </div>
       )}
 
       {/* SELECTION BAR AFTER TOP BAR (MENU ITEMS, REGISTER, TRANSACTIONS) */}
-      <div className="bg-[#0b0c10] border-b border-white/10 px-3 sm:px-6 py-2 sticky top-[49px] sm:top-[57px] z-30 shadow-md">
+      <div className={`border-b px-3 sm:px-6 py-2 sticky top-[49px] sm:top-[57px] z-30 shadow-md ${
+        isLight ? 'bg-white border-stone-200' : 'bg-[#0b0c10] border-white/10'
+      }`}>
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
-          <nav className="flex items-center gap-1.5 sm:gap-2 p-1 bg-[#141620] rounded-xl border border-white/10 w-full sm:w-auto">
+          <nav className={`flex items-center gap-1.5 sm:gap-2 p-1 rounded-xl border w-full sm:w-auto ${
+            isLight ? 'bg-stone-100 border-stone-200' : 'bg-[#141620] border-white/10'
+          }`}>
             {/* 1. Menu Items */}
             <button
               id="pos-nav-menu"
@@ -624,7 +690,7 @@ export const PosExperience: React.FC = () => {
               className={`flex-1 sm:flex-initial px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${
                 activeView === 'menu'
                   ? 'bg-[#c5a059] text-black shadow-md font-extrabold'
-                  : 'text-white/60 hover:text-white hover:bg-white/5'
+                  : isLight ? 'text-stone-600 hover:text-stone-900 hover:bg-stone-200' : 'text-white/60 hover:text-white hover:bg-white/5'
               }`}
             >
               <Coffee className="w-3.5 h-3.5" />
@@ -638,7 +704,7 @@ export const PosExperience: React.FC = () => {
               className={`flex-1 sm:flex-initial px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2 relative ${
                 activeView === 'register'
                   ? 'bg-[#c5a059] text-black shadow-md font-extrabold'
-                  : 'text-white/60 hover:text-white hover:bg-white/5'
+                  : isLight ? 'text-stone-600 hover:text-stone-900 hover:bg-stone-200' : 'text-white/60 hover:text-white hover:bg-white/5'
               }`}
             >
               <ShoppingBag className="w-3.5 h-3.5" />
@@ -659,33 +725,39 @@ export const PosExperience: React.FC = () => {
               className={`flex-1 sm:flex-initial px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${
                 activeView === 'transactions'
                   ? 'bg-[#c5a059] text-black shadow-md font-extrabold'
-                  : 'text-white/60 hover:text-white hover:bg-white/5'
+                  : isLight ? 'text-stone-600 hover:text-stone-900 hover:bg-stone-200' : 'text-white/60 hover:text-white hover:bg-white/5'
               }`}
             >
               <ReceiptText className="w-3.5 h-3.5" />
               <span>Transactions</span>
               {orders.filter(o => o.orderStatus === 'pending' || o.orderStatus === 'preparing').length > 0 && (
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               )}
             </button>
           </nav>
 
           {/* Quick stats on larger screens */}
-          <div className="hidden sm:flex items-center gap-3 text-xs text-white/50">
+          <div className={`hidden sm:flex items-center gap-3 text-xs ${isLight ? 'text-stone-600' : 'text-white/50'}`}>
             {heldOrders.length > 0 && (
               <button
                 onClick={() => handleResumeHeldOrder(heldOrders[0].id)}
-                className="text-amber-400/90 hover:text-amber-300 font-mono text-[11px] bg-amber-950/40 border border-amber-500/30 px-2.5 py-1 rounded-lg flex items-center gap-1.5 cursor-pointer transition-colors animate-pulse"
+                className={`font-mono text-[11px] px-2.5 py-1 rounded-lg flex items-center gap-1.5 cursor-pointer transition-colors animate-pulse border ${
+                  isLight
+                    ? 'text-amber-800 bg-amber-100 border-amber-300 hover:bg-amber-200'
+                    : 'text-amber-400/90 hover:text-amber-300 bg-amber-950/40 border-amber-500/30'
+                }`}
                 title="Resume oldest held order"
               >
-                <Play className="w-2.5 h-2.5 fill-amber-400" />
+                <Play className="w-2.5 h-2.5 fill-amber-500" />
                 <span>{heldOrders.length} Held Ticket{heldOrders.length > 1 ? 's' : ''}</span>
               </button>
             )}
-            <div className="flex items-center gap-1.5 font-mono text-white/50 bg-[#141620] px-3 py-1.5 rounded-lg border border-white/5">
+            <div className={`flex items-center gap-1.5 font-mono px-3 py-1.5 rounded-lg border ${
+              isLight ? 'bg-stone-100 text-stone-700 border-stone-200' : 'bg-[#141620] text-white/50 border-white/5'
+            }`}>
               <span>Invoice:</span>
               <strong className="text-[#c5a059]">₱{posTotal}</strong>
-              <span className="text-[11px] text-white/40">({totalItemCount} {totalItemCount === 1 ? 'item' : 'items'})</span>
+              <span className={`text-[11px] ${isLight ? 'text-stone-500' : 'text-white/40'}`}>({totalItemCount} {totalItemCount === 1 ? 'item' : 'items'})</span>
             </div>
           </div>
         </div>
@@ -706,13 +778,17 @@ export const PosExperience: React.FC = () => {
                     placeholder="Search coffee, drinks, or pastries..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full text-xs bg-[#12141c] border border-white/10 rounded-xl py-2.5 px-3.5 pl-9 outline-none focus:border-[#c5a059] text-white placeholder-white/35 shadow-inner"
+                    className={`w-full text-xs rounded-xl py-2.5 px-3.5 pl-9 outline-none shadow-inner border transition-colors ${
+                      isLight
+                        ? 'bg-white border-stone-300 text-stone-900 placeholder-stone-400 focus:border-amber-600'
+                        : 'bg-[#12141c] border-white/10 text-white placeholder-white/35 focus:border-[#c5a059]'
+                    }`}
                   />
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 w-4 h-4" />
+                  <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${isLight ? 'text-stone-400' : 'text-white/40'}`} />
                   {searchQuery && (
                     <button 
                       onClick={() => setSearchQuery('')}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white text-xs"
+                      className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs p-1 ${isLight ? 'text-stone-400 hover:text-stone-700' : 'text-white/40 hover:text-white'}`}
                     >
                       ✕
                     </button>
@@ -722,7 +798,11 @@ export const PosExperience: React.FC = () => {
                 {/* LOYALTY LOOKUP BUTTON */}
                 <button
                   onClick={() => setShowCustomerModal(true)}
-                  className="bg-[#12141c] hover:bg-[#1a1d28] border border-[#c5a059]/40 text-[#c5a059] text-xs font-bold px-3.5 py-2.5 rounded-xl flex items-center justify-center gap-2 shadow-sm cursor-pointer transition-all active:scale-98 whitespace-nowrap"
+                  className={`text-xs font-bold px-3.5 py-2.5 rounded-xl flex items-center justify-center gap-2 shadow-sm cursor-pointer transition-all active:scale-98 whitespace-nowrap border ${
+                    isLight
+                      ? 'bg-white hover:bg-amber-50 border-amber-600/40 text-amber-900'
+                      : 'bg-[#12141c] hover:bg-[#1a1d28] border-[#c5a059]/40 text-[#c5a059]'
+                  }`}
                 >
                   <UserPlus className="w-4 h-4" />
                   <span>{associatedCustomer ? associatedCustomer.name : 'Loyalty Lookup'}</span>
@@ -812,7 +892,7 @@ export const PosExperience: React.FC = () => {
                   className={`px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-bold whitespace-nowrap border cursor-pointer transition-all flex items-center gap-2 shadow-sm ${
                     selectedCategory === 'all'
                       ? 'bg-[#c5a059] text-black border-[#c5a059] shadow-md font-extrabold ring-1 ring-[#c5a059]/40'
-                      : 'bg-[#12141c] border-white/10 text-white/70 hover:bg-[#181a24] hover:text-white'
+                      : isLight ? 'bg-white border-stone-300 text-stone-700 hover:bg-stone-100 hover:text-stone-900' : 'bg-[#12141c] border-white/10 text-white/70 hover:bg-[#181a24] hover:text-white'
                   }`}
                 >
                   <Layers className="w-3.5 h-3.5" />
@@ -820,7 +900,7 @@ export const PosExperience: React.FC = () => {
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-black transition-colors ${
                     selectedCategory === 'all'
                       ? 'bg-black/20 text-black'
-                      : 'bg-white/10 text-white/60'
+                      : isLight ? 'bg-stone-200 text-stone-700' : 'bg-white/10 text-white/60'
                   }`}>
                     {getCategoryProductCount('all')}
                   </span>
@@ -836,7 +916,7 @@ export const PosExperience: React.FC = () => {
                       className={`px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-bold whitespace-nowrap border cursor-pointer transition-all flex items-center gap-2 shadow-sm ${
                         isSelected
                           ? 'bg-[#c5a059] text-black border-[#c5a059] shadow-md font-extrabold ring-1 ring-[#c5a059]/40'
-                          : 'bg-[#12141c] border-white/10 text-white/70 hover:bg-[#181a24] hover:text-white'
+                          : isLight ? 'bg-white border-stone-300 text-stone-700 hover:bg-stone-100 hover:text-stone-900' : 'bg-[#12141c] border-white/10 text-white/70 hover:bg-[#181a24] hover:text-white'
                       }`}
                     >
                       <CategoryIcon iconId={cat.icon} categoryName={cat.name} className="w-3.5 h-3.5 shrink-0" />
@@ -844,7 +924,7 @@ export const PosExperience: React.FC = () => {
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-black transition-colors ${
                         isSelected
                           ? 'bg-black/20 text-black'
-                          : 'bg-white/10 text-white/60'
+                          : isLight ? 'bg-stone-200 text-stone-700' : 'bg-white/10 text-white/60'
                       }`}>
                         {count}
                       </span>
@@ -855,9 +935,11 @@ export const PosExperience: React.FC = () => {
 
               {/* PRODUCT CARDS GRID (MOBILE FRIENDLY: 2 cols on mobile, 3-4 cols on tablet/desktop) */}
               {filteredProducts.length === 0 ? (
-                <div className="bg-[#12141c] border border-white/10 rounded-2xl p-12 text-center text-white/40 space-y-2">
-                  <p className="text-sm font-bold text-white/60">No products found</p>
-                  <p className="text-xs text-white/30">Try selecting another category or clear search terms.</p>
+                <div className={`border rounded-2xl p-12 text-center space-y-2 ${
+                  isLight ? 'bg-white border-stone-200 text-stone-500' : 'bg-[#12141c] border-white/10 text-white/40'
+                }`}>
+                  <p className={`text-sm font-bold ${isLight ? 'text-stone-800' : 'text-white/60'}`}>No products found</p>
+                  <p className={`text-xs ${isLight ? 'text-stone-500' : 'text-white/30'}`}>Try selecting another category or clear search terms.</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-3.5 pb-6">
@@ -865,18 +947,22 @@ export const PosExperience: React.FC = () => {
                     <button
                       key={prod.id}
                       onClick={() => handleProductClick(prod)}
-                      className="bg-[#12141c] rounded-2xl border border-white/[0.08] p-2 sm:p-2.5 text-left flex flex-col justify-between hover:shadow-xl hover:border-[#c5a059]/50 hover:bg-[#161822] active:scale-[0.98] transition-all cursor-pointer group relative overflow-hidden"
+                      className={`rounded-2xl border p-2 sm:p-2.5 text-left flex flex-col justify-between hover:shadow-xl active:scale-[0.98] transition-all cursor-pointer group relative overflow-hidden ${
+                        isLight
+                          ? 'bg-white border-stone-200 hover:border-amber-500/60 hover:bg-amber-50/30'
+                          : 'bg-[#12141c] border-white/[0.08] hover:border-[#c5a059]/50 hover:bg-[#161822]'
+                      }`}
                     >
                       <div className="space-y-2 w-full">
                         {/* PRODUCT IMAGE WITH GRADIENT & STOCK TAG */}
-                        <div className="relative w-full h-24 sm:h-28 rounded-xl overflow-hidden bg-white/5">
+                        <div className={`relative w-full h-24 sm:h-28 rounded-xl overflow-hidden ${isLight ? 'bg-stone-100' : 'bg-white/5'}`}>
                           <img
                             src={prod.image || 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&q=80&w=200'}
                             alt={prod.name}
                             referrerPolicy="no-referrer"
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80" />
                           
                           {/* Stock Status Badge */}
                           {prod.stockTracking && prod.stockQuantity <= 10 && (
@@ -892,21 +978,27 @@ export const PosExperience: React.FC = () => {
 
                         {/* PRODUCT DETAILS */}
                         <div>
-                          <h4 className="text-xs sm:text-sm font-bold text-white group-hover:text-[#c5a059] transition-colors line-clamp-1 leading-tight">
+                          <h4 className={`text-xs sm:text-sm font-bold transition-colors line-clamp-1 leading-tight ${
+                            isLight ? 'text-stone-900 group-hover:text-amber-800' : 'text-white group-hover:text-[#c5a059]'
+                          }`}>
                             {prod.name}
                           </h4>
-                          <p className="text-[10px] text-white/40 line-clamp-1 mt-0.5">
+                          <p className={`text-[10px] line-clamp-1 mt-0.5 ${
+                            isLight ? 'text-stone-500 font-medium' : 'text-white/40'
+                          }`}>
                             {prod.description}
                           </p>
                         </div>
                       </div>
 
                       {/* BOTTOM PRICE & QUICK ADD BUTTON */}
-                      <div className="flex justify-between items-center mt-2.5 w-full border-t border-white/[0.06] pt-2">
+                      <div className={`flex justify-between items-center mt-2.5 w-full border-t pt-2 ${
+                        isLight ? 'border-stone-200' : 'border-white/[0.06]'
+                      }`}>
                         <div>
                           <span className="text-xs sm:text-sm font-mono font-extrabold text-[#c5a059]">₱{prod.price}</span>
                           {prod.sizes && prod.sizes.length > 1 && (
-                            <span className="text-[9px] text-white/30 block font-sans">Options</span>
+                            <span className={`text-[9px] block font-sans ${isLight ? 'text-stone-400 font-medium' : 'text-white/30'}`}>Options</span>
                           )}
                         </div>
                         <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-[#c5a059]/15 group-hover:bg-[#c5a059] text-[#c5a059] group-hover:text-black flex items-center justify-center transition-colors font-bold shadow-sm">
@@ -920,7 +1012,9 @@ export const PosExperience: React.FC = () => {
             </div>
 
             {/* B. DESKTOP CART SIDEBAR (Hidden on mobile < lg, shown on desktop lg:col-span-4) */}
-            <div className="hidden lg:block lg:col-span-4 sticky top-28 h-[calc(100vh-8.5rem)] rounded-2xl border border-white/10 overflow-hidden shadow-2xl">
+            <div className={`hidden lg:block lg:col-span-4 sticky top-28 h-[calc(100vh-8.5rem)] rounded-2xl border overflow-hidden shadow-2xl ${
+              isLight ? 'border-stone-200 bg-white' : 'border-white/10'
+            }`}>
               {renderCartContent(false)}
             </div>
           </div>
@@ -928,7 +1022,9 @@ export const PosExperience: React.FC = () => {
 
         {activeView === 'register' && (
           <div className="max-w-2xl mx-auto w-full">
-            <div className="rounded-2xl border border-white/10 overflow-hidden shadow-2xl min-h-[580px] bg-[#0e1017]">
+            <div className={`rounded-2xl border overflow-hidden shadow-2xl min-h-[580px] ${
+              isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#0e1017] border-white/10'
+            }`}>
               {renderCartContent(false)}
             </div>
           </div>
@@ -939,12 +1035,14 @@ export const PosExperience: React.FC = () => {
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
-                <h3 className="font-bold text-white text-base font-serif tracking-wide">Transactions Queue & Operations</h3>
-                <p className="text-xs text-white/40">Real-time synced customer & POS orders</p>
+                <h3 className={`font-bold text-base font-serif tracking-wide ${isLight ? 'text-stone-900' : 'text-white'}`}>Transactions Queue & Operations</h3>
+                <p className={`text-xs ${isLight ? 'text-stone-500' : 'text-white/40'}`}>Real-time synced customer & POS orders</p>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-[11px] bg-emerald-950/40 border border-emerald-500/30 text-emerald-400 px-2.5 py-1 rounded-lg font-mono font-bold flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" /> Live Synced
+                <span className={`text-[11px] px-2.5 py-1 rounded-lg font-mono font-bold flex items-center gap-1.5 border ${
+                  isLight ? 'bg-emerald-100 border-emerald-300 text-emerald-800' : 'bg-emerald-950/40 border-emerald-500/30 text-emerald-400'
+                }`}>
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" /> Live Synced
                 </span>
               </div>
             </div>
@@ -968,14 +1066,14 @@ export const PosExperience: React.FC = () => {
                     className={`px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-bold whitespace-nowrap border cursor-pointer transition-all flex items-center gap-2 shadow-sm ${
                       isSelected
                         ? 'bg-[#c5a059] text-black border-[#c5a059] shadow-md font-extrabold ring-1 ring-[#c5a059]/40'
-                        : 'bg-[#12141c] border-white/10 text-white/70 hover:bg-[#181a24] hover:text-white'
+                        : isLight ? 'bg-white border-stone-300 text-stone-700 hover:bg-stone-100 hover:text-stone-900' : 'bg-[#12141c] border-white/10 text-white/70 hover:bg-[#181a24] hover:text-white'
                     }`}
                   >
                     <span>{pill.label}</span>
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-black transition-colors ${
                       isSelected
                         ? 'bg-black/20 text-black'
-                        : 'bg-white/10 text-white/60'
+                        : isLight ? 'bg-stone-200 text-stone-700' : 'bg-white/10 text-white/60'
                     }`}>
                       {pill.count}
                     </span>
@@ -995,22 +1093,28 @@ export const PosExperience: React.FC = () => {
 
                 if (displayedOrders.length === 0) {
                   return (
-                    <div className="bg-[#12141c] p-8 rounded-2xl border border-white/10 text-center text-white/30 text-xs">
+                    <div className={`p-8 rounded-2xl border text-center text-xs ${
+                      isLight ? 'bg-white border-stone-200 text-stone-400' : 'bg-[#12141c] border-white/10 text-white/30'
+                    }`}>
                       No transactions matching the selected filter.
                     </div>
                   );
                 }
 
                 return displayedOrders.map(ord => (
-                  <div key={ord.id} className="bg-[#12141c] p-3.5 rounded-2xl border border-white/10 space-y-3 shadow-md">
-                    <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                  <div key={ord.id} className={`p-3.5 rounded-2xl border space-y-3 shadow-md ${
+                    isLight ? 'bg-white border-stone-200' : 'bg-[#12141c] border-white/10'
+                  }`}>
+                    <div className={`flex items-center justify-between border-b pb-2 ${
+                      isLight ? 'border-stone-200' : 'border-white/5'
+                    }`}>
                       <div>
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="font-mono font-black text-[#c5a059] text-xs">#{ord.orderNumber.slice(-8)}</span>
                           <span className={`inline-flex items-center gap-1 text-[9px] font-extrabold px-1.5 py-0.5 rounded ${
                             ord.orderSource === 'pos' 
-                              ? 'bg-blue-950/70 text-blue-300 border border-blue-800/40' 
-                              : 'bg-purple-950/70 text-purple-300 border border-purple-800/40'
+                              ? isLight ? 'bg-blue-100 text-blue-800 border border-blue-300' : 'bg-blue-950/70 text-blue-300 border border-blue-800/40' 
+                              : isLight ? 'bg-purple-100 text-purple-800 border border-purple-300' : 'bg-purple-950/70 text-purple-300 border border-purple-800/40'
                           }`}>
                             {ord.orderSource === 'pos' ? (
                               <><Store className="w-2.5 h-2.5" /> POS Counter</>
@@ -1019,23 +1123,26 @@ export const PosExperience: React.FC = () => {
                             )}
                           </span>
                         </div>
-                        <p className="text-xs font-bold text-white mt-1 flex items-center gap-1">
+                        <p className={`text-xs font-bold mt-1 flex items-center gap-1 ${isLight ? 'text-stone-900' : 'text-white'}`}>
                           <User className="w-3 h-3 text-[#c5a059]" /> {ord.customerName}
                         </p>
                         {ord.cashierName && (
-                          <p className="text-[10px] text-white/40">Cashier: {ord.cashierName}</p>
+                          <p className={`text-[10px] ${isLight ? 'text-stone-500' : 'text-white/40'}`}>Cashier: {ord.cashierName}</p>
                         )}
                       </div>
                       <div className="flex flex-col items-end gap-1">
                         <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
-                          ord.paymentStatus === 'paid' ? 'bg-emerald-950 text-emerald-300 border border-emerald-900/30' : 'bg-amber-950 text-amber-300 border border-amber-900/30'
+                          ord.paymentStatus === 'paid' 
+                            ? isLight ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' : 'bg-emerald-950 text-emerald-300 border border-emerald-900/30'
+                            : isLight ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-amber-950 text-amber-300 border border-amber-900/30'
                         }`}>
                           {ord.paymentStatus}
                         </span>
                         <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
-                          ord.orderStatus === 'completed' ? 'bg-emerald-950 text-emerald-300 border border-emerald-900/30' :
-                          ord.orderStatus === 'ready' ? 'bg-indigo-950 text-indigo-300 border border-indigo-900/30' :
-                          ord.orderStatus === 'preparing' ? 'bg-amber-950 text-amber-300 border border-amber-900/30' : 'bg-white/5 text-white/50'
+                          ord.orderStatus === 'completed' ? (isLight ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' : 'bg-emerald-950 text-emerald-300 border border-emerald-900/30') :
+                          ord.orderStatus === 'ready' ? (isLight ? 'bg-indigo-100 text-indigo-900 border border-indigo-300' : 'bg-indigo-950 text-indigo-300 border border-indigo-900/30') :
+                          ord.orderStatus === 'preparing' ? (isLight ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-amber-950 text-amber-300 border border-amber-900/30') :
+                          (isLight ? 'bg-stone-100 text-stone-600 border border-stone-200' : 'bg-white/5 text-white/50')
                         }`}>
                           {ord.orderStatus}
                         </span>
@@ -1043,28 +1150,28 @@ export const PosExperience: React.FC = () => {
                     </div>
 
                     <div className="flex justify-between items-center text-xs">
-                      <div className="text-white/60 text-[11px] space-y-0.5">
-                        <p>Type: <strong className="text-white capitalize">{ord.orderType.replace('_', ' ')}</strong></p>
-                        <p>Payment: <strong className="text-white uppercase">{ord.paymentMethod}</strong></p>
+                      <div className={`text-[11px] space-y-0.5 ${isLight ? 'text-stone-600' : 'text-white/60'}`}>
+                        <p>Type: <strong className={`capitalize ${isLight ? 'text-stone-900' : 'text-white'}`}>{ord.orderType.replace('_', ' ')}</strong></p>
+                        <p>Payment: <strong className={`uppercase ${isLight ? 'text-stone-900' : 'text-white'}`}>{ord.paymentMethod}</strong></p>
                         <div className="pt-1 max-h-16 overflow-y-auto">
                           {ord.items.map((it, i) => (
                             <div key={i} className="flex flex-col">
-                              <span className="text-white/80"><strong className="text-[#c5a059]">{it.quantity}x</strong> {it.name} <span className="text-white/40">({it.selectedSize})</span></span>
+                              <span className={isLight ? 'text-stone-800' : 'text-white/80'}><strong className="text-[#c5a059]">{it.quantity}x</strong> {it.name} <span className={isLight ? 'text-stone-500' : 'text-white/40'}>({it.selectedSize})</span></span>
                               {it.selectedAddOns && it.selectedAddOns.length > 0 && (
-                                <span className="text-white/40 italic text-[10px] pl-3">+ {it.selectedAddOns.join(', ')}</span>
+                                <span className={`italic text-[10px] pl-3 ${isLight ? 'text-stone-500' : 'text-white/40'}`}>+ {it.selectedAddOns.join(', ')}</span>
                               )}
                             </div>
                           ))}
                         </div>
                       </div>
                       <div className="text-right">
-                        <span className="text-[10px] text-white/40 block">Total Due</span>
+                        <span className={`text-[10px] block ${isLight ? 'text-stone-500' : 'text-white/40'}`}>Total Due</span>
                         <span className="font-mono font-black text-[#c5a059] text-sm">₱{ord.total}</span>
                       </div>
                     </div>
 
                     {/* Fulfill / Payment buttons */}
-                    <div className="flex gap-2 pt-1 border-t border-white/5">
+                    <div className={`flex gap-2 pt-1 border-t ${isLight ? 'border-stone-200' : 'border-white/5'}`}>
                       {ord.paymentStatus === 'unpaid' && (
                         <button
                           onClick={() => updatePaymentStatus(ord.id, 'paid')}
@@ -1088,10 +1195,14 @@ export const PosExperience: React.FC = () => {
             </div>
 
             {/* DESKTOP TABLE VIEW (>= md) */}
-            <div className="hidden md:block bg-[#12141c] rounded-2xl border border-white/10 shadow-xl overflow-hidden">
+            <div className={`hidden md:block rounded-2xl border shadow-xl overflow-hidden ${
+              isLight ? 'bg-white border-stone-200' : 'bg-[#12141c] border-white/10'
+            }`}>
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="bg-[#0b0c10] border-b border-white/10 text-white/50 uppercase tracking-widest font-extrabold text-[10px]">
+                  <tr className={`border-b uppercase tracking-widest font-extrabold text-[10px] ${
+                    isLight ? 'bg-stone-100 border-stone-200 text-stone-600' : 'bg-[#0b0c10] border-white/10 text-white/50'
+                  }`}>
                     <th className="p-3.5">Invoice #</th>
                     <th className="p-3.5">Source</th>
                     <th className="p-3.5">Customer</th>
@@ -1103,7 +1214,7 @@ export const PosExperience: React.FC = () => {
                     <th className="p-3.5 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
+                <tbody className={`divide-y ${isLight ? 'divide-stone-200' : 'divide-white/5'}`}>
                   {(() => {
                     const displayedOrders = orders.filter(ord => {
                       if (txStatusFilter === 'all') return true;
@@ -1114,19 +1225,19 @@ export const PosExperience: React.FC = () => {
                     if (displayedOrders.length === 0) {
                       return (
                         <tr>
-                          <td colSpan={8} className="p-8 text-center text-white/30">No transactions matching the selected filter.</td>
+                          <td colSpan={8} className={`p-8 text-center ${isLight ? 'text-stone-400' : 'text-white/30'}`}>No transactions matching the selected filter.</td>
                         </tr>
                       );
                     }
 
                     return displayedOrders.map(ord => (
-                      <tr key={ord.id} className="hover:bg-white/[0.03] transition-colors">
+                      <tr key={ord.id} className={`transition-colors ${isLight ? 'hover:bg-stone-50' : 'hover:bg-white/[0.03]'}`}>
                         <td className="p-3.5 font-mono font-bold text-[#c5a059]">#{ord.orderNumber.slice(-8)}</td>
                         <td className="p-3.5">
                           <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md ${
                             ord.orderSource === 'pos'
-                              ? 'bg-blue-950/80 text-blue-300 border border-blue-800/40'
-                              : 'bg-purple-950/80 text-purple-300 border border-purple-800/40'
+                              ? isLight ? 'bg-blue-100 text-blue-800 border border-blue-300' : 'bg-blue-950/80 text-blue-300 border border-blue-800/40'
+                              : isLight ? 'bg-purple-100 text-purple-800 border border-purple-300' : 'bg-purple-950/80 text-purple-300 border border-purple-800/40'
                           }`}>
                             {ord.orderSource === 'pos' ? (
                               <><Store className="w-3 h-3" /> POS Counter</>
@@ -1136,10 +1247,10 @@ export const PosExperience: React.FC = () => {
                           </span>
                         </td>
                         <td className="p-3.5">
-                          <p className="font-bold text-white flex items-center gap-1">
+                          <p className={`font-bold flex items-center gap-1 ${isLight ? 'text-stone-900' : 'text-white'}`}>
                             <User className="w-3 h-3 text-[#c5a059]" /> {ord.customerName}
                           </p>
-                          <div className="flex items-center gap-2 mt-0.5 text-[10px] text-white/40">
+                          <div className={`flex items-center gap-2 mt-0.5 text-[10px] ${isLight ? 'text-stone-500' : 'text-white/40'}`}>
                             <span className="uppercase">{ord.paymentMethod}</span>
                             {ord.cashierName && (
                               <span>• Cashier: {ord.cashierName}</span>
@@ -1150,35 +1261,40 @@ export const PosExperience: React.FC = () => {
                           <div className="space-y-1 max-h-16 overflow-y-auto">
                             {ord.items.map((it, i) => (
                               <div key={i} className="flex flex-col">
-                                <span className="text-white/80 font-bold">{it.quantity}x {it.name} <span className="text-white/40 font-normal">({it.selectedSize})</span></span>
+                                <span className={`font-bold ${isLight ? 'text-stone-800' : 'text-white/80'}`}>{it.quantity}x {it.name} <span className={`font-normal ${isLight ? 'text-stone-500' : 'text-white/40'}`}>({it.selectedSize})</span></span>
                                 {it.selectedAddOns && it.selectedAddOns.length > 0 && (
-                                  <span className="text-white/40 italic">+ {it.selectedAddOns.join(', ')}</span>
+                                  <span className={`italic ${isLight ? 'text-stone-500' : 'text-white/40'}`}>+ {it.selectedAddOns.join(', ')}</span>
                                 )}
                               </div>
                             ))}
                           </div>
                         </td>
                         <td className="p-3.5">
-                          <span className="capitalize bg-white/5 text-white/70 font-bold px-2 py-0.5 rounded text-[10px] border border-white/5">
+                          <span className={`capitalize font-bold px-2 py-0.5 rounded text-[10px] border ${
+                            isLight ? 'bg-stone-100 text-stone-700 border-stone-200' : 'bg-white/5 text-white/70 border-white/5'
+                          }`}>
                             {ord.orderType.replace('_', ' ')}
                           </span>
                         </td>
                         <td className="p-3.5">
-                          <p className="font-mono font-extrabold text-white">₱{ord.total}</p>
-                          {ord.discount > 0 && <p className="text-[10px] text-emerald-400">Save ₱{ord.discount}</p>}
+                          <p className={`font-mono font-extrabold ${isLight ? 'text-stone-900' : 'text-white'}`}>₱{ord.total}</p>
+                          {ord.discount > 0 && <p className="text-[10px] text-emerald-600 dark:text-emerald-400">Save ₱{ord.discount}</p>}
                         </td>
                         <td className="p-3.5">
                           <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
-                            ord.paymentStatus === 'paid' ? 'bg-emerald-950 text-emerald-300 border border-emerald-900/30' : 'bg-amber-950 text-amber-300 border border-amber-900/30'
+                            ord.paymentStatus === 'paid' 
+                              ? isLight ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' : 'bg-emerald-950 text-emerald-300 border border-emerald-900/30'
+                              : isLight ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-amber-950 text-amber-300 border border-amber-900/30'
                           }`}>
                             {ord.paymentStatus}
                           </span>
                         </td>
                         <td className="p-3.5">
                           <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
-                            ord.orderStatus === 'completed' ? 'bg-emerald-950 text-emerald-300 border border-emerald-900/30' :
-                            ord.orderStatus === 'ready' ? 'bg-indigo-950 text-indigo-300 border border-indigo-900/30' :
-                            ord.orderStatus === 'preparing' ? 'bg-amber-950 text-amber-300 border border-amber-900/30' : 'bg-white/5 text-white/50'
+                            ord.orderStatus === 'completed' ? (isLight ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' : 'bg-emerald-950 text-emerald-300 border border-emerald-900/30') :
+                            ord.orderStatus === 'ready' ? (isLight ? 'bg-indigo-100 text-indigo-900 border border-indigo-300' : 'bg-indigo-950 text-indigo-300 border border-indigo-900/30') :
+                            ord.orderStatus === 'preparing' ? (isLight ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-amber-950 text-amber-300 border border-amber-900/30') :
+                            (isLight ? 'bg-stone-100 text-stone-600 border border-stone-200' : 'bg-white/5 text-white/50')
                           }`}>
                             {ord.orderStatus}
                           </span>
@@ -1215,11 +1331,15 @@ export const PosExperience: React.FC = () => {
 
       {/* MOBILE PERSISTENT FLOATING REGISTER / CART BAR (< lg screens) */}
       {activeView === 'menu' && posCart.length > 0 && (
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 p-3 bg-[#0b0c10]/95 backdrop-blur-md border-t border-white/10 z-40 shadow-2xl">
+        <div className={`lg:hidden fixed bottom-0 left-0 right-0 p-3 backdrop-blur-md border-t z-40 shadow-2xl ${
+          isLight ? 'bg-white/95 border-stone-200' : 'bg-[#0b0c10]/95 border-white/10'
+        }`}>
           <div className="max-w-md mx-auto flex items-center justify-between gap-3">
             <button
               onClick={() => setIsMobileCartOpen(true)}
-              className="flex items-center gap-2.5 text-left bg-white/5 hover:bg-white/10 p-2 rounded-xl border border-white/10 flex-1 transition-all cursor-pointer"
+              className={`flex items-center gap-2.5 text-left p-2 rounded-xl border flex-1 transition-all cursor-pointer ${
+                isLight ? 'bg-stone-100 hover:bg-stone-200 border-stone-300' : 'bg-white/5 hover:bg-white/10 border-white/10'
+              }`}
             >
               <div className="relative p-2 rounded-lg bg-[#c5a059] text-black">
                 <ShoppingCart className="w-4 h-4" />
@@ -1228,8 +1348,8 @@ export const PosExperience: React.FC = () => {
                 </span>
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-bold text-white truncate">Register Ticket</p>
-                <p className="text-[10px] text-white/50 font-mono">Total: <strong className="text-[#c5a059]">₱{posTotal}</strong></p>
+                <p className={`text-xs font-bold truncate ${isLight ? 'text-stone-900' : 'text-white'}`}>Register Ticket</p>
+                <p className={`text-[10px] font-mono ${isLight ? 'text-stone-600' : 'text-white/50'}`}>Total: <strong className="text-[#c5a059]">₱{posTotal}</strong></p>
               </div>
             </button>
 
@@ -1247,9 +1367,11 @@ export const PosExperience: React.FC = () => {
       {/* MOBILE SLIDE-UP CART DRAWER (< lg) */}
       {isMobileCartOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex flex-col justify-end bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-[#0e1017] rounded-t-3xl border-t border-white/15 h-[85vh] flex flex-col overflow-hidden shadow-2xl animate-slide-up">
+          <div className={`rounded-t-3xl border-t h-[85vh] flex flex-col overflow-hidden shadow-2xl animate-slide-up ${
+            isLight ? 'bg-stone-50 border-stone-300' : 'bg-[#0e1017] border-white/15'
+          }`}>
             {/* Grab handle indicator */}
-            <div className="w-12 h-1 bg-white/20 rounded-full mx-auto my-2" />
+            <div className={`w-12 h-1 rounded-full mx-auto my-2 ${isLight ? 'bg-stone-300' : 'bg-white/20'}`} />
             <div className="flex-1 overflow-hidden">
               {renderCartContent(true)}
             </div>
@@ -1260,15 +1382,19 @@ export const PosExperience: React.FC = () => {
       {/* 1. CUSTOMER ASSOCIATOR DIALOG MODAL (MOBILE RESPONSIVE) */}
       {showCustomerModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
-          <div className="bg-[#12141c] w-full max-w-sm rounded-t-3xl sm:rounded-2xl shadow-2xl p-4 sm:p-5 space-y-4 border border-white/10 max-h-[80vh] flex flex-col">
-            <div className="flex justify-between items-center border-b border-white/10 pb-3">
+          <div className={`w-full max-w-sm rounded-t-3xl sm:rounded-2xl shadow-2xl p-4 sm:p-5 space-y-4 border max-h-[80vh] flex flex-col ${
+            isLight ? 'bg-white border-stone-200' : 'bg-[#12141c] border-white/10'
+          }`}>
+            <div className={`flex justify-between items-center border-b pb-3 ${isLight ? 'border-stone-200' : 'border-white/10'}`}>
               <div className="flex items-center gap-2 text-[#c5a059]">
                 <UserPlus className="w-4 h-4" />
-                <h3 className="font-bold text-white text-sm font-serif tracking-wide">Associate Loyalty Customer</h3>
+                <h3 className={`font-bold text-sm font-serif tracking-wide ${isLight ? 'text-stone-900' : 'text-white'}`}>Associate Loyalty Customer</h3>
               </div>
               <button 
                 onClick={() => setShowCustomerModal(false)} 
-                className="p-1 hover:bg-white/5 rounded-full cursor-pointer text-white/50 hover:text-white transition-colors"
+                className={`p-1 rounded-full cursor-pointer transition-colors ${
+                  isLight ? 'hover:bg-stone-100 text-stone-500 hover:text-stone-900' : 'hover:bg-white/5 text-white/50 hover:text-white'
+                }`}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1282,9 +1408,13 @@ export const PosExperience: React.FC = () => {
                   placeholder="E.g. 0917 or customer name..."
                   value={customerSearchInput}
                   onChange={(e) => setCustomerSearchInput(e.target.value)}
-                  className="w-full text-xs p-2.5 pl-8 rounded-xl bg-[#07080c] border border-white/10 outline-none focus:border-[#c5a059] text-white"
+                  className={`w-full text-xs p-2.5 pl-8 rounded-xl border outline-none ${
+                    isLight 
+                      ? 'bg-stone-100 border-stone-300 text-stone-900 focus:border-amber-600' 
+                      : 'bg-[#07080c] border-white/10 text-white focus:border-[#c5a059]'
+                  }`}
                 />
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/40 w-3.5 h-3.5" />
+                <Search className={`absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 ${isLight ? 'text-stone-400' : 'text-white/40'}`} />
               </div>
             </div>
 
@@ -1295,11 +1425,15 @@ export const PosExperience: React.FC = () => {
                   <button
                     key={user.uid}
                     onClick={() => handleAssociateCustomer(user)}
-                    className="w-full text-left p-3 hover:bg-white/5 rounded-xl border border-white/5 flex justify-between items-center text-xs transition-all cursor-pointer bg-[#07080c] active:scale-98"
+                    className={`w-full text-left p-3 rounded-xl border flex justify-between items-center text-xs transition-all cursor-pointer active:scale-98 ${
+                      isLight 
+                        ? 'bg-stone-50 hover:bg-stone-100 border-stone-200' 
+                        : 'bg-[#07080c] hover:bg-white/5 border-white/5'
+                    }`}
                   >
                     <div className="truncate pr-2">
-                      <p className="font-bold text-white truncate">{user.name}</p>
-                      <p className="text-[10px] text-white/40 font-mono truncate">{user.phone || user.email}</p>
+                      <p className={`font-bold truncate ${isLight ? 'text-stone-900' : 'text-white'}`}>{user.name}</p>
+                      <p className={`text-[10px] font-mono truncate ${isLight ? 'text-stone-500' : 'text-white/40'}`}>{user.phone || user.email}</p>
                     </div>
                     <span className="font-bold font-mono bg-[#c5a059]/15 text-[#c5a059] border border-[#c5a059]/30 px-2 py-0.5 rounded text-[11px] whitespace-nowrap">
                       {user.loyaltyPoints} pts
@@ -1314,18 +1448,22 @@ export const PosExperience: React.FC = () => {
       {/* 2. CHOOSE PAYMENT & TABLE / ORDERTYPE MODAL (WITH QUICK CASH BUTTONS) */}
       {isPayModalOpen && (
         <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
-          <div className="bg-[#12141c] w-full max-w-md rounded-t-3xl sm:rounded-2xl shadow-2xl p-4 sm:p-6 space-y-4 border border-white/10 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center border-b border-white/10 pb-3">
+          <div className={`w-full max-w-md rounded-t-3xl sm:rounded-2xl shadow-2xl p-4 sm:p-6 space-y-4 border max-h-[90vh] overflow-y-auto ${
+            isLight ? 'bg-white border-stone-200' : 'bg-[#12141c] border-white/10'
+          }`}>
+            <div className={`flex justify-between items-center border-b pb-3 ${isLight ? 'border-stone-200' : 'border-white/10'}`}>
               <div className="flex items-center gap-2">
                 <CreditCard className="w-5 h-5 text-[#c5a059]" />
                 <div>
-                  <h3 className="font-bold text-white text-sm font-serif">Collect Register Payment</h3>
-                  <p className="text-[10px] text-white/40">Select channel and tender cash</p>
+                  <h3 className={`font-bold text-sm font-serif ${isLight ? 'text-stone-900' : 'text-white'}`}>Collect Register Payment</h3>
+                  <p className={`text-[10px] ${isLight ? 'text-stone-500' : 'text-white/40'}`}>Select channel and tender cash</p>
                 </div>
               </div>
               <button 
                 onClick={() => setIsPayModalOpen(false)} 
-                className="p-1 hover:bg-white/5 rounded-full cursor-pointer text-white/50 hover:text-white transition-colors"
+                className={`p-1 rounded-full cursor-pointer transition-colors ${
+                  isLight ? 'hover:bg-stone-100 text-stone-500 hover:text-stone-900' : 'hover:bg-white/5 text-white/50 hover:text-white'
+                }`}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1342,7 +1480,11 @@ export const PosExperience: React.FC = () => {
                 placeholder="Enter customer name or order call tag (e.g. John, Order #12)..."
                 value={customerNameInput}
                 onChange={(e) => setCustomerNameInput(e.target.value)}
-                className="w-full text-xs p-2.5 rounded-xl bg-[#07080c] border border-white/10 outline-none text-white focus:border-[#c5a059]"
+                className={`w-full text-xs p-2.5 rounded-xl border outline-none ${
+                  isLight 
+                    ? 'bg-stone-100 border-stone-300 text-stone-900 focus:border-amber-600' 
+                    : 'bg-[#07080c] border-white/10 text-white focus:border-[#c5a059]'
+                }`}
               />
             </div>
 
@@ -1353,7 +1495,11 @@ export const PosExperience: React.FC = () => {
                 <select
                   value={orderType}
                   onChange={(e) => setOrderType(e.target.value as any)}
-                  className="w-full text-xs p-2.5 rounded-xl bg-[#07080c] border border-white/10 outline-none text-white focus:border-[#c5a059]"
+                  className={`w-full text-xs p-2.5 rounded-xl border outline-none ${
+                    isLight 
+                      ? 'bg-stone-100 border-stone-300 text-stone-900 focus:border-amber-600' 
+                      : 'bg-[#07080c] border-white/10 text-white focus:border-[#c5a059]'
+                  }`}
                 >
                   <option value="dine_in">🍽️ Dine-In</option>
                   <option value="pickup">🛍️ Takeout Pickup</option>
@@ -1366,7 +1512,11 @@ export const PosExperience: React.FC = () => {
                 <select
                   value={paymentMethod}
                   onChange={(e) => setPaymentMethod(e.target.value)}
-                  className="w-full text-xs p-2.5 rounded-xl bg-[#07080c] border border-white/10 outline-none text-white focus:border-[#c5a059]"
+                  className={`w-full text-xs p-2.5 rounded-xl border outline-none ${
+                    isLight 
+                      ? 'bg-stone-100 border-stone-300 text-stone-900 focus:border-amber-600' 
+                      : 'bg-[#07080c] border-white/10 text-white focus:border-[#c5a059]'
+                  }`}
                 >
                   {(settings.paymentMethods || []).filter(m => m.active).map(m => (
                     <option key={m.id} value={m.id}>
@@ -1385,7 +1535,11 @@ export const PosExperience: React.FC = () => {
                   placeholder="E.g. Table #04, Balcony #2"
                   value={tableNo}
                   onChange={(e) => setTableNo(e.target.value)}
-                  className="w-full text-xs p-2.5 rounded-xl bg-[#07080c] border border-white/10 outline-none text-white focus:border-[#c5a059]"
+                  className={`w-full text-xs p-2.5 rounded-xl border outline-none ${
+                    isLight 
+                      ? 'bg-stone-100 border-stone-300 text-stone-900 focus:border-amber-600' 
+                      : 'bg-[#07080c] border-white/10 text-white focus:border-[#c5a059]'
+                  }`}
                 />
               </div>
             )}
@@ -1397,20 +1551,26 @@ export const PosExperience: React.FC = () => {
               
               if (isCashType) {
                 return (
-                  <div className="bg-[#07080c] p-3.5 rounded-xl border border-white/10 space-y-3">
-                    <div className="flex justify-between items-center text-xs font-bold text-white/60">
+                  <div className={`p-3.5 rounded-xl border space-y-3 ${
+                    isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#07080c] border-white/10'
+                  }`}>
+                    <div className={`flex justify-between items-center text-xs font-bold ${isLight ? 'text-stone-700' : 'text-white/60'}`}>
                       <span>TOTAL BILL:</span>
                       <span className="text-base font-mono font-black text-[#c5a059]">₱{posTotal}</span>
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-extrabold uppercase text-white/40 tracking-wider">Cash Tendered</label>
+                      <label className={`text-[10px] font-extrabold uppercase tracking-wider ${isLight ? 'text-stone-500' : 'text-white/40'}`}>Cash Tendered</label>
                       <input
                         type="number"
                         placeholder="Enter cash amount..."
                         value={cashReceived}
                         onChange={(e) => setCashReceived(e.target.value)}
-                        className="w-full text-lg font-mono font-black p-2.5 rounded-xl bg-[#12141c] border border-white/10 outline-none text-right text-white focus:border-[#c5a059]"
+                        className={`w-full text-lg font-mono font-black p-2.5 rounded-xl border outline-none text-right ${
+                          isLight 
+                            ? 'bg-white border-stone-300 text-stone-900 focus:border-amber-600' 
+                            : 'bg-[#12141c] border-white/10 text-white focus:border-[#c5a059]'
+                        }`}
                       />
                     </div>
 
@@ -1430,16 +1590,22 @@ export const PosExperience: React.FC = () => {
                           key={idx}
                           type="button"
                           onClick={() => setCashReceived(preset.val === '' ? '' : preset.val.toString())}
-                          className="py-1.5 px-2 bg-white/5 hover:bg-white/15 active:scale-95 rounded-lg border border-white/10 text-[11px] font-mono font-bold text-white/80 hover:text-white transition-all cursor-pointer text-center"
+                          className={`py-1.5 px-2 rounded-lg border text-[11px] font-mono font-bold transition-all cursor-pointer text-center active:scale-95 ${
+                            isLight 
+                              ? 'bg-stone-200 hover:bg-stone-300 border-stone-300 text-stone-800' 
+                              : 'bg-white/5 hover:bg-white/15 border-white/10 text-white/80 hover:text-white'
+                          }`}
                         >
                           {preset.label}
                         </button>
                       ))}
                     </div>
 
-                    <div className="flex justify-between items-center text-xs border-t border-white/10 pt-2 font-bold">
-                      <span className="text-white/50">CHANGE:</span>
-                      <span className="text-base font-mono font-black text-emerald-400">₱{calculatedChange}</span>
+                    <div className={`flex justify-between items-center text-xs border-t pt-2 font-bold ${
+                      isLight ? 'border-stone-200' : 'border-white/10'
+                    }`}>
+                      <span className={isLight ? 'text-stone-600' : 'text-white/50'}>CHANGE:</span>
+                      <span className="text-base font-mono font-black text-emerald-600 dark:text-emerald-400">₱{calculatedChange}</span>
                     </div>
                   </div>
                 );
@@ -1454,7 +1620,11 @@ export const PosExperience: React.FC = () => {
                 placeholder="Special notes (e.g. extra hot, separate bag)..."
                 value={posNotes}
                 onChange={(e) => setPosNotes(e.target.value)}
-                className="w-full text-xs p-2.5 rounded-xl bg-[#07080c] border border-white/10 outline-none focus:border-[#c5a059] text-white"
+                className={`w-full text-xs p-2.5 rounded-xl border outline-none ${
+                  isLight 
+                    ? 'bg-stone-100 border-stone-300 text-stone-900 focus:border-amber-600' 
+                    : 'bg-[#07080c] border-white/10 text-white focus:border-[#c5a059]'
+                }`}
               />
             </div>
 
@@ -1465,7 +1635,7 @@ export const PosExperience: React.FC = () => {
                 const isCashType = selectedMethod?.type === 'cash' || paymentMethod === 'cash';
                 return isCashType && (!cashReceived || parseFloat(cashReceived) < posTotal);
               })()}
-              className="w-full bg-[#c5a059] hover:bg-[#b08c47] active:scale-98 text-black font-extrabold py-3.5 rounded-xl text-xs sm:text-sm flex justify-center items-center gap-2 shadow-lg cursor-pointer transition-all disabled:bg-white/10 disabled:text-white/20 disabled:cursor-not-allowed"
+              className="w-full bg-[#c5a059] hover:bg-[#b08c47] active:scale-98 text-black font-extrabold py-3.5 rounded-xl text-xs sm:text-sm flex justify-center items-center gap-2 shadow-lg cursor-pointer transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <span>Confirm & Print Receipt</span>
               <ChevronRight className="w-4 h-4" />
@@ -1477,66 +1647,72 @@ export const PosExperience: React.FC = () => {
       {/* 3. PRINT TICKET RECEIPT MODAL */}
       {printedReceipt && (
         <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center z-50 p-3 sm:p-4">
-          <div className="bg-[#12141c] w-full max-w-sm rounded-2xl shadow-2xl p-4 sm:p-5 space-y-4 max-h-[85vh] overflow-y-auto border border-white/10 scrollbar-none">
-            <div className="flex justify-between items-center border-b border-white/10 pb-2">
-              <div className="flex items-center gap-1.5 text-emerald-400">
+          <div className={`w-full max-w-sm rounded-2xl shadow-2xl p-4 sm:p-5 space-y-4 max-h-[85vh] overflow-y-auto border scrollbar-none ${
+            isLight ? 'bg-white border-stone-200' : 'bg-[#12141c] border-white/10'
+          }`}>
+            <div className={`flex justify-between items-center border-b pb-2 ${isLight ? 'border-stone-200' : 'border-white/10'}`}>
+              <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
                 <Check className="w-5 h-5" />
-                <h3 className="font-bold text-white text-sm font-serif">Payment Succeeded!</h3>
+                <h3 className={`font-bold text-sm font-serif ${isLight ? 'text-stone-900' : 'text-white'}`}>Payment Succeeded!</h3>
               </div>
               <button 
                 onClick={() => setPrintedReceipt(null)} 
-                className="p-1 hover:bg-white/5 rounded-full cursor-pointer text-white/50 hover:text-white transition-colors"
+                className={`p-1 rounded-full cursor-pointer transition-colors ${
+                  isLight ? 'hover:bg-stone-100 text-stone-500 hover:text-stone-900' : 'hover:bg-white/5 text-white/50 hover:text-white'
+                }`}
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* PRINT RECEIPT BODY */}
-            <div className="text-center font-mono space-y-1 text-xs text-white bg-[#07080c] p-3.5 rounded-xl border border-white/10">
+            <div className={`text-center font-mono space-y-1 text-xs p-3.5 rounded-xl border ${
+              isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-[#07080c] border-white/10 text-white'
+            }`}>
               <h2 className="text-sm font-black text-[#c5a059] uppercase">{settings.branding.shopName}</h2>
-              <p className="text-white/40 text-[10px]">{settings.businessInfo.address}</p>
-              <div className="border-t border-dashed border-white/20 my-2" />
+              <p className={`text-[10px] ${isLight ? 'text-stone-500' : 'text-white/40'}`}>{settings.businessInfo.address}</p>
+              <div className={`border-t border-dashed my-2 ${isLight ? 'border-stone-300' : 'border-white/20'}`} />
 
-              <div className="text-left space-y-1 text-[10px] text-white/60">
-                <p><strong className="text-white">Invoice:</strong> #{printedReceipt.orderNumber}</p>
-                <p><strong className="text-white">Customer:</strong> <span className="text-[#c5a059] font-bold">{printedReceipt.customerName}</span></p>
-                <p><strong className="text-white">Order Origin:</strong> {printedReceipt.orderSource === 'pos' ? 'POS Register (In-Store)' : 'Customer Mobile Web App'}</p>
+              <div className={`text-left space-y-1 text-[10px] ${isLight ? 'text-stone-700' : 'text-white/60'}`}>
+                <p><strong className={isLight ? 'text-stone-900' : 'text-white'}>Invoice:</strong> #{printedReceipt.orderNumber}</p>
+                <p><strong className={isLight ? 'text-stone-900' : 'text-white'}>Customer:</strong> <span className="text-[#c5a059] font-bold">{printedReceipt.customerName}</span></p>
+                <p><strong className={isLight ? 'text-stone-900' : 'text-white'}>Order Origin:</strong> {printedReceipt.orderSource === 'pos' ? 'POS Register (In-Store)' : 'Customer Mobile Web App'}</p>
                 {printedReceipt.cashierName && (
-                  <p><strong className="text-white">Cashier:</strong> {printedReceipt.cashierName}</p>
+                  <p><strong className={isLight ? 'text-stone-900' : 'text-white'}>Cashier:</strong> {printedReceipt.cashierName}</p>
                 )}
-                <p><strong className="text-white">Channel:</strong> {printedReceipt.paymentMethod.toUpperCase()}</p>
-                <p><strong className="text-white">Time:</strong> {new Date().toLocaleTimeString()}</p>
+                <p><strong className={isLight ? 'text-stone-900' : 'text-white'}>Channel:</strong> {printedReceipt.paymentMethod.toUpperCase()}</p>
+                <p><strong className={isLight ? 'text-stone-900' : 'text-white'}>Time:</strong> {new Date().toLocaleTimeString()}</p>
               </div>
 
-              <div className="border-t border-dashed border-white/20 my-2" />
+              <div className={`border-t border-dashed my-2 ${isLight ? 'border-stone-300' : 'border-white/20'}`} />
 
               <div className="space-y-2 text-left text-[10px]">
                 {printedReceipt.items.map((it: any, idx: number) => (
                   <div key={idx} className="flex flex-col">
-                    <div className="flex justify-between text-white/80">
+                    <div className={`flex justify-between ${isLight ? 'text-stone-800' : 'text-white/80'}`}>
                       <span>{it.quantity}x {it.name} ({it.selectedSize})</span>
                       <span className="font-mono">₱{it.price * it.quantity}</span>
                     </div>
                     {it.selectedAddOns && it.selectedAddOns.length > 0 && (
-                      <span className="text-white/40 italic pl-3">+ {it.selectedAddOns.join(', ')}</span>
+                      <span className={`italic pl-3 ${isLight ? 'text-stone-500' : 'text-white/40'}`}>+ {it.selectedAddOns.join(', ')}</span>
                     )}
                     {it.notes && (
-                      <span className="text-white/30 italic pl-3">"{it.notes}"</span>
+                      <span className={`italic pl-3 ${isLight ? 'text-stone-500' : 'text-white/30'}`}>"{it.notes}"</span>
                     )}
                   </div>
                 ))}
               </div>
 
-              <div className="border-t border-dashed border-white/20 my-2" />
+              <div className={`border-t border-dashed my-2 ${isLight ? 'border-stone-300' : 'border-white/20'}`} />
 
-              <div className="space-y-0.5 text-right text-[10px] text-white/60 font-mono">
+              <div className={`space-y-0.5 text-right text-[10px] font-mono ${isLight ? 'text-stone-700' : 'text-white/60'}`}>
                 <p>Subtotal: ₱{printedReceipt.subtotal}</p>
-                {printedReceipt.discount > 0 && <p className="text-emerald-400 font-bold">Discount: -₱{printedReceipt.discount}</p>}
+                {printedReceipt.discount > 0 && <p className="text-emerald-600 dark:text-emerald-400 font-bold">Discount: -₱{printedReceipt.discount}</p>}
                 <p className="text-xs font-black text-[#c5a059] pt-1">Total Paid: ₱{printedReceipt.total}</p>
                 {printedReceipt.cashReceived !== undefined && (
                   <>
                     <p>Cash: ₱{printedReceipt.cashReceived}</p>
-                    <p className="text-emerald-400">Change: ₱{printedReceipt.change}</p>
+                    <p className="text-emerald-600 dark:text-emerald-400 font-bold">Change: ₱{printedReceipt.change}</p>
                   </>
                 )}
                 {printedReceipt.pointsEarned > 0 && (
@@ -1561,10 +1737,12 @@ export const PosExperience: React.FC = () => {
       {/* 4. PRODUCT QUICK CUSTOMIZATION MODAL FOR POS GRID */}
       {customizeProduct && (
         <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
-          <div className="bg-[#12141c] w-full max-w-sm rounded-t-3xl sm:rounded-2xl shadow-2xl p-4 sm:p-5 space-y-4 border border-white/10 max-h-[85vh] overflow-y-auto">
-            <div className="flex justify-between items-center border-b border-white/10 pb-3">
+          <div className={`w-full max-w-sm rounded-t-3xl sm:rounded-2xl shadow-2xl p-4 sm:p-5 space-y-4 border max-h-[85vh] overflow-y-auto ${
+            isLight ? 'bg-white border-stone-200' : 'bg-[#12141c] border-white/10'
+          }`}>
+            <div className={`flex justify-between items-center border-b pb-3 ${isLight ? 'border-stone-200' : 'border-white/10'}`}>
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg overflow-hidden bg-white/10">
+                <div className={`w-8 h-8 rounded-lg overflow-hidden ${isLight ? 'bg-stone-100' : 'bg-white/10'}`}>
                   <img 
                     src={customizeProduct.image || 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&q=80&w=200'} 
                     alt={customizeProduct.name}
@@ -1572,13 +1750,15 @@ export const PosExperience: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <h3 className="font-bold text-white text-xs sm:text-sm font-serif">{customizeProduct.name}</h3>
+                  <h3 className={`font-bold text-xs sm:text-sm font-serif ${isLight ? 'text-stone-900' : 'text-white'}`}>{customizeProduct.name}</h3>
                   <p className="text-[10px] text-[#c5a059] font-mono font-bold">Base: ₱{customizeProduct.price}</p>
                 </div>
               </div>
               <button 
                 onClick={() => setCustomizeProduct(null)} 
-                className="p-1 hover:bg-white/5 text-white/50 hover:text-white rounded-full cursor-pointer transition-colors"
+                className={`p-1 rounded-full cursor-pointer transition-colors ${
+                  isLight ? 'hover:bg-stone-100 text-stone-500 hover:text-stone-900' : 'hover:bg-white/5 text-white/50 hover:text-white'
+                }`}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1596,11 +1776,11 @@ export const PosExperience: React.FC = () => {
                       className={`p-2 sm:p-2.5 border rounded-xl text-xs font-bold text-center cursor-pointer transition-all active:scale-95 ${
                         selectedSize?.name === size.name
                           ? 'bg-[#c5a059]/15 border-[#c5a059] text-[#c5a059] shadow-md'
-                          : 'bg-[#07080c] border-white/10 text-white/80 hover:bg-white/5'
+                          : isLight ? 'bg-stone-100 border-stone-300 text-stone-800 hover:bg-stone-200' : 'bg-[#07080c] border-white/10 text-white/80 hover:bg-white/5'
                       }`}
                     >
                       <p>{size.name}</p>
-                      <p className="text-[10px] text-white/40 font-mono font-normal mt-0.5">
+                      <p className={`text-[10px] font-mono font-normal mt-0.5 ${isLight ? 'text-stone-500' : 'text-white/40'}`}>
                         {size.priceAdjustment === 0 ? 'Regular' : `+₱${size.priceAdjustment}`}
                       </p>
                     </button>
@@ -1621,12 +1801,14 @@ export const PosExperience: React.FC = () => {
                         key={addon.name}
                         onClick={() => toggleAddOn(addon)}
                         className={`w-full p-2.5 border rounded-xl flex items-center justify-between text-xs font-bold cursor-pointer transition-colors active:scale-98 ${
-                          isSelected ? 'bg-[#c5a059]/15 border-[#c5a059] text-[#c5a059]' : 'bg-[#07080c] border-white/10 text-white hover:border-white/30'
+                          isSelected 
+                            ? 'bg-[#c5a059]/15 border-[#c5a059] text-[#c5a059]' 
+                            : isLight ? 'bg-stone-100 border-stone-300 text-stone-800 hover:border-stone-400' : 'bg-[#07080c] border-white/10 text-white hover:border-white/30'
                         }`}
                       >
                         <div className="flex items-center gap-2">
                           <div className={`w-4 h-4 rounded border flex items-center justify-center ${
-                            isSelected ? 'bg-[#c5a059] border-[#c5a059] text-black' : 'border-white/20'
+                            isSelected ? 'bg-[#c5a059] border-[#c5a059] text-black' : isLight ? 'border-stone-400' : 'border-white/20'
                           }`}>
                             {isSelected && <Check className="w-3 h-3 stroke-[3px]" />}
                           </div>

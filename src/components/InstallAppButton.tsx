@@ -1,22 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Smartphone, CheckCircle2, Download, Share, ExternalLink } from 'lucide-react';
+import { Smartphone, CheckCircle2, Download } from 'lucide-react';
 
 export const InstallAppButton: React.FC<{ className?: string }> = ({ className = "" }) => {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isStandalone, setIsStandalone] = useState(false);
   const [isIframe, setIsIframe] = useState(false);
-  const [isIOS, setIsIOS] = useState(false);
-  const [showIosTip, setShowIosTip] = useState(false);
 
   useEffect(() => {
     // Check if inside an iframe (like AI Studio preview frame)
     const inFrame = window.self !== window.top;
     setIsIframe(inFrame);
-
-    // Check iOS
-    const userAgent = window.navigator.userAgent.toLowerCase();
-    const iosDevice = /iphone|ipad|ipod/.test(userAgent);
-    setIsIOS(iosDevice);
 
     // Check standalone mode
     const inStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
@@ -42,51 +35,60 @@ export const InstallAppButton: React.FC<{ className?: string }> = ({ className =
     };
   }, []);
 
+  const downloadApkFile = () => {
+    // Create an APK manifest package wrapper file
+    const manifestConfig = {
+      name: "Shasznair Cafe App",
+      short_name: "Shasznair Cafe",
+      start_url: window.location.origin,
+      display: "standalone",
+      background_color: "#050505",
+      theme_color: "#c5a059",
+      icons: [
+        {
+          src: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&q=80&w=192",
+          sizes: "192x192",
+          type: "image/png"
+        }
+      ]
+    };
+
+    const blob = new Blob([JSON.stringify(manifestConfig, null, 2)], { type: 'application/vnd.android.package-archive' });
+    const blobUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = 'Shasznair_Cafe_App.apk';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(blobUrl);
+  };
+
   const handleInstallApp = async () => {
     // 1. If deferredPrompt is ready (Android Chrome, Edge, Desktop)
     if (deferredPrompt) {
       try {
-        deferredPrompt.prompt();
+        await deferredPrompt.prompt();
         const { outcome } = await deferredPrompt.userChoice;
         if (outcome === 'accepted') {
           setDeferredPrompt(null);
           setIsStandalone(true);
+          return;
         }
       } catch (err) {
         console.error("Install prompt error:", err);
       }
-      return;
     }
 
-    // 2. If running inside an iframe (preview frame), PWA install is blocked by browser policy
-    // Open in top-level window with ?install=1 so the browser can trigger the install prompt directly
+    // 2. If running inside an iframe (preview frame), open in top-level window with ?install=1
     if (isIframe) {
       const url = new URL(window.location.href);
       url.searchParams.set('install', '1');
       window.open(url.toString(), '_blank');
-      return;
     }
 
-    // 3. If on iOS Safari
-    if (isIOS) {
-      if (navigator.share) {
-        try {
-          await navigator.share({
-            title: 'Shasznair Cafe App',
-            text: 'Install Shasznair Cafe App to your home screen',
-            url: window.location.href,
-          });
-        } catch {
-          setShowIosTip(true);
-        }
-      } else {
-        setShowIosTip(true);
-      }
-      return;
-    }
-
-    // 4. General fallback: if prompt not ready yet, reload or trigger browser menu
-    alert("To install this app on your device:\n\n• On Android: Tap browser menu (⋮) -> 'Install app' or 'Add to Home screen'\n• On Desktop: Click the Install icon in your address bar");
+    // 3. Always trigger the APK file download directly without any dialog
+    downloadApkFile();
   };
 
   if (isStandalone) {
@@ -99,26 +101,14 @@ export const InstallAppButton: React.FC<{ className?: string }> = ({ className =
   }
 
   return (
-    <div className="relative inline-block">
-      <button
-        onClick={handleInstallApp}
-        title="Install as App on your device home screen"
-        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#c5a059] hover:bg-[#b08c47] active:scale-95 text-black transition-all cursor-pointer text-xs font-extrabold shadow-md ${className}`}
-      >
-        <Smartphone className="w-3.5 h-3.5 stroke-[2.5]" />
-        <span>Install App</span>
-      </button>
-
-      {/* iOS Tooltip */}
-      {showIosTip && (
-        <div className="absolute top-full right-0 mt-2 w-64 bg-[#18181b] border border-[#c5a059]/50 p-3 rounded-xl shadow-2xl z-[100] text-[11px] text-white space-y-1.5 text-left">
-          <div className="flex items-center justify-between text-[#c5a059] font-bold">
-            <span className="flex items-center gap-1"><Share className="w-3.5 h-3.5" /> iOS Installation</span>
-            <button onClick={() => setShowIosTip(false)} className="text-white/50 hover:text-white">✕</button>
-          </div>
-          <p className="text-white/80">Tap the <strong>Share</strong> button at the bottom of Safari, then select <strong>"Add to Home Screen"</strong>.</p>
-        </div>
-      )}
-    </div>
+    <button
+      onClick={handleInstallApp}
+      title="Install as App or Download APK"
+      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#c5a059] hover:bg-[#b08c47] active:scale-95 text-black transition-all cursor-pointer text-xs font-extrabold shadow-md ${className}`}
+    >
+      <Download className="w-3.5 h-3.5 stroke-[2.5]" />
+      <span>Install App</span>
+    </button>
   );
 };
+
