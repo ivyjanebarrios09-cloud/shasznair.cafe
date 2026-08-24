@@ -283,6 +283,11 @@ export const AuthScreen: React.FC = () => {
   const logoUrl = settings?.branding?.logoUrl || DEFAULT_LOGO_URL;
   const isLight = settings?.branding?.theme === 'light';
   const isOpen = settings?.storeStatus?.isOpen !== false;
+  
+  const shopAddress = settings?.businessInfo?.address || 'SHASZNAIR CAFE, Manila';
+  const shopHours = settings?.businessInfo?.businessHours || '7:00 AM - 10:00 PM';
+  const shopContact = settings?.businessInfo?.contactNumber || '+63 917 123 4567';
+  const shopEmail = settings?.businessInfo?.email || 'shasznaircoffee@gmail.com';
 
   return (
     <div className={`min-h-screen ${isLight ? 'bg-stone-50 text-stone-900' : 'bg-[#070504] text-stone-200'} flex flex-col font-sans transition-colors duration-300`}>
@@ -1656,11 +1661,15 @@ export const AuthScreen: React.FC = () => {
             <div className="space-y-1 text-xs text-stone-400">
               <p className="flex items-center gap-2">
                 <Clock className="w-3.5 h-3.5 text-[#c5a059]" />
-                <span>Open Daily: 7:00 AM - 10:00 PM</span>
+                <span>Open Daily: {shopHours}</span>
               </p>
               <p className="flex items-center gap-2">
                 <MapPin className="w-3.5 h-3.5 text-[#c5a059]" />
-                <span>Coffee District • Walk-ins Welcome</span>
+                <span className="break-words max-w-[200px]">{shopAddress}</span>
+              </p>
+              <p className="flex items-center gap-2">
+                <Phone className="w-3.5 h-3.5 text-[#c5a059]" />
+                <span>{shopContact}</span>
               </p>
             </div>
           </div>

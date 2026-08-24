@@ -318,6 +318,13 @@ const syncStaffAccountsToFirestore = async (accountsConfig?: SystemSettings['acc
 
   for (const entry of staffEntries) {
     const acc: any = cfg[entry.key as keyof typeof cfg] || {};
+    
+    // Check if this terminal is enabled. If explicitly disabled, we skip syncing it (meaning it won't be re-created if deleted)
+    if (acc.enabled === false) {
+      console.log(`[syncStaffAccounts] Terminal ${entry.key} is disabled in config. Skipping sync.`);
+      continue;
+    }
+
     const uid = `terminal_${entry.key}`;
     const staffId = `staff_${entry.key}`;
     const email = acc.email || entry.defaultEmail;
@@ -437,9 +444,9 @@ const DEFAULT_SETTINGS: SystemSettings = {
     enableAlerts: true
   },
   accountsConfig: {
-    admin: { role: 'admin', name: 'Master Administrator', mobile: '+63 917 111 2222', email: 'admin@shasznaircafe.com', isEmailVerified: true },
-    pos: { role: 'cashier', name: 'POS Register Terminal 1', mobile: '+63 917 333 4444', email: 'pos@shasznaircafe.com', isEmailVerified: true },
-    kds: { role: 'kitchen', name: 'Kitchen Display Station (KDS)', mobile: '+63 917 555 6666', email: 'kds@shasznaircafe.com', isEmailVerified: true }
+    admin: { role: 'admin', name: 'Master Administrator', mobile: '+63 917 111 2222', email: 'admin@shasznaircafe.com', isEmailVerified: true, enabled: true },
+    pos: { role: 'cashier', name: 'POS Register Terminal 1', mobile: '+63 917 333 4444', email: 'pos@shasznaircafe.com', isEmailVerified: true, enabled: true },
+    kds: { role: 'kitchen', name: 'Kitchen Display Station (KDS)', mobile: '+63 917 555 6666', email: 'kds@shasznaircafe.com', isEmailVerified: true, enabled: true }
   }
 };
 

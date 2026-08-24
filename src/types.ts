@@ -185,6 +185,7 @@ export interface StaffAccountConfig {
   mobile: string;
   email: string;
   isEmailVerified: boolean;
+  enabled?: boolean;
   password?: string;
 }
 

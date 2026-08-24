@@ -2413,6 +2413,25 @@ export const AdminExperience: React.FC = () => {
                   >
                     <RefreshCw className={`w-3.5 h-3.5 ${settingsSaving ? 'animate-spin' : ''}`} /> Sync Users
                   </button>
+                  <button
+                    type="button"
+                    disabled={settingsSaving}
+                    onClick={async () => {
+                      setSettingsSaving(true);
+                      try {
+                        await updateSettings(settingsForm);
+                        setSettingsSuccessMsg("Staff account security settings saved permanently!");
+                        setTimeout(() => setSettingsSuccessMsg(null), 4000);
+                      } catch (err: any) {
+                        alert("Failed to save settings: " + (err.message || err));
+                      } finally {
+                        setSettingsSaving(false);
+                      }
+                    }}
+                    className="bg-[#c5a059] hover:bg-[#b08c47] text-black font-extrabold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 shadow-md cursor-pointer transition-colors disabled:opacity-50"
+                  >
+                    <Save className="w-3.5 h-3.5" /> Save Configuration
+                  </button>
                 </div>
               </div>
 
@@ -2516,6 +2535,19 @@ export const AdminExperience: React.FC = () => {
                                 if (window.confirm(`Are you sure you want to remove staff account "${staffName}"? This will permanently delete their account record from Firestore.`)) {
                                   try {
                                     await deleteDocument('users', staffUser.uid);
+                                    
+                                    // Also disable in settingsForm if it's a terminal account
+                                    if (staffUser.uid === 'terminal_admin' || staffUser.uid === 'terminal_pos' || staffUser.uid === 'terminal_kds') {
+                                      const key = staffUser.uid.split('_')[1] as 'admin' | 'pos' | 'kds';
+                                      setSettingsForm(prev => ({
+                                        ...prev,
+                                        accountsConfig: {
+                                          ...prev.accountsConfig,
+                                          [key]: { ...prev.accountsConfig[key], enabled: false }
+                                        }
+                                      }));
+                                    }
+
                                     setSettingsSuccessMsg(`Staff account "${staffName}" removed successfully.`);
                                     setTimeout(() => setSettingsSuccessMsg(null), 3500);
                                   } catch (e: any) {
@@ -3422,6 +3454,26 @@ export const AdminExperience: React.FC = () => {
                         role: editingStaffUser.role,
                         status: editingStaffUser.status || 'active'
                       });
+
+                      // Also update settingsForm if it's a terminal account
+                      if (editingStaffUser.uid === 'terminal_admin' || editingStaffUser.uid === 'terminal_pos' || editingStaffUser.uid === 'terminal_kds') {
+                        const key = editingStaffUser.uid.split('_')[1] as 'admin' | 'pos' | 'kds';
+                        setSettingsForm(prev => ({
+                          ...prev,
+                          accountsConfig: {
+                            ...prev.accountsConfig,
+                            [key]: {
+                              ...prev.accountsConfig[key],
+                              name: editingStaffUser.displayName || editingStaffUser.name || prev.accountsConfig[key].name,
+                              email: editingStaffUser.email || prev.accountsConfig[key].email,
+                              mobile: editingStaffUser.phoneNumber || editingStaffUser.phone || prev.accountsConfig[key].mobile,
+                              role: editingStaffUser.role,
+                              enabled: true // Editing re-enables it if it was disabled
+                            }
+                          }
+                        }));
+                      }
+
                       setEditingStaffUser(null);
                       setSettingsSuccessMsg("Updated user profile in Firebase Users collection!");
                       setTimeout(() => setSettingsSuccessMsg(null), 3500);
@@ -3441,6 +3493,19 @@ export const AdminExperience: React.FC = () => {
                   if (window.confirm(`Are you sure you want to delete staff account "${staffName}" from Firestore? This action cannot be undone.`)) {
                     try {
                       await deleteDocument('users', editingStaffUser.uid);
+
+                      // Also disable in settingsForm if it's a terminal account
+                      if (editingStaffUser.uid === 'terminal_admin' || editingStaffUser.uid === 'terminal_pos' || editingStaffUser.uid === 'terminal_kds') {
+                        const key = editingStaffUser.uid.split('_')[1] as 'admin' | 'pos' | 'kds';
+                        setSettingsForm(prev => ({
+                          ...prev,
+                          accountsConfig: {
+                            ...prev.accountsConfig,
+                            [key]: { ...prev.accountsConfig[key], enabled: false }
+                          }
+                        }));
+                      }
+
                       setEditingStaffUser(null);
                       setSettingsSuccessMsg(`Staff account "${staffName}" deleted from Firestore.`);
                       setTimeout(() => setSettingsSuccessMsg(null), 3500);
