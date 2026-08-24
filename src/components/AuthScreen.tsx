@@ -365,25 +365,6 @@ export const AuthScreen: React.FC = () => {
               )}
             </motion.button>
 
-            {/* Member Sign In / Sign Up Button */}
-            <button
-              id="open-auth-modal-btn"
-              onClick={() => {
-                setShowAuthModal(true);
-                setAuthError(null);
-                setAuthSuccessMsg(null);
-              }}
-              className={`px-3.5 sm:px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer border shrink-0 ${
-                isLight 
-                  ? 'bg-stone-900 text-white border-stone-800 hover:bg-stone-800 shadow-sm' 
-                  : 'bg-white/10 text-white border-white/15 hover:bg-white/15'
-              }`}
-            >
-              <User className="w-4 h-4 text-[#c5a059]" />
-              <span className="hidden sm:inline">Member Portal</span>
-              <span className="sm:hidden">Sign In</span>
-            </button>
-
           </div>
 
         </div>
