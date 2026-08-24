@@ -106,6 +106,7 @@ export interface Order {
   pointsEarned: number;
   cashReceived?: number;
   change?: number;
+  receiptUrl?: string;
 }
 
 export interface Voucher {
@@ -175,6 +176,7 @@ export interface PaymentMethodConfig {
   type: 'cash' | 'qr' | 'card' | 'other';
   active: boolean;
   qrCodeUrl?: string;
+  accountNumber?: string;
 }
 
 export interface StaffAccountConfig {

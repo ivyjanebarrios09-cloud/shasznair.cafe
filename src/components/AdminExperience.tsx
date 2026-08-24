@@ -39,9 +39,12 @@ export const AdminExperience: React.FC = () => {
     adjustInventory,
     adjustUserPoints,
     loadDemoData,
+    clearSampleMenuData,
+    clearAllMenuData,
     resetDatabase,
     updateDocument,
-    addDocument
+    addDocument,
+    deleteDocument
   } = useCoffeeApp();
 
   // Navigation Panel Tab: 'dashboard' | 'products' | 'categories' | 'vouchers' | 'customers' | 'reports' | 'audit' | 'settings'
@@ -63,21 +66,7 @@ export const AdminExperience: React.FC = () => {
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [settingsSuccessMsg, setSettingsSuccessMsg] = useState<string | null>(null);
 
-  // Inventory Stock Filter State
-  const [stockFilter, setStockFilter] = useState<'all' | 'low_stock' | 'out_of_stock'>('all');
-
-  // Account Configuration States
-  const [selectedAccountTab, setSelectedAccountTab] = useState<'admin' | 'pos' | 'kds'>('admin');
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [passwordTarget, setPasswordTarget] = useState<'admin' | 'pos' | 'kds' | null>(null);
-  const [newPasswordVal, setNewPasswordVal] = useState('');
-  const [confirmPasswordVal, setConfirmPasswordVal] = useState('');
-  const [showEmailVerificationModal, setShowEmailVerificationModal] = useState(false);
-  const [verifyingAccountKey, setVerifyingAccountKey] = useState<'admin' | 'pos' | 'kds' | null>(null);
-  const [verificationCodeInput, setVerificationCodeInput] = useState('');
-  const [generatedCode, setGeneratedCode] = useState('123456');
-
-  // Firestore Staff/Terminal User Management States
+  // Firestore Staff/Terminal User Modals & Forms
   const [editingStaffUser, setEditingStaffUser] = useState<UserProfile | null>(null);
   const [showAddStaffModal, setShowAddStaffModal] = useState(false);
   const [newStaffForm, setNewStaffForm] = useState<{
@@ -93,6 +82,9 @@ export const AdminExperience: React.FC = () => {
     role: 'cashier',
     status: 'active'
   });
+
+  // Inventory Stock Filter State
+  const [stockFilter, setStockFilter] = useState<'all' | 'low_stock' | 'out_of_stock'>('all');
 
   React.useEffect(() => {
     if (settings) {
@@ -711,16 +703,6 @@ export const AdminExperience: React.FC = () => {
             );
           })}
         </nav>
-
-        <div className={`p-3 border-t ${isLight ? 'border-stone-200 bg-stone-50' : 'border-white/10 bg-[#080808]'} space-y-2`}>
-          <button
-            onClick={loadDemoData}
-            className="w-full bg-[#c5a059] hover:bg-[#b08c47] text-black font-bold text-[10px] py-2 rounded-xl uppercase tracking-wider transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-sm"
-          >
-            <RefreshCw size={12} className="stroke-[2.5]" />
-            <span>Load Sample Menu</span>
-          </button>
-        </div>
       </aside>
 
       {/* 2. MAIN SUB-VIEW WORKSPACE (scrollable) */}
@@ -976,10 +958,10 @@ export const AdminExperience: React.FC = () => {
                           if (active && payload && payload.length) {
                             const data = payload[0].payload;
                             return (
-                              <div className="bg-[#1c1d24] border border-[#c5a059]/40 p-3 rounded-xl shadow-2xl text-xs space-y-1 text-white">
-                                <p className="font-bold text-white/60">{data.dateLabel} ({data.day})</p>
+                              <div className={`${isLight ? 'bg-white border-stone-300 text-stone-900 shadow-xl' : 'bg-[#1c1d24] border-[#c5a059]/40 text-white shadow-2xl'} border p-3 rounded-xl text-xs space-y-1`}>
+                                <p className={`font-bold ${isLight ? 'text-stone-500' : 'text-white/60'}`}>{data.dateLabel} ({data.day})</p>
                                 <p className="text-sm font-extrabold text-[#c5a059]">₱{data.value.toLocaleString()}</p>
-                                <p className="text-[10px] text-white/70">{data.orderCount} paid {data.orderCount === 1 ? 'order' : 'orders'}</p>
+                                <p className={`text-[10px] ${isLight ? 'text-stone-600' : 'text-white/70'}`}>{data.orderCount} paid {data.orderCount === 1 ? 'order' : 'orders'}</p>
                               </div>
                             );
                           }
@@ -1020,10 +1002,10 @@ export const AdminExperience: React.FC = () => {
                           if (active && payload && payload.length) {
                             const data = payload[0].payload;
                             return (
-                              <div className="bg-[#1c1d24] border border-[#c5a059]/40 p-3 rounded-xl shadow-2xl text-xs space-y-1 text-white">
-                                <p className="font-bold text-white/60">{data.dateLabel} ({data.day})</p>
+                              <div className={`${isLight ? 'bg-white border-stone-300 text-stone-900 shadow-xl' : 'bg-[#1c1d24] border-[#c5a059]/40 text-white shadow-2xl'} border p-3 rounded-xl text-xs space-y-1`}>
+                                <p className={`font-bold ${isLight ? 'text-stone-500' : 'text-white/60'}`}>{data.dateLabel} ({data.day})</p>
                                 <p className="text-sm font-extrabold text-[#c5a059]">₱{data.value.toLocaleString()}</p>
-                                <p className="text-[10px] text-white/70">{data.orderCount} paid {data.orderCount === 1 ? 'order' : 'orders'}</p>
+                                <p className={`text-[10px] ${isLight ? 'text-stone-600' : 'text-white/70'}`}>{data.orderCount} paid {data.orderCount === 1 ? 'order' : 'orders'}</p>
                               </div>
                             );
                           }
@@ -1055,28 +1037,42 @@ export const AdminExperience: React.FC = () => {
                 <h2 className={`font-serif font-extrabold ${isLight ? 'text-stone-900' : 'text-white'} text-base tracking-wide`}>Beverages & Pastries Master Records</h2>
                 <p className={`text-[11px] ${isLight ? 'text-stone-500' : 'text-white/50'}`}>Active stock tracking threshold: <strong className="text-[#c5a059]">{lowStockThreshold} units</strong></p>
               </div>
-              <button
-                onClick={() => {
-                  setEditingProduct(null);
-                  setProdForm({
-                    name: '',
-                    category: categories[0]?.id || '',
-                    description: '',
-                    price: 120,
-                    cost: 35,
-                    image: '',
-                    stockTracking: true,
-                    stockQuantity: 100,
-                    minStock: lowStockThreshold
-                  });
-                  setModalError(null);
-                  setModalSuccess(null);
-                  setShowProductModal(true);
-                }}
-                className="w-full sm:w-auto bg-[#c5a059] hover:bg-[#b08c47] text-black text-xs font-bold px-3.5 py-2 rounded-xl flex items-center justify-center gap-1.5 shadow-md cursor-pointer transition-all"
-              >
-                <Plus className="w-4 h-4 stroke-[3px]" /> Add Product Record
-              </button>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                {products.length > 0 && (
+                  <button
+                    onClick={async () => {
+                      if (window.confirm("Are you sure you want to delete all menu items from the database? This cannot be undone.")) {
+                        await clearAllMenuData();
+                      }
+                    }}
+                    className="w-full sm:w-auto bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs font-bold px-3 py-2 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" /> Clear All Menu Items
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    setEditingProduct(null);
+                    setProdForm({
+                      name: '',
+                      category: categories[0]?.id || '',
+                      description: '',
+                      price: 120,
+                      cost: 35,
+                      image: '',
+                      stockTracking: true,
+                      stockQuantity: 100,
+                      minStock: lowStockThreshold
+                    });
+                    setModalError(null);
+                    setModalSuccess(null);
+                    setShowProductModal(true);
+                  }}
+                  className="w-full sm:w-auto bg-[#c5a059] hover:bg-[#b08c47] text-black text-xs font-bold px-3.5 py-2 rounded-xl flex items-center justify-center gap-1.5 shadow-md cursor-pointer transition-all"
+                >
+                  <Plus className="w-4 h-4 stroke-[3px]" /> Add Product Record
+                </button>
+              </div>
             </div>
 
             {/* STOCK FILTER BAR & ALERT COUNTERS */}
@@ -1689,6 +1685,7 @@ export const AdminExperience: React.FC = () => {
             customEndDate={customEndDate}
             setCustomEndDate={setCustomEndDate}
             handleExportCSV={handleExportCSV}
+            isLight={isLight}
           />
         )}
 
@@ -2343,7 +2340,7 @@ export const AdminExperience: React.FC = () => {
               </div>
             </div>
 
-            {/* ACCOUNT CONFIGURATION & LIVE FIREBASE USERS COLLECTION REFLECTION FOR ADMIN, POS & KDS */}
+            {/* LIVE FIRESTORE USERS REFLECTION & TERMINAL/STAFF ACCOUNT MANAGEMENT */}
             <div className={`${isLight ? 'bg-white border-stone-200 text-stone-900 shadow-sm' : 'bg-[#121212] border-white/10 text-white shadow-lg'} p-5 rounded-2xl border space-y-5`}>
               <div className={`flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b ${isLight ? 'border-stone-200' : 'border-white/5'} pb-4`}>
                 <div className="flex items-center gap-2.5 text-[#c5a059]">
@@ -2384,14 +2381,14 @@ export const AdminExperience: React.FC = () => {
                 </div>
               </div>
 
-              {/* LIVE FIREBASE USERS COLLECTION STAFF CARDS */}
+              {/* 1. LIVE FIRESTORE USERS COLLECTION STAFF CARDS */}
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-[10px] font-extrabold uppercase text-[#c5a059] tracking-wider flex items-center gap-1">
-                    <ShieldCheck className="w-3.5 h-3.5" /> Accounts in Firebase Users Collection
+                    <ShieldCheck className="w-3.5 h-3.5" /> Live Firestore Users Reflection ({usersList.filter(u => u.role === 'admin' || u.role === 'cashier' || u.role === 'kitchen' || (u as any).role === 'pos' || (u as any).role === 'kds').length} Staff)
                   </span>
                   <span className={`text-[10px] ${isLight ? 'text-stone-500' : 'text-white/50'} font-mono`}>
-                    Total Staff Records: {usersList.filter(u => u.role === 'admin' || u.role === 'cashier' || u.role === 'kitchen' || (u as any).role === 'pos' || (u as any).role === 'kds').length}
+                    Collection: <code>users</code>
                   </span>
                 </div>
 
@@ -2409,12 +2406,12 @@ export const AdminExperience: React.FC = () => {
                         ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
                         : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
 
-                      const roleLabel = isAdm ? 'Admin' : isPos ? 'POS Register' : 'KDS Kitchen';
+                      const roleLabel = isAdm ? 'Admin' : isPos ? 'POS Register (Cashier)' : 'KDS Kitchen';
 
                       return (
                         <div
                           key={staffUser.uid}
-                          className={`${isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#080808] border-white/10'} p-3.5 rounded-xl border flex flex-col justify-between gap-3 space-y-1 relative`}
+                          className={`${isLight ? 'bg-stone-50 border-stone-200 shadow-sm' : 'bg-[#080808] border-white/10'} p-3.5 rounded-xl border flex flex-col justify-between gap-3 space-y-1 relative`}
                         >
                           <div className="flex justify-between items-start gap-2">
                             <div className="flex items-center gap-2.5 overflow-hidden">
@@ -2423,7 +2420,7 @@ export const AdminExperience: React.FC = () => {
                               </div>
                               <div className="truncate">
                                 <h4 className={`font-bold ${isLight ? 'text-stone-900' : 'text-white'} text-xs truncate`}>{staffUser.displayName || staffUser.name || 'Staff User'}</h4>
-                                <p className={`text-[10px] ${isLight ? 'text-stone-500' : 'text-white/40'} truncate font-mono`}>{staffUser.email}</p>
+                                <p className={`text-[10px] ${isLight ? 'text-stone-500' : 'text-white/40'} truncate font-mono`}>{staffUser.email || 'No email specified'}</p>
                               </div>
                             </div>
 
@@ -2432,30 +2429,30 @@ export const AdminExperience: React.FC = () => {
                             </span>
                           </div>
 
-                          <div className="text-[10px] space-y-1 pt-1 border-t border-white/5">
+                          <div className="text-[10px] space-y-1.5 pt-2 border-t border-stone-200 dark:border-white/5">
                             <div className="flex justify-between items-center">
                               <span className={isLight ? 'text-stone-500' : 'text-white/40'}>Mobile Phone:</span>
                               <span className={`font-mono font-bold ${isLight ? 'text-stone-800' : 'text-white/80'}`}>{staffUser.phoneNumber || staffUser.phone || 'N/A'}</span>
                             </div>
                             <div className="flex justify-between items-center">
                               <span className={isLight ? 'text-stone-500' : 'text-white/40'}>Firestore Document ID:</span>
-                              <span className="font-mono text-[9px] text-[#c5a059] bg-[#c5a059]/10 px-1.5 py-0.2 rounded border border-[#c5a059]/20 truncate max-w-[120px]">{staffUser.uid}</span>
+                              <span className="font-mono text-[9px] text-[#c5a059] bg-[#c5a059]/10 px-1.5 py-0.5 rounded border border-[#c5a059]/20 truncate max-w-[130px]">{staffUser.uid}</span>
                             </div>
                             <div className="flex justify-between items-center">
                               <span className={isLight ? 'text-stone-500' : 'text-white/40'}>Status:</span>
-                              <span className={`font-bold px-1.5 py-0.2 rounded text-[9px] uppercase ${staffUser.status === 'suspended' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'}`}>
+                              <span className={`font-bold px-2 py-0.5 rounded text-[9px] uppercase ${staffUser.status === 'suspended' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'}`}>
                                 {staffUser.status || 'active'}
                               </span>
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-1.5 pt-1">
+                          <div className="flex items-center gap-1.5 pt-2 border-t border-stone-200 dark:border-white/5">
                             <button
                               type="button"
                               onClick={() => setEditingStaffUser(staffUser)}
-                              className="flex-1 bg-[#c5a059]/10 hover:bg-[#c5a059]/20 text-[#c5a059] border border-[#c5a059]/30 text-[10px] font-bold py-1 px-2 rounded-lg transition-colors cursor-pointer text-center flex items-center justify-center gap-1"
+                              className="flex-1 bg-[#c5a059]/10 hover:bg-[#c5a059]/20 text-[#c5a059] border border-[#c5a059]/30 text-[10px] font-bold py-1.5 px-2 rounded-lg transition-colors cursor-pointer text-center flex items-center justify-center gap-1"
                             >
-                              <Edit2 className="w-3 h-3" /> Edit Profile
+                              <Edit2 className="w-3 h-3" /> Edit
                             </button>
                             <button
                               type="button"
@@ -2469,13 +2466,32 @@ export const AdminExperience: React.FC = () => {
                                   alert("Error updating status: " + e.message);
                                 }
                               }}
-                              className={`text-[10px] font-bold py-1 px-2 rounded-lg border transition-colors cursor-pointer ${
+                              className={`text-[10px] font-bold py-1.5 px-2 rounded-lg border transition-colors cursor-pointer ${
                                 staffUser.status === 'suspended'
                                   ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                                  : 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border-rose-500/30'
+                                  : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border-amber-500/30'
                               }`}
                             >
                               {staffUser.status === 'suspended' ? 'Activate' : 'Suspend'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                const staffName = staffUser.displayName || staffUser.name || staffUser.email || staffUser.uid;
+                                if (window.confirm(`Are you sure you want to remove staff account "${staffName}"? This will permanently delete their account record from Firestore.`)) {
+                                  try {
+                                    await deleteDocument('users', staffUser.uid);
+                                    setSettingsSuccessMsg(`Staff account "${staffName}" removed successfully.`);
+                                    setTimeout(() => setSettingsSuccessMsg(null), 3500);
+                                  } catch (e: any) {
+                                    alert("Error removing staff account: " + (e.message || e));
+                                  }
+                                }
+                              }}
+                              title="Remove staff account"
+                              className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[10px] font-bold py-1.5 px-2 rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-1"
+                            >
+                              <Trash2 className="w-3 h-3" /> Remove
                             </button>
                           </div>
                         </div>
@@ -2483,34 +2499,7 @@ export const AdminExperience: React.FC = () => {
                     })}
                 </div>
               </div>
-
-
-
-              <div className={`flex justify-end pt-3 border-t ${isLight ? 'border-stone-200' : 'border-white/5'}`}>
-                <button
-                  type="button"
-                  disabled={settingsSaving}
-                  onClick={async () => {
-                    setSettingsSaving(true);
-                    try {
-                      await updateSettings(settingsForm);
-                      setSettingsSuccessMsg("Terminal & staff accounts saved and reflected in Firebase Users collection!");
-                      setTimeout(() => setSettingsSuccessMsg(null), 4000);
-                    } catch (err: any) {
-                      alert("Failed to save accounts: " + (err.message || err));
-                    } finally {
-                      setSettingsSaving(false);
-                    }
-                  }}
-                  className="bg-[#c5a059] hover:bg-[#b08c47] text-black font-extrabold px-5 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-md shadow-[#c5a059]/20 transition-all cursor-pointer disabled:opacity-50"
-                >
-                  {settingsSaving ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                  Save Staff Accounts
-                </button>
-              </div>
             </div>
-
-            {/* (Redundant store status section removed) */}
 
             {/* 7. PAYMENT CONFIGURATION */}
             <div className={`${isLight ? 'bg-white border-stone-200 text-stone-900 shadow-sm' : 'bg-[#121212] border-white/10 text-white shadow-lg'} p-5 rounded-2xl border space-y-4`}>
@@ -2603,37 +2592,55 @@ export const AdminExperience: React.FC = () => {
                     </div>
 
                     {(method.type === 'qr' || method.type === 'other') && (
-                      <div className={`border-t ${isLight ? 'border-stone-200' : 'border-white/5'} pt-3 space-y-1 text-xs`}>
-                        <label className="text-[10px] font-extrabold uppercase text-[#c5a059] tracking-wider">QR Code Image</label>
-                        <div className="flex items-center gap-3">
-                          {method.qrCodeUrl && (
-                            <img src={method.qrCodeUrl} alt="QR Preview" className={`w-12 h-12 rounded-lg object-contain ${isLight ? 'bg-stone-100 border-stone-300' : 'bg-white/5 border-white/10'} border`} />
-                          )}
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={async (e) => {
-                              const file = e.target.files?.[0];
-                              if (!file) return;
-                              try {
-                                const res = await fetch('/api/upload-url', {
-                                  method: 'POST',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({ filename: file.name, contentType: file.type })
-                                });
-                                if (!res.ok) throw new Error(await res.text());
-                                const { signedUrl, publicUrl } = await res.json();
-                                await fetch(signedUrl, { method: 'PUT', headers: { 'Content-Type': file.type }, body: file });
-                                
+                      <div className={`border-t ${isLight ? 'border-stone-200' : 'border-white/5'} pt-3 space-y-3 text-xs`}>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-extrabold uppercase text-[#c5a059] tracking-wider block">E-Wallet Phone / Account Number</label>
+                            <input
+                              type="text"
+                              placeholder="e.g., 0917 123 4567"
+                              value={method.accountNumber || ''}
+                              onChange={(e) => {
                                 const updated = [...settingsForm.paymentMethods];
-                                updated[index].qrCodeUrl = publicUrl;
+                                updated[index].accountNumber = e.target.value;
                                 setSettingsForm({ ...settingsForm, paymentMethods: updated });
-                              } catch (err: any) {
-                                alert("Failed to upload QR: " + err.message);
-                              }
-                            }}
-                            className={`w-full text-xs ${isLight ? 'text-stone-600' : 'text-white/50'} file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-[#c5a059]/10 file:text-[#c5a059] hover:file:bg-[#c5a059]/20`}
-                          />
+                              }}
+                              className={`w-full p-2 rounded-lg ${isLight ? 'bg-white border-stone-300 text-stone-900' : 'bg-black border-white/10 text-white'} border outline-none focus:border-[#c5a059]/50`}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-extrabold uppercase text-[#c5a059] tracking-wider block">QR Code Image</label>
+                            <div className="flex items-center gap-3">
+                              {method.qrCodeUrl && (
+                                <img src={method.qrCodeUrl} alt="QR Preview" className={`w-12 h-12 rounded-lg object-contain ${isLight ? 'bg-stone-100 border-stone-300' : 'bg-white/5 border-white/10'} border`} />
+                              )}
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={async (e) => {
+                                  const file = e.target.files?.[0];
+                                  if (!file) return;
+                                  try {
+                                    const res = await fetch('/api/upload-url', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ filename: file.name, contentType: file.type })
+                                    });
+                                    if (!res.ok) throw new Error(await res.text());
+                                    const { signedUrl, publicUrl } = await res.json();
+                                    await fetch(signedUrl, { method: 'PUT', headers: { 'Content-Type': file.type }, body: file });
+                                    
+                                    const updated = [...settingsForm.paymentMethods];
+                                    updated[index].qrCodeUrl = publicUrl;
+                                    setSettingsForm({ ...settingsForm, paymentMethods: updated });
+                                  } catch (err: any) {
+                                    alert("Failed to upload QR: " + err.message);
+                                  }
+                                }}
+                                className={`w-full text-xs ${isLight ? 'text-stone-600' : 'text-white/50'} file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-[#c5a059]/10 file:text-[#c5a059] hover:file:bg-[#c5a059]/20`}
+                              />
+                            </div>
+                          </div>
                         </div>
                       </div>
                     )}
@@ -3074,7 +3081,7 @@ export const AdminExperience: React.FC = () => {
               </button>
             </div>
 
-            <div className="bg-[#c5a059]/10 text-stone-900 dark:text-white border border-[#c5a059]/20 p-3 rounded-xl">
+            <div className={`bg-[#c5a059]/10 ${isLight ? 'text-stone-900' : 'text-white'} border border-[#c5a059]/20 p-3 rounded-xl`}>
               <p className="font-bold text-[#c5a059]">Customer: {pointsUser.name}</p>
               <p className={`text-[10px] mt-0.5 ${isLight ? 'text-stone-600' : 'text-white/70'}`}>Current Balance: {pointsUser.loyaltyPoints} points</p>
             </div>
@@ -3159,137 +3166,7 @@ export const AdminExperience: React.FC = () => {
         </div>
       )}
 
-      {/* PASSWORD CHANGE MODAL */}
-      {showPasswordModal && passwordTarget && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className={`${isLight ? 'bg-white border-stone-200 text-stone-900 shadow-2xl' : 'bg-[#121212] border-white/10 text-white shadow-2xl'} w-full max-w-sm rounded-2xl border p-5 space-y-4 animate-zoom-in text-xs`}>
-            <div className={`flex justify-between items-center border-b ${isLight ? 'border-stone-200' : 'border-white/5'} pb-2`}>
-              <h3 className={`font-bold ${isLight ? 'text-stone-900' : 'text-white'} text-sm`}>Change Password for {passwordTarget.toUpperCase()}</h3>
-              <button onClick={() => setShowPasswordModal(false)} className={`p-1 ${isLight ? 'hover:bg-stone-100' : 'hover:bg-white/5'} rounded-full cursor-pointer transition-colors`}>
-                <X className={`w-5 h-5 ${isLight ? 'text-stone-500' : 'text-white/50'}`} />
-              </button>
-            </div>
-
-            <div className="space-y-3">
-              <div className="space-y-1">
-                <label className="text-[10px] font-extrabold uppercase text-[#c5a059] tracking-wider">New Password</label>
-                <input
-                  type="password"
-                  placeholder="Enter new secure password"
-                  value={newPasswordVal}
-                  onChange={(e) => setNewPasswordVal(e.target.value)}
-                  className={`w-full p-2.5 rounded-xl ${isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-[#080808] border-white/10 text-white'} border outline-none focus:border-[#c5a059]/50`}
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-extrabold uppercase text-[#c5a059] tracking-wider">Confirm New Password</label>
-                <input
-                  type="password"
-                  placeholder="Confirm new password"
-                  value={confirmPasswordVal}
-                  onChange={(e) => setConfirmPasswordVal(e.target.value)}
-                  className={`w-full p-2.5 rounded-xl ${isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-[#080808] border-white/10 text-white'} border outline-none focus:border-[#c5a059]/50`}
-                />
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                if (!newPasswordVal || newPasswordVal.length < 6) {
-                  alert("Password must be at least 6 characters long.");
-                  return;
-                }
-                if (newPasswordVal !== confirmPasswordVal) {
-                  alert("Passwords do not match!");
-                  return;
-                }
-                const updatedAcc = {
-                  ...(settingsForm.accountsConfig || {
-                    admin: { role: 'admin', name: '', mobile: '', email: '', isEmailVerified: true },
-                    pos: { role: 'cashier', name: '', mobile: '', email: '', isEmailVerified: true },
-                    kds: { role: 'kitchen', name: '', mobile: '', email: '', isEmailVerified: true }
-                  }),
-                  [passwordTarget]: {
-                    ...(settingsForm.accountsConfig?.[passwordTarget] || {}),
-                    password: newPasswordVal
-                  }
-                };
-                setSettingsForm({ ...settingsForm, accountsConfig: updatedAcc });
-                setShowPasswordModal(false);
-                setModalSuccess(`Password successfully updated for ${passwordTarget.toUpperCase()}! Click "Save & Update All Terminals" to commit.`);
-                setTimeout(() => setModalSuccess(null), 4000);
-              }}
-              className="w-full bg-[#c5a059] hover:bg-[#b08c47] text-black font-bold py-3 rounded-xl shadow-md cursor-pointer text-xs transition-colors"
-            >
-              Update Password
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* GMAIL VERIFICATION MODAL */}
-      {showEmailVerificationModal && verifyingAccountKey && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className={`${isLight ? 'bg-white border-stone-200 text-stone-900 shadow-2xl' : 'bg-[#121212] border-white/10 text-white shadow-2xl'} w-full max-w-sm rounded-2xl border p-5 space-y-4 animate-zoom-in text-xs`}>
-            <div className={`flex justify-between items-center border-b ${isLight ? 'border-stone-200' : 'border-white/5'} pb-2`}>
-              <h3 className={`font-bold ${isLight ? 'text-stone-900' : 'text-white'} text-sm`}>Gmail Verification ({verifyingAccountKey.toUpperCase()})</h3>
-              <button onClick={() => setShowEmailVerificationModal(false)} className={`p-1 ${isLight ? 'hover:bg-stone-100' : 'hover:bg-white/5'} rounded-full cursor-pointer transition-colors`}>
-                <X className={`w-5 h-5 ${isLight ? 'text-stone-500' : 'text-white/50'}`} />
-              </button>
-            </div>
-
-            <div className="p-3 bg-[#c5a059]/10 rounded-xl border border-[#c5a059]/30 text-stone-900 dark:text-white/90 space-y-1">
-              <p className="font-bold text-[#c5a059]">Verification Code Sent!</p>
-              <p className={`text-[10px] ${isLight ? 'text-stone-600' : 'text-white/70'}`}>We sent a 6-digit confirmation code to <strong className={isLight ? 'text-stone-900' : 'text-white'}>{settingsForm.accountsConfig?.[verifyingAccountKey]?.email}</strong>.</p>
-              <p className="text-[10px] text-amber-600 font-mono mt-1">[Simulated Verification Code: <strong>{generatedCode}</strong>]</p>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-[10px] font-extrabold uppercase text-[#c5a059] tracking-wider">Enter 6-Digit Code</label>
-              <input
-                type="text"
-                maxLength={6}
-                placeholder="123456"
-                value={verificationCodeInput}
-                onChange={(e) => setVerificationCodeInput(e.target.value)}
-                className={`w-full p-2.5 rounded-xl ${isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-[#080808] border-white/10 text-white'} text-center font-mono text-lg tracking-widest outline-none focus:border-[#c5a059]/50`}
-              />
-            </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                if (verificationCodeInput !== generatedCode && verificationCodeInput !== '123456') {
-                  alert("Invalid verification code. Please check and try again.");
-                  return;
-                }
-                const updatedAcc = {
-                  ...(settingsForm.accountsConfig || {
-                    admin: { role: 'admin', name: '', mobile: '', email: '', isEmailVerified: true },
-                    pos: { role: 'cashier', name: '', mobile: '', email: '', isEmailVerified: true },
-                    kds: { role: 'kitchen', name: '', mobile: '', email: '', isEmailVerified: true }
-                  }),
-                  [verifyingAccountKey]: {
-                    ...(settingsForm.accountsConfig?.[verifyingAccountKey] || {}),
-                    isEmailVerified: true
-                  }
-                };
-                setSettingsForm({ ...settingsForm, accountsConfig: updatedAcc });
-                setShowEmailVerificationModal(false);
-                setVerificationCodeInput('');
-                setModalSuccess(`Gmail successfully verified for ${verifyingAccountKey.toUpperCase()}!`);
-                setTimeout(() => setModalSuccess(null), 4000);
-              }}
-              className="w-full bg-[#c5a059] hover:bg-[#b08c47] text-black font-bold py-3 rounded-xl shadow-md cursor-pointer text-xs transition-colors"
-            >
-              Verify Gmail Address
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* EDIT FIRESTORE STAFF USER MODAL */}
+      {/* 10. EDIT FIRESTORE STAFF USER MODAL */}
       {editingStaffUser && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className={`${isLight ? 'bg-white border-stone-200 text-stone-900 shadow-2xl' : 'bg-[#121212] border-white/10 text-white shadow-2xl'} w-full max-w-md rounded-2xl border p-5 space-y-4 animate-zoom-in text-xs`}>
@@ -3362,44 +3239,65 @@ export const AdminExperience: React.FC = () => {
               </div>
             </div>
 
-            <div className="pt-2 flex gap-2">
-              <button
-                type="button"
-                onClick={() => setEditingStaffUser(null)}
-                className={`flex-1 ${isLight ? 'bg-stone-100 text-stone-800' : 'bg-white/10 text-white'} py-2.5 rounded-xl font-bold transition-colors cursor-pointer`}
-              >
-                Cancel
-              </button>
+            <div className="pt-2 flex flex-col gap-2">
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingStaffUser(null)}
+                  className={`flex-1 ${isLight ? 'bg-stone-100 text-stone-800' : 'bg-white/10 text-white'} py-2.5 rounded-xl font-bold transition-colors cursor-pointer`}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      await updateDocument('users', editingStaffUser.uid, {
+                        displayName: editingStaffUser.displayName || editingStaffUser.name,
+                        name: editingStaffUser.displayName || editingStaffUser.name,
+                        email: editingStaffUser.email,
+                        phoneNumber: editingStaffUser.phoneNumber || editingStaffUser.phone,
+                        phone: editingStaffUser.phoneNumber || editingStaffUser.phone,
+                        role: editingStaffUser.role,
+                        status: editingStaffUser.status || 'active'
+                      });
+                      setEditingStaffUser(null);
+                      setSettingsSuccessMsg("Updated user profile in Firebase Users collection!");
+                      setTimeout(() => setSettingsSuccessMsg(null), 3500);
+                    } catch (err: any) {
+                      alert("Failed to update user profile in Firestore: " + (err.message || err));
+                    }
+                  }}
+                  className="flex-1 bg-[#c5a059] hover:bg-[#b08c47] text-black py-2.5 rounded-xl font-bold transition-colors cursor-pointer"
+                >
+                  Save to Firestore
+                </button>
+              </div>
               <button
                 type="button"
                 onClick={async () => {
-                  try {
-                    await updateDocument('users', editingStaffUser.uid, {
-                      displayName: editingStaffUser.displayName || editingStaffUser.name,
-                      name: editingStaffUser.displayName || editingStaffUser.name,
-                      email: editingStaffUser.email,
-                      phoneNumber: editingStaffUser.phoneNumber || editingStaffUser.phone,
-                      phone: editingStaffUser.phoneNumber || editingStaffUser.phone,
-                      role: editingStaffUser.role,
-                      status: editingStaffUser.status || 'active'
-                    });
-                    setEditingStaffUser(null);
-                    setSettingsSuccessMsg("Updated user profile in Firebase Users collection!");
-                    setTimeout(() => setSettingsSuccessMsg(null), 3500);
-                  } catch (err: any) {
-                    alert("Failed to update user profile in Firestore: " + (err.message || err));
+                  const staffName = editingStaffUser.displayName || editingStaffUser.name || editingStaffUser.email || editingStaffUser.uid;
+                  if (window.confirm(`Are you sure you want to delete staff account "${staffName}" from Firestore? This action cannot be undone.`)) {
+                    try {
+                      await deleteDocument('users', editingStaffUser.uid);
+                      setEditingStaffUser(null);
+                      setSettingsSuccessMsg(`Staff account "${staffName}" deleted from Firestore.`);
+                      setTimeout(() => setSettingsSuccessMsg(null), 3500);
+                    } catch (err: any) {
+                      alert("Failed to delete staff account: " + (err.message || err));
+                    }
                   }
                 }}
-                className="flex-1 bg-[#c5a059] hover:bg-[#b08c47] text-black py-2.5 rounded-xl font-bold transition-colors cursor-pointer"
+                className="w-full bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 py-2 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
               >
-                Save to Firestore
+                <Trash2 className="w-3.5 h-3.5" /> Remove Staff Account
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ADD NEW FIRESTORE STAFF USER MODAL */}
+      {/* 11. ADD NEW FIRESTORE STAFF USER MODAL */}
       {showAddStaffModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className={`${isLight ? 'bg-white border-stone-200 text-stone-900 shadow-2xl' : 'bg-[#121212] border-white/10 text-white shadow-2xl'} w-full max-w-md rounded-2xl border p-5 space-y-4 animate-zoom-in text-xs`}>

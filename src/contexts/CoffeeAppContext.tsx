@@ -96,13 +96,16 @@ interface CoffeeAppContextType {
     customCustomerName?: string,
     orderSource?: 'pos' | 'web_app',
     cashReceived?: number,
-    change?: number
+    change?: number,
+    receiptUrl?: string
   ) => Promise<Order>;
   updateOrderStatus: (orderId: string, status: OrderStatus) => Promise<void>;
   updateOrderItemStatus: (orderId: string, itemIndex: number, itemStatus: 'pending' | 'preparing' | 'ready') => Promise<void>;
   updatePaymentStatus: (orderId: string, status: PaymentStatus, cashReceived?: number, change?: number) => Promise<void>;
   updateSettings: (newSettings: Partial<SystemSettings>) => Promise<void>;
   loadDemoData: () => Promise<void>;
+  clearSampleMenuData: () => Promise<void>;
+  clearAllMenuData: () => Promise<void>;
   resetDatabase: () => Promise<void>;
 
   // Admin Management functions
@@ -531,22 +534,33 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     testDbConnection();
   }, []);
 
-  // 1. Unified Real-Time Firebase Listeners
+  // Automatic Purge of Sample Menu Items on startup
   useEffect(() => {
-    if (authLoading || !currentUser) {
-      setCategories([]);
-      setProducts([]);
-      setVouchers([]);
-      setRewards([]);
-      setOrders([]);
-      setUsersList([]);
-      setAuditLogs([]);
-      setInventoryLogs([]);
-      setDataLoading(true);
-      return;
-    }
+    if (!currentUser || authLoading) return;
+    const purgeSampleDataOnce = async () => {
+      try {
+        const demoCatIds = ['cat_coffee', 'cat_non_coffee', 'cat_food', 'cat_specials'];
+        const demoProdIds = ['prod_choco_lava', 'prod_banana_muffin', 'prod_spanish_latte', 'prod_caramel_macchiato', 'prod_matcha_latte'];
+        
+        for (const catId of demoCatIds) {
+          try {
+            await deleteDoc(getShopDoc('categories', catId));
+          } catch (e) {}
+        }
+        for (const prodId of demoProdIds) {
+          try {
+            await deleteDoc(getShopDoc('products', prodId));
+          } catch (e) {}
+        }
+      } catch (err) {
+        console.warn("Initial sample menu purge error:", err);
+      }
+    };
+    purgeSampleDataOnce();
+  }, [currentUser?.uid, authLoading]);
 
-    setDataLoading(true);
+  // 1. Public Real-Time Firebase Listeners (Always active for Landing Page & All Experiences)
+  useEffect(() => {
     let catsLoaded = false;
     let prodsLoaded = false;
     const checkDataLoaded = () => {
@@ -560,23 +574,14 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (!snap.empty) {
         const list: Category[] = [];
         snap.forEach(doc => list.push({ id: doc.id, ...doc.data() } as Category));
-        setCategories(list.sort((a,b) => a.displayOrder - b.displayOrder));
+        setCategories(list.sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0)));
       } else {
-        setCategories(DEMO_CATEGORIES);
-        // Auto-seed if database is empty
-        if (DEMO_CATEGORIES.length > 0) {
-          DEMO_CATEGORIES.forEach(cat => {
-            setDoc(getShopDoc('categories', cat.id), cat).catch(err => {
-              console.warn("Auto-seed category failed:", err);
-            });
-          });
-        }
+        setCategories([]);
       }
       catsLoaded = true;
       checkDataLoaded();
     }, (err) => {
       console.warn("Categories snapshot failed:", err);
-      setCategories(DEMO_CATEGORIES);
       catsLoaded = true;
       checkDataLoaded();
     });
@@ -596,26 +601,12 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         });
         setProducts(list);
       } else {
-        setProducts(DEMO_PRODUCTS);
-        // Auto-seed if database is empty
-        if (DEMO_PRODUCTS.length > 0) {
-          DEMO_PRODUCTS.forEach(prod => {
-            const { id, ...pData } = prod;
-            setDoc(getShopDoc('products', id), {
-              ...pData,
-              createdAt: serverTimestamp(),
-              updatedAt: serverTimestamp()
-            }).catch(err => {
-              console.warn("Auto-seed product failed:", err);
-            });
-          });
-        }
+        setProducts([]);
       }
       prodsLoaded = true;
       checkDataLoaded();
     }, (err) => {
       console.warn("Products snapshot failed:", err);
-      setProducts(DEMO_PRODUCTS);
       prodsLoaded = true;
       checkDataLoaded();
     });
@@ -628,13 +619,6 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         setVouchers(list);
       } else {
         setVouchers([]);
-        if (currentUser.role === 'admin' && DEMO_VOUCHERS.length > 0) {
-          DEMO_VOUCHERS.forEach(v => {
-            setDoc(getShopDoc('vouchers', v.id), v).catch(err => {
-              console.warn("Auto-seed voucher failed:", err);
-            });
-          });
-        }
       }
     }, (err) => {
       console.warn("Vouchers snapshot failed:", err);
@@ -648,13 +632,6 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         setRewards(list);
       } else {
         setRewards([]);
-        if (currentUser.role === 'admin' && DEMO_REWARDS.length > 0) {
-          DEMO_REWARDS.forEach(r => {
-            setDoc(getShopDoc('rewards', r.id), r).catch(err => {
-              console.warn("Auto-seed reward failed:", err);
-            });
-          });
-        }
       }
     }, (err) => {
       console.warn("Rewards snapshot failed:", err);
@@ -670,12 +647,6 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         }
       } else {
         setSettings(DEFAULT_SETTINGS);
-        if (currentUser.role === 'admin') {
-          console.log("Empty settings config detected. Auto-seeding core configuration document...");
-          setDoc(getShopDoc('settings', 'config'), DEFAULT_SETTINGS).catch(err => {
-            console.error("Auto-seeding default settings failed:", err);
-          });
-        }
         syncStaffAccountsToFirestore(DEFAULT_SETTINGS.accountsConfig);
       }
     }, (err) => {
@@ -683,7 +654,25 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       syncStaffAccountsToFirestore(DEFAULT_SETTINGS.accountsConfig);
     });
 
-    // 6. Role-Restricted Sync: Orders
+    return () => {
+      unsubCategories();
+      unsubProducts();
+      unsubVouchers();
+      unsubRewards();
+      unsubSettings();
+    };
+  }, []);
+
+  // 2. User/Role-Specific Real-Time Firebase Listeners (Orders, Users, Audits, Inventory)
+  useEffect(() => {
+    if (authLoading || !currentUser) {
+      setOrders([]);
+      setUsersList([]);
+      setAuditLogs([]);
+      setInventoryLogs([]);
+      return;
+    }
+
     const isStaff = currentUser.role === 'admin' || currentUser.role === 'cashier' || currentUser.role === 'kitchen';
     const ordersQuery = isStaff 
       ? query(getShopCol('orders'), orderBy('createdAt', 'desc'))
@@ -714,7 +703,7 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }
     });
 
-    // 7. Role-Restricted Sync: Users (Staff only)
+    // Role-Restricted Sync: Users (Staff only)
     let unsubUsers = () => {};
     if (isStaff) {
       unsubUsers = onSnapshot(getShopCol('users'), (snap) => {
@@ -728,7 +717,7 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       setUsersList([currentUser]);
     }
 
-    // 8. Role-Restricted Sync: Inventory Logs (Staff only)
+    // Role-Restricted Sync: Inventory Logs (Staff only)
     let unsubInv = () => {};
     if (isStaff) {
       const qInv = query(getShopCol('inventoryTransactions'), orderBy('createdAt', 'desc'));
@@ -743,7 +732,7 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       setInventoryLogs([]);
     }
 
-    // 9. Role-Restricted Sync: Audit Logs (Staff only)
+    // Role-Restricted Sync: Audit Logs (Staff only)
     let unsubAudit = () => {};
     if (isStaff) {
       const qAudit = query(getShopCol('auditLogs'), orderBy('timestamp', 'desc'));
@@ -759,11 +748,6 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
 
     return () => {
-      unsubCategories();
-      unsubProducts();
-      unsubVouchers();
-      unsubRewards();
-      unsubSettings();
       unsubOrders();
       unsubUsers();
       unsubInv();
@@ -1097,7 +1081,8 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     customCustomerName?: string,
     orderSource?: 'pos' | 'web_app',
     cashReceived?: number,
-    change?: number
+    change?: number,
+    receiptUrl?: string
   ): Promise<Order> => {
     if (settings.storeStatus?.isOpen === false && (orderSource === 'web_app' || (!orderSource && currentUser?.role === 'customer'))) {
       throw new Error("Store is currently closed. Orders cannot be placed through the mobile app right now.");
@@ -1224,7 +1209,16 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const selectedMethod = (settings.paymentMethods || []).find(m => m.id === paymentMethod);
     const isCashType = selectedMethod?.type === 'cash' || paymentMethod === 'cash';
 
-    const initialPaymentStatus = (!isCashType || cashReceived !== undefined) ? 'paid' : 'unpaid';
+    let initialPaymentStatus: PaymentStatus = 'unpaid';
+    if (cashReceived !== undefined) {
+      initialPaymentStatus = 'paid';
+    } else if (!isCashType) {
+      if (effectiveOrderSource === 'pos') {
+        initialPaymentStatus = 'paid';
+      } else {
+        initialPaymentStatus = receiptUrl ? 'pending' : 'unpaid';
+      }
+    }
 
     const orderData: Omit<Order, 'id'> = {
       orderNumber,
@@ -1248,7 +1242,8 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       updatedAt: serverTimestamp(),
       pointsEarned,
       ...(cashReceived !== undefined ? { cashReceived } : {}),
-      ...(computedChange !== undefined ? { change: computedChange } : {})
+      ...(computedChange !== undefined ? { change: computedChange } : {}),
+      ...(receiptUrl ? { receiptUrl } : {})
     };
 
     // 4. Batch transaction for database reliability, duplicate prevention, and inventory decrement
@@ -1557,53 +1552,120 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     await syncStaffAccountsToFirestore(overrideConfig || settings.accountsConfig);
   };
 
-  // 7. Demo Data Loader (Overwrites or populates empty Firestore collections)
-  const loadDemoData = async () => {
+  // 7. Clear Sample Menu & All Menu Data operations
+  const clearSampleMenuData = async () => {
     try {
-      // Categories
-      for (const cat of DEMO_CATEGORIES) {
-        await traceSetDoc(getShopDoc('categories', cat.id), cat, undefined, 'loadDemoData:category');
+      // 1. Delete all default demo categories from Firestore
+      const demoCatIds = DEMO_CATEGORIES.map(c => c.id);
+      for (const catId of demoCatIds) {
+        try {
+          await traceDeleteDoc(getShopDoc('categories', catId), 'clearSampleMenuData:category');
+        } catch (err) {
+          console.warn("Failed deleting demo category:", catId, err);
+        }
       }
-      // Products
-      for (const prod of DEMO_PRODUCTS) {
-        const { id, ...pData } = prod;
-        await traceSetDoc(getShopDoc('products', id), {
-          ...pData,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp()
-        }, undefined, 'loadDemoData:product');
+
+      // 2. Delete all default demo products from Firestore
+      const demoProdIds = DEMO_PRODUCTS.map(p => p.id);
+      for (const prodId of demoProdIds) {
+        try {
+          await traceDeleteDoc(getShopDoc('products', prodId), 'clearSampleMenuData:product');
+        } catch (err) {
+          console.warn("Failed deleting demo product:", prodId, err);
+        }
       }
-      // Vouchers
+
+      // 3. Delete demo vouchers and rewards
       for (const v of DEMO_VOUCHERS) {
-        await traceSetDoc(getShopDoc('vouchers', v.id), v, undefined, 'loadDemoData:voucher');
+        try {
+          await traceDeleteDoc(getShopDoc('vouchers', v.id), 'clearSampleMenuData:voucher');
+        } catch (err) {
+          console.warn("Failed deleting demo voucher:", v.id, err);
+        }
       }
-      // Rewards
       for (const r of DEMO_REWARDS) {
-        await traceSetDoc(getShopDoc('rewards', r.id), r, undefined, 'loadDemoData:reward');
+        try {
+          await traceDeleteDoc(getShopDoc('rewards', r.id), 'clearSampleMenuData:reward');
+        } catch (err) {
+          console.warn("Failed deleting demo reward:", r.id, err);
+        }
       }
-      // Default settings
-      await traceSetDoc(getShopDoc('settings', 'config'), DEFAULT_SETTINGS, undefined, 'loadDemoData:settings');
+
+      // 4. Query and delete any remaining categories or products matching sample names or IDs
+      try {
+        const catSnap = await getDocs(getShopCol('categories'));
+        catSnap.forEach(async (d) => {
+          const data = d.data();
+          if (demoCatIds.includes(d.id) || ['Coffee', 'Non-Coffee', 'Food & Pastries', 'Signature Specials'].includes(data.name)) {
+            await traceDeleteDoc(getShopDoc('categories', d.id), 'clearSampleMenuData:categoryDoc');
+          }
+        });
+      } catch (err) {
+        console.warn("Cat cleanup query failed:", err);
+      }
+
+      try {
+        const prodSnap = await getDocs(getShopCol('products'));
+        prodSnap.forEach(async (d) => {
+          const data = d.data();
+          if (demoProdIds.includes(d.id) || ['Choco Lava', 'Banana muffin', 'Spanish Latte', 'Caramel Macchiato', 'Uji Matcha Latte'].includes(data.name)) {
+            await traceDeleteDoc(getShopDoc('products', d.id), 'clearSampleMenuData:productDoc');
+          }
+        });
+      } catch (err) {
+        console.warn("Prod cleanup query failed:", err);
+      }
+
+      setCategories([]);
+      setProducts([]);
+      setCart([]);
 
       await writeAuditLog(
         currentUser?.uid || 'admin',
         currentUser?.name || 'Admin',
-        'load_demo_data',
+        'clear_sample_menu',
         'database',
-        'empty',
-        'demo_populated'
+        'sample_menu',
+        'cleared'
       );
     } catch (e) {
-      console.error("Load demo data failed. Populating locally...", e);
-      setCategories(DEMO_CATEGORIES);
-      setProducts(DEMO_PRODUCTS);
-      setVouchers(DEMO_VOUCHERS);
-      setRewards(DEMO_REWARDS);
+      console.error("Clear sample menu data failed:", e);
+      setCategories([]);
+      setProducts([]);
+      setCart([]);
     }
+  };
+
+  const clearAllMenuData = async () => {
+    try {
+      const catSnap = await getDocs(getShopCol('categories'));
+      catSnap.forEach(async (d) => {
+        await traceDeleteDoc(getShopDoc('categories', d.id), 'clearAllMenuData:category');
+      });
+
+      const prodSnap = await getDocs(getShopCol('products'));
+      prodSnap.forEach(async (d) => {
+        await traceDeleteDoc(getShopDoc('products', d.id), 'clearAllMenuData:product');
+      });
+
+      setCategories([]);
+      setProducts([]);
+      setCart([]);
+    } catch (e) {
+      console.error("Clear all menu data failed:", e);
+      setCategories([]);
+      setProducts([]);
+    }
+  };
+
+  // Demo Data Loader (Now aliases to clear sample menu to ensure clean state as requested)
+  const loadDemoData = async () => {
+    await clearSampleMenuData();
   };
 
   const resetDatabase = async () => {
     try {
-      // Just write default empty collections or reset snapshot states
+      await clearSampleMenuData();
       await setDoc(getShopDoc('settings', 'config'), DEFAULT_SETTINGS);
       setCart([]);
       setAppliedVoucher(null);
@@ -1843,6 +1905,8 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       updatePaymentStatus,
       updateSettings,
       loadDemoData,
+      clearSampleMenuData,
+      clearAllMenuData,
       resetDatabase,
       addCategory,
       updateCategory,

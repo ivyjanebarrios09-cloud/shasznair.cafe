@@ -33,7 +33,8 @@ export const CustomerExperience: React.FC = () => {
     placeOrder,
     settings,
     logout,
-    updateUserProfile
+    updateUserProfile,
+    updateDocument
   } = useCoffeeApp();
 
   // Navigation Tabs: 'menu' | 'orders' | 'profile'
@@ -82,6 +83,8 @@ export const CustomerExperience: React.FC = () => {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [checkoutNotes, setCheckoutNotes] = useState('');
   const [phoneLookup, setPhoneLookup] = useState('');
+  const [checkoutReceiptUrl, setCheckoutReceiptUrl] = useState<string>('');
+  const [uploadingReceipt, setUploadingReceipt] = useState<boolean>(false);
 
   // Notification / Alert banners
   const [voucherError, setVoucherError] = useState<string | null>(null);
@@ -154,10 +157,13 @@ export const CustomerExperience: React.FC = () => {
 
   // Filtered menu
   const filteredProducts = products.filter(p => {
-    const matchSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                        p.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchCat = selectedCategory === 'all' || p.category === selectedCategory;
-    return matchSearch && matchCat && p.available;
+    const matchSearch = (p.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+                        (p.description || '').toLowerCase().includes(searchQuery.toLowerCase());
+    const matchCat = selectedCategory === 'all' || 
+                     p.category === selectedCategory ||
+                     categories.some(c => (c.id === selectedCategory || c.name.toLowerCase() === selectedCategory.toLowerCase()) && 
+                                          (c.id === p.category || c.name.toLowerCase() === (p.category || '').toLowerCase()));
+    return matchSearch && matchCat && p.available !== false;
   });
 
   // Calculate cart metrics
@@ -233,10 +239,24 @@ export const CustomerExperience: React.FC = () => {
     }
 
     try {
-      const result = await placeOrder(orderType, tableNo, paymentMethod, checkoutNotes);
+      const result = await placeOrder(
+        orderType, 
+        tableNo, 
+        paymentMethod, 
+        checkoutNotes,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        'web_app',
+        undefined,
+        undefined,
+        checkoutReceiptUrl
+      );
       setOrderSubmitted(result);
       setIsCheckoutOpen(false);
       clearCart();
+      setCheckoutReceiptUrl('');
       setActiveTab('orders');
     } catch (err: any) {
       setErrorBanner(err.message || "Checkout failed. Please retry.");
@@ -484,7 +504,7 @@ export const CustomerExperience: React.FC = () => {
                   <Layers className="w-3.5 h-3.5" />
                   <span>All Menu</span>
                 </motion.button>
-                {categories.filter(c => c.active).map(cat => (
+                {categories.filter(c => c.active !== false).map(cat => (
                   <motion.button
                     whileTap={{ scale: 0.94 }}
                     key={cat.id}
@@ -1600,12 +1620,57 @@ export const CustomerExperience: React.FC = () => {
                   {/* Dynamic QR Code Display for selected payment method */}
                   {(() => {
                     const selectedMethod = (settings.paymentMethods || []).find(m => m.id === paymentMethod);
-                    if (selectedMethod?.qrCodeUrl) {
+                    if (selectedMethod && (selectedMethod.qrCodeUrl || selectedMethod.accountNumber)) {
                       return (
-                        <div className="mt-3 p-4 bg-white border border-stone-200 rounded-xl flex flex-col items-center text-center space-y-2 animate-fade-in">
-                          <p className="text-xs font-bold text-stone-700">Scan to pay via {selectedMethod.name}</p>
-                          <img src={selectedMethod.qrCodeUrl} alt={`${selectedMethod.name} QR Code`} className="w-32 h-32 object-contain" />
-                          <p className="text-[10px] text-stone-500">Please prepare your payment proof for verification at the counter.</p>
+                        <div className="mt-3 p-4 bg-amber-50/40 border border-stone-200 rounded-xl flex flex-col items-center text-center space-y-3 animate-fade-in">
+                          <p className="text-xs font-extrabold text-stone-800">Scan or Transfer to pay via {selectedMethod.name}</p>
+                          {selectedMethod.accountNumber && (
+                            <div className="bg-amber-950/10 text-amber-950 font-mono font-bold text-xs py-1.5 px-3 rounded-lg border border-amber-900/10 flex items-center gap-1.5">
+                              <span>No./Account:</span>
+                              <span className="text-amber-900 tracking-wider select-all">{selectedMethod.accountNumber}</span>
+                            </div>
+                          )}
+                          {selectedMethod.qrCodeUrl && (
+                            <img src={selectedMethod.qrCodeUrl} alt={`${selectedMethod.name} QR Code`} className="w-40 h-40 object-contain rounded-lg border border-stone-150 bg-white p-1 shadow-xs" />
+                          )}
+                          <p className="text-[10px] text-stone-500 leading-relaxed font-medium">Please send the exact amount and upload your payment proof/receipt image below for verification.</p>
+                          
+                          {/* Receipt Upload Input at Checkout */}
+                          <div className="w-full pt-2 border-t border-stone-200/50 text-left">
+                            <label className="text-[10px] font-extrabold uppercase text-stone-600 tracking-wider block mb-1.5">Upload Payment Receipt</label>
+                            <div className="flex items-center gap-2">
+                              {checkoutReceiptUrl && (
+                                <img src={checkoutReceiptUrl} alt="Receipt Preview" className="w-10 h-10 rounded-lg object-cover border border-stone-300 bg-white" />
+                              )}
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={async (e) => {
+                                  const file = e.target.files?.[0];
+                                  if (!file) return;
+                                  setUploadingReceipt(true);
+                                  try {
+                                    const res = await fetch('/api/upload-url', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ filename: file.name, contentType: file.type })
+                                    });
+                                    if (!res.ok) throw new Error(await res.text());
+                                    const { signedUrl, publicUrl } = await res.json();
+                                    await fetch(signedUrl, { method: 'PUT', headers: { 'Content-Type': file.type }, body: file });
+                                    
+                                    setCheckoutReceiptUrl(publicUrl);
+                                  } catch (err: any) {
+                                    alert("Failed to upload receipt: " + err.message);
+                                  } finally {
+                                    setUploadingReceipt(false);
+                                  }
+                                }}
+                                className="w-full text-xs text-stone-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-[10px] file:font-bold file:bg-amber-900/10 file:text-amber-900 hover:file:bg-amber-900/20"
+                              />
+                            </div>
+                            {uploadingReceipt && <p className="text-[9px] text-amber-800 animate-pulse mt-1 font-semibold">Uploading proof of payment...</p>}
+                          </div>
                         </div>
                       );
                     }
@@ -1745,6 +1810,97 @@ export const CustomerExperience: React.FC = () => {
                   )}
                 </div>
               </div>
+
+              {/* QR payment details and receipt upload block inside details modal */}
+              {selectedOrderDetails && (selectedOrderDetails.paymentStatus === 'unpaid' || selectedOrderDetails.paymentStatus === 'pending') && (
+                (() => {
+                  const selectedMethod = (settings.paymentMethods || []).find(m => m.id === selectedOrderDetails.paymentMethod);
+                  if (selectedMethod && (selectedMethod.type === 'qr' || selectedMethod.type === 'other')) {
+                    return (
+                      <div className="bg-amber-50/50 border border-stone-200 p-3.5 rounded-xl space-y-2.5 text-center text-xs">
+                        <p className="font-extrabold text-stone-850">Payment Instructions ({selectedMethod.name})</p>
+                        {selectedMethod.accountNumber && (
+                          <div className="bg-amber-900/10 text-amber-950 font-mono font-bold text-[11px] py-1.5 px-3 rounded-lg border border-amber-900/10 flex items-center justify-center gap-1.5">
+                            <span>No./Account:</span>
+                            <span className="text-amber-900 tracking-wider select-all">{selectedMethod.accountNumber}</span>
+                          </div>
+                        )}
+                        {selectedMethod.qrCodeUrl && (
+                          <img src={selectedMethod.qrCodeUrl} alt="QR Code" className="w-32 h-32 mx-auto object-contain bg-white rounded-lg border p-1 shadow-xs" />
+                        )}
+                        
+                        {/* Receipt Upload/Display inside details */}
+                        <div className="text-left border-t border-stone-200/60 pt-2.5">
+                          <label className="text-[10px] font-extrabold uppercase text-stone-600 tracking-wider block mb-1.5">
+                            {selectedOrderDetails.receiptUrl ? 'Update Uploaded Receipt' : 'Upload Payment Receipt'}
+                          </label>
+                          {selectedOrderDetails.receiptUrl && (
+                            <div className="mb-2">
+                              <p className="text-[10px] text-stone-500 mb-1">Current Uploaded Receipt:</p>
+                              <img 
+                                src={selectedOrderDetails.receiptUrl} 
+                                alt="Receipt Proof" 
+                                className="w-full h-32 object-contain rounded-lg border border-stone-300 bg-white" 
+                              />
+                            </div>
+                          )}
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                try {
+                                  const res = await fetch('/api/upload-url', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ filename: file.name, contentType: file.type })
+                                  });
+                                  if (!res.ok) throw new Error(await res.text());
+                                  const { signedUrl, publicUrl } = await res.json();
+                                  await fetch(signedUrl, { method: 'PUT', headers: { 'Content-Type': file.type }, body: file });
+                                  
+                                  // Update Firestore!
+                                  await updateDocument('orders', selectedOrderDetails.id, { 
+                                    receiptUrl: publicUrl, 
+                                    paymentStatus: 'pending' // Move to pending verification status
+                                  });
+                                  
+                                  // Update local state for immediate modal feedback
+                                  setSelectedOrderDetails((prev: any) => ({
+                                    ...prev,
+                                    receiptUrl: publicUrl,
+                                    paymentStatus: 'pending'
+                                  }));
+                                  
+                                  alert("Receipt successfully uploaded! POS cashier will verify your payment.");
+                                } catch (err: any) {
+                                  alert("Failed to upload receipt: " + err.message);
+                                }
+                              }}
+                              className="w-full text-xs text-stone-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-[10px] file:font-bold file:bg-amber-900/10 file:text-amber-900 hover:file:bg-amber-900/20"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()
+              )}
+
+              {/* If already completed/paid/preparing, but they want to view their uploaded receipt */}
+              {selectedOrderDetails && selectedOrderDetails.receiptUrl && selectedOrderDetails.paymentStatus !== 'unpaid' && selectedOrderDetails.paymentStatus !== 'pending' && (
+                <div className="bg-stone-50 border border-stone-200 p-3 rounded-xl text-left text-xs space-y-1">
+                  <p className="font-bold text-stone-700">Uploaded Receipt (Verified):</p>
+                  <img 
+                    src={selectedOrderDetails.receiptUrl} 
+                    alt="Receipt Proof" 
+                    className="w-full h-32 object-contain rounded-lg border border-stone-300" 
+                  />
+                </div>
+              )}
 
               <motion.button
                 whileTap={{ scale: 0.97 }}

@@ -41,7 +41,7 @@ export const KitchenExperience: React.FC = () => {
 
   const isLight = settings?.branding?.theme === 'light';
 
-  // Render function for order items with individual status toggle buttons
+  // Render function for order items with clean, high-visibility layout
   const renderItemWithStatus = (ord: Order, it: OrderItem, idx: number) => {
     const itemStatus = it.itemStatus || (ord.orderStatus === 'preparing' ? 'preparing' : ord.orderStatus === 'ready' ? 'ready' : 'pending');
 
@@ -70,10 +70,10 @@ export const KitchenExperience: React.FC = () => {
           </div>
         </div>
 
-        {/* Item Status Toggle Buttons */}
+        {/* Item Status Indicator with Quick Toggle */}
         <div className={`flex items-center justify-between pt-1 border-t gap-1 ${isLight ? 'border-stone-200' : 'border-white/5'}`}>
-          <span className={`text-[9px] font-mono uppercase font-bold tracking-wider ${isLight ? 'text-stone-600' : 'text-white/40'}`}>
-            Item:
+          <span className={`text-[9px] font-mono uppercase font-bold tracking-wider ${isLight ? 'text-stone-500' : 'text-white/40'}`}>
+            Item Status:
           </span>
           <div className={`inline-flex rounded-lg p-0.5 border gap-0.5 ${isLight ? 'bg-stone-200/80 border-stone-300' : 'bg-[#07080c] border-white/10'}`}>
             <button
@@ -331,12 +331,12 @@ export const KitchenExperience: React.FC = () => {
                       <div>
                         <div className="flex items-center gap-1.5">
                           <p className={`font-mono font-bold ${isLight ? 'text-stone-900' : 'text-white'}`}>#{ord.orderNumber.slice(-4)}</p>
-                          <span className={`inline-flex items-center gap-0.5 text-[8px] font-bold px-1 py-0.2 rounded ${
+                          <span className={`inline-flex items-center gap-0.5 text-[8px] font-bold px-1.5 py-0.5 rounded ${
                             ord.orderSource === 'pos' 
                               ? isLight ? 'bg-blue-100 text-blue-900 border border-blue-300' : 'bg-blue-950/70 text-blue-300 border border-blue-800/40' 
                               : isLight ? 'bg-purple-100 text-purple-900 border border-purple-300' : 'bg-purple-950/70 text-purple-300 border border-purple-800/40'
                           }`}>
-                            {ord.orderSource === 'pos' ? <Store className="w-2 h-2" /> : <Smartphone className="w-2 h-2" />}
+                            {ord.orderSource === 'pos' ? <Store className="w-2.5 h-2.5" /> : <Smartphone className="w-2.5 h-2.5" />}
                             {ord.orderSource === 'pos' ? 'POS' : 'APP'}
                           </span>
                         </div>
@@ -345,66 +345,39 @@ export const KitchenExperience: React.FC = () => {
                         </p>
                         <p className={`text-[10px] font-mono mt-0.5 ${isLight ? 'text-stone-500 font-semibold' : 'text-white/40'}`}>{getElapsedTime(ord.createdAt)}</p>
                       </div>
-                      <span className="bg-[#c5a059]/10 text-[#a37a2c] border border-[#c5a059]/30 font-mono font-bold px-2 py-0.5 rounded text-[9px] uppercase">
-                        {ord.orderType.replace('_', ' ')}
-                      </span>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className={`text-[10px] font-mono font-extrabold uppercase px-2 py-0.5 rounded border ${
+                          isLight 
+                            ? 'bg-rose-50 text-rose-700 border-rose-200' 
+                            : 'bg-rose-950/50 text-rose-300 border-rose-800/40'
+                        }`}>
+                          Pending
+                        </span>
+                        <span className="text-[9px] font-mono font-medium text-stone-400 uppercase">
+                          {ord.orderType.replace('_', ' ')}
+                        </span>
+                      </div>
                     </div>
 
-                    {/* ITEMS LIST WITH ITEM STATUS TOGGLE */}
+                    {/* ITEMS LIST */}
                     <div className="space-y-2">
                       <p className={`text-[10px] font-mono uppercase font-bold tracking-wider ${isLight ? 'text-stone-600' : 'text-white/40'}`}>
-                        Order Items & Status
+                        Order Items & Item Status
                       </p>
                       {ord.items.map((it, idx) => renderItemWithStatus(ord, it, idx))}
                     </div>
 
                     {ord.notes && (
-                      <p className={`text-[10px] p-1.5 rounded-lg border ${isLight ? 'text-amber-900 bg-amber-100/90 border-amber-300 font-medium' : 'text-amber-300/80 bg-amber-950/30 border-amber-800/30'}`}>
+                      <p className={`text-[10px] p-2 rounded-lg border ${isLight ? 'text-amber-900 bg-amber-100/90 border-amber-300 font-medium' : 'text-amber-300/80 bg-amber-950/30 border-amber-800/30'}`}>
                         Note: {ord.notes}
                       </p>
                     )}
 
-                    {/* Order Level Status Toggle */}
-                    <div className={`space-y-1.5 pt-1 border-t ${isLight ? 'border-stone-200' : 'border-white/5'}`}>
-                      <p className={`text-[9px] font-mono uppercase font-bold ${isLight ? 'text-stone-600' : 'text-white/40'}`}>Overall Order Status:</p>
-                      <div className="grid grid-cols-3 gap-1">
-                        <button
-                          type="button"
-                          onClick={() => handleUpdateStatus(ord.id, 'pending')}
-                          className={`py-1.5 rounded-lg text-[10px] font-mono font-bold uppercase transition-all cursor-pointer ${
-                            ord.orderStatus === 'pending'
-                              ? isLight ? 'bg-rose-100 text-rose-900 border border-rose-400 font-bold' : 'bg-rose-950 text-rose-300 border border-rose-500/60 shadow-[0_0_10px_rgba(244,63,94,0.3)]'
-                              : isLight ? 'bg-stone-100 text-stone-600 border border-stone-200 hover:bg-stone-200' : 'bg-[#12131a] text-white/50 border border-white/5 hover:text-white'
-                          }`}
-                        >
-                          Pending
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleUpdateStatus(ord.id, 'preparing')}
-                          className={`py-1.5 rounded-lg text-[10px] font-mono font-bold uppercase transition-all cursor-pointer ${
-                            ord.orderStatus === 'preparing'
-                              ? isLight ? 'bg-amber-100 text-amber-900 border border-amber-400 font-bold' : 'bg-amber-950 text-amber-300 border border-amber-500/60 shadow-[0_0_10px_rgba(245,158,11,0.3)]'
-                              : isLight ? 'bg-stone-100 text-stone-600 border border-stone-200 hover:bg-stone-200' : 'bg-[#12131a] text-white/50 border border-white/5 hover:text-white'
-                          }`}
-                        >
-                          Preparing
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleUpdateStatus(ord.id, 'ready')}
-                          className={`py-1.5 rounded-lg text-[10px] font-mono font-bold uppercase transition-all cursor-pointer ${
-                            ord.orderStatus === 'ready'
-                              ? isLight ? 'bg-emerald-100 text-emerald-900 border border-emerald-400 font-bold' : 'bg-emerald-950 text-emerald-300 border border-emerald-500/60 shadow-[0_0_10px_rgba(16,185,129,0.3)]'
-                              : isLight ? 'bg-stone-100 text-stone-600 border border-stone-200 hover:bg-stone-200' : 'bg-[#12131a] text-white/50 border border-white/5 hover:text-white'
-                          }`}
-                        >
-                          Ready
-                        </button>
-                      </div>
+                    {/* Primary Action Button */}
+                    <div className={`pt-2 border-t ${isLight ? 'border-stone-200' : 'border-white/5'}`}>
                       <button
                         onClick={() => handleUpdateStatus(ord.id, 'preparing')}
-                        className="w-full bg-[#c5a059] hover:bg-[#b08c47] text-black font-mono font-bold py-2 rounded-xl text-xs uppercase tracking-wider flex justify-center items-center gap-1 cursor-pointer transition-all shadow mt-1"
+                        className="w-full bg-[#c5a059] hover:bg-[#b08c47] text-black font-mono font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider flex justify-center items-center gap-1.5 cursor-pointer transition-all shadow"
                       >
                         <Play className="w-3.5 h-3.5 fill-black" /> Start Preparing Order
                       </button>
@@ -426,12 +399,12 @@ export const KitchenExperience: React.FC = () => {
                       <div>
                         <div className="flex items-center gap-1.5">
                           <p className={`font-mono font-bold ${isLight ? 'text-stone-900' : 'text-white'}`}>#{ord.orderNumber.slice(-4)}</p>
-                          <span className={`inline-flex items-center gap-0.5 text-[8px] font-bold px-1 py-0.2 rounded ${
+                          <span className={`inline-flex items-center gap-0.5 text-[8px] font-bold px-1.5 py-0.5 rounded ${
                             ord.orderSource === 'pos' 
                               ? isLight ? 'bg-blue-100 text-blue-900 border border-blue-300' : 'bg-blue-950/70 text-blue-300 border border-blue-800/40' 
                               : isLight ? 'bg-purple-100 text-purple-900 border border-purple-300' : 'bg-purple-950/70 text-purple-300 border border-purple-800/40'
                           }`}>
-                            {ord.orderSource === 'pos' ? <Store className="w-2 h-2" /> : <Smartphone className="w-2 h-2" />}
+                            {ord.orderSource === 'pos' ? <Store className="w-2.5 h-2.5" /> : <Smartphone className="w-2.5 h-2.5" />}
                             {ord.orderSource === 'pos' ? 'POS' : 'APP'}
                           </span>
                         </div>
@@ -440,66 +413,48 @@ export const KitchenExperience: React.FC = () => {
                         </p>
                         <p className={`text-[10px] font-mono mt-0.5 ${isLight ? 'text-stone-500 font-semibold' : 'text-white/40'}`}>{getElapsedTime(ord.createdAt)}</p>
                       </div>
-                      <span className="bg-amber-500/10 text-amber-600 border border-amber-500/30 font-mono font-bold px-2 py-0.5 rounded text-[9px] uppercase">
-                        Preparing
-                      </span>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className={`text-[10px] font-mono font-extrabold uppercase px-2 py-0.5 rounded border ${
+                          isLight 
+                            ? 'bg-amber-50 text-amber-800 border-amber-200' 
+                            : 'bg-amber-950/50 text-amber-300 border-amber-800/40'
+                        }`}>
+                          Preparing
+                        </span>
+                        <span className="text-[9px] font-mono font-medium text-stone-400 uppercase">
+                          {ord.orderType.replace('_', ' ')}
+                        </span>
+                      </div>
                     </div>
 
-                    {/* ITEMS LIST WITH ITEM STATUS TOGGLE */}
+                    {/* ITEMS LIST */}
                     <div className="space-y-2">
                       <p className={`text-[10px] font-mono uppercase font-bold tracking-wider ${isLight ? 'text-stone-600' : 'text-white/40'}`}>
-                        Order Items & Status
+                        Order Items & Item Status
                       </p>
                       {ord.items.map((it, idx) => renderItemWithStatus(ord, it, idx))}
                     </div>
 
                     {ord.notes && (
-                      <p className={`text-[10px] p-1.5 rounded-lg border ${isLight ? 'text-amber-900 bg-amber-100/90 border-amber-300 font-medium' : 'text-amber-300/80 bg-amber-950/30 border-amber-800/30'}`}>
+                      <p className={`text-[10px] p-2 rounded-lg border ${isLight ? 'text-amber-900 bg-amber-100/90 border-amber-300 font-medium' : 'text-amber-300/80 bg-amber-950/30 border-amber-800/30'}`}>
                         Note: {ord.notes}
                       </p>
                     )}
 
-                    {/* Order Level Status Toggle */}
-                    <div className={`space-y-1.5 pt-1 border-t ${isLight ? 'border-stone-200' : 'border-white/5'}`}>
-                      <p className={`text-[9px] font-mono uppercase font-bold ${isLight ? 'text-stone-600' : 'text-white/40'}`}>Overall Order Status:</p>
-                      <div className="grid grid-cols-3 gap-1">
-                        <button
-                          type="button"
-                          onClick={() => handleUpdateStatus(ord.id, 'pending')}
-                          className={`py-1.5 rounded-lg text-[10px] font-mono font-bold uppercase transition-all cursor-pointer ${
-                            ord.orderStatus === 'pending'
-                              ? isLight ? 'bg-rose-100 text-rose-900 border border-rose-400 font-bold' : 'bg-rose-950 text-rose-300 border border-rose-500/60 shadow-[0_0_10px_rgba(244,63,94,0.3)]'
-                              : isLight ? 'bg-stone-100 text-stone-600 border border-stone-200 hover:bg-stone-200' : 'bg-[#12131a] text-white/50 border border-white/5 hover:text-white'
-                          }`}
-                        >
-                          Pending
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleUpdateStatus(ord.id, 'preparing')}
-                          className={`py-1.5 rounded-lg text-[10px] font-mono font-bold uppercase transition-all cursor-pointer ${
-                            ord.orderStatus === 'preparing'
-                              ? isLight ? 'bg-amber-100 text-amber-900 border border-amber-400 font-bold' : 'bg-amber-950 text-amber-300 border border-amber-500/60 shadow-[0_0_10px_rgba(245,158,11,0.3)]'
-                              : isLight ? 'bg-stone-100 text-stone-600 border border-stone-200 hover:bg-stone-200' : 'bg-[#12131a] text-white/50 border border-white/5 hover:text-white'
-                          }`}
-                        >
-                          Preparing
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleUpdateStatus(ord.id, 'ready')}
-                          className={`py-1.5 rounded-lg text-[10px] font-mono font-bold uppercase transition-all cursor-pointer ${
-                            ord.orderStatus === 'ready'
-                              ? isLight ? 'bg-emerald-100 text-emerald-900 border border-emerald-400 font-bold' : 'bg-emerald-950 text-emerald-300 border border-emerald-500/60 shadow-[0_0_10px_rgba(16,185,129,0.3)]'
-                              : isLight ? 'bg-stone-100 text-stone-600 border border-stone-200 hover:bg-stone-200' : 'bg-[#12131a] text-white/50 border border-white/5 hover:text-white'
-                          }`}
-                        >
-                          Ready
-                        </button>
-                      </div>
+                    {/* Action Controls */}
+                    <div className={`pt-2 border-t ${isLight ? 'border-stone-200' : 'border-white/5'} flex gap-2`}>
+                      <button
+                        onClick={() => handleUpdateStatus(ord.id, 'pending')}
+                        className={`px-3 py-2 rounded-xl text-xs font-mono font-semibold transition-all cursor-pointer ${
+                          isLight ? 'bg-stone-100 text-stone-600 hover:bg-stone-200' : 'bg-stone-900 text-stone-400 hover:text-white'
+                        }`}
+                        title="Revert to Pending"
+                      >
+                        Back
+                      </button>
                       <button
                         onClick={() => handleUpdateStatus(ord.id, 'ready')}
-                        className="w-full bg-amber-500 hover:bg-amber-600 text-black font-mono font-bold py-2 rounded-xl text-xs uppercase tracking-wider flex justify-center items-center gap-1 cursor-pointer transition-all shadow mt-1"
+                        className="flex-1 bg-amber-500 hover:bg-amber-600 text-black font-mono font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider flex justify-center items-center gap-1.5 cursor-pointer transition-all shadow"
                       >
                         <CheckCircle className="w-3.5 h-3.5" /> Mark Order Ready
                       </button>
@@ -521,12 +476,12 @@ export const KitchenExperience: React.FC = () => {
                       <div>
                         <div className="flex items-center gap-1.5">
                           <p className={`font-mono font-bold ${isLight ? 'text-stone-900' : 'text-white'}`}>#{ord.orderNumber.slice(-4)}</p>
-                          <span className={`inline-flex items-center gap-0.5 text-[8px] font-bold px-1 py-0.2 rounded ${
+                          <span className={`inline-flex items-center gap-0.5 text-[8px] font-bold px-1.5 py-0.5 rounded ${
                             ord.orderSource === 'pos' 
                               ? isLight ? 'bg-blue-100 text-blue-900 border border-blue-300' : 'bg-blue-950/70 text-blue-300 border border-blue-800/40' 
                               : isLight ? 'bg-purple-100 text-purple-900 border border-purple-300' : 'bg-purple-950/70 text-purple-300 border border-purple-800/40'
                           }`}>
-                            {ord.orderSource === 'pos' ? <Store className="w-2 h-2" /> : <Smartphone className="w-2 h-2" />}
+                            {ord.orderSource === 'pos' ? <Store className="w-2.5 h-2.5" /> : <Smartphone className="w-2.5 h-2.5" />}
                             {ord.orderSource === 'pos' ? 'POS' : 'APP'}
                           </span>
                         </div>
@@ -535,60 +490,42 @@ export const KitchenExperience: React.FC = () => {
                         </p>
                         <p className={`text-[10px] font-mono mt-0.5 ${isLight ? 'text-stone-500 font-semibold' : 'text-white/40'}`}>{getElapsedTime(ord.createdAt)}</p>
                       </div>
-                      <span className="bg-emerald-500/10 text-emerald-600 border border-emerald-500/30 font-mono font-bold px-2 py-0.5 rounded text-[9px] uppercase">
-                        Ready
-                      </span>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className={`text-[10px] font-mono font-extrabold uppercase px-2 py-0.5 rounded border ${
+                          isLight 
+                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
+                            : 'bg-emerald-950/50 text-emerald-300 border-emerald-800/40'
+                        }`}>
+                          Ready
+                        </span>
+                        <span className="text-[9px] font-mono font-medium text-stone-400 uppercase">
+                          {ord.orderType.replace('_', ' ')}
+                        </span>
+                      </div>
                     </div>
 
-                    {/* ITEMS LIST WITH ITEM STATUS TOGGLE */}
+                    {/* ITEMS LIST */}
                     <div className="space-y-2">
                       <p className={`text-[10px] font-mono uppercase font-bold tracking-wider ${isLight ? 'text-stone-600' : 'text-white/40'}`}>
-                        Order Items & Status
+                        Order Items & Item Status
                       </p>
                       {ord.items.map((it, idx) => renderItemWithStatus(ord, it, idx))}
                     </div>
 
-                    {/* Order Level Status Toggle */}
-                    <div className={`space-y-1.5 pt-1 border-t ${isLight ? 'border-stone-200' : 'border-white/5'}`}>
-                      <p className={`text-[9px] font-mono uppercase font-bold ${isLight ? 'text-stone-600' : 'text-white/40'}`}>Overall Order Status:</p>
-                      <div className="grid grid-cols-3 gap-1">
-                        <button
-                          type="button"
-                          onClick={() => handleUpdateStatus(ord.id, 'pending')}
-                          className={`py-1.5 rounded-lg text-[10px] font-mono font-bold uppercase transition-all cursor-pointer ${
-                            ord.orderStatus === 'pending'
-                              ? isLight ? 'bg-rose-100 text-rose-900 border border-rose-400 font-bold' : 'bg-rose-950 text-rose-300 border border-rose-500/60 shadow-[0_0_10px_rgba(244,63,94,0.3)]'
-                              : isLight ? 'bg-stone-100 text-stone-600 border border-stone-200 hover:bg-stone-200' : 'bg-[#12131a] text-white/50 border border-white/5 hover:text-white'
-                          }`}
-                        >
-                          Pending
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleUpdateStatus(ord.id, 'preparing')}
-                          className={`py-1.5 rounded-lg text-[10px] font-mono font-bold uppercase transition-all cursor-pointer ${
-                            ord.orderStatus === 'preparing'
-                              ? isLight ? 'bg-amber-100 text-amber-900 border border-amber-400 font-bold' : 'bg-amber-950 text-amber-300 border border-amber-500/60 shadow-[0_0_10px_rgba(245,158,11,0.3)]'
-                              : isLight ? 'bg-stone-100 text-stone-600 border border-stone-200 hover:bg-stone-200' : 'bg-[#12131a] text-white/50 border border-white/5 hover:text-white'
-                          }`}
-                        >
-                          Preparing
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleUpdateStatus(ord.id, 'ready')}
-                          className={`py-1.5 rounded-lg text-[10px] font-mono font-bold uppercase transition-all cursor-pointer ${
-                            ord.orderStatus === 'ready'
-                              ? isLight ? 'bg-emerald-100 text-emerald-900 border border-emerald-400 font-bold' : 'bg-emerald-950 text-emerald-300 border border-emerald-500/60 shadow-[0_0_10px_rgba(16,185,129,0.3)]'
-                              : isLight ? 'bg-stone-100 text-stone-600 border border-stone-200 hover:bg-stone-200' : 'bg-[#12131a] text-white/50 border border-white/5 hover:text-white'
-                          }`}
-                        >
-                          Ready
-                        </button>
-                      </div>
+                    {/* Action Controls */}
+                    <div className={`pt-2 border-t ${isLight ? 'border-stone-200' : 'border-white/5'} flex gap-2`}>
+                      <button
+                        onClick={() => handleUpdateStatus(ord.id, 'preparing')}
+                        className={`px-3 py-2 rounded-xl text-xs font-mono font-semibold transition-all cursor-pointer ${
+                          isLight ? 'bg-stone-100 text-stone-600 hover:bg-stone-200' : 'bg-stone-900 text-stone-400 hover:text-white'
+                        }`}
+                        title="Revert to Preparing"
+                      >
+                        Back
+                      </button>
                       <button
                         onClick={() => handleUpdateStatus(ord.id, 'completed')}
-                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-mono font-bold py-2 rounded-xl text-xs uppercase tracking-wider flex justify-center items-center gap-1 cursor-pointer transition-all shadow mt-1"
+                        className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-mono font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider flex justify-center items-center gap-1.5 cursor-pointer transition-all shadow"
                       >
                         <Check className="w-3.5 h-3.5" /> Complete Handover
                       </button>
@@ -653,44 +590,52 @@ export const KitchenExperience: React.FC = () => {
                     {ord.notes && <p className={`text-[10px] p-1.5 rounded-lg border mt-2 ${isLight ? 'text-amber-900 bg-amber-100/90 border-amber-300 font-medium' : 'text-amber-300/90 bg-amber-950/30 border-amber-800/30'}`}>Note: {ord.notes}</p>}
                   </div>
 
-                  {/* Order Level Status Selector */}
-                  <div className="pt-1 space-y-1.5">
-                    <p className={`text-[9px] font-mono uppercase font-bold ${isLight ? 'text-stone-600' : 'text-white/40'}`}>Overall Order Status:</p>
-                    <div className="grid grid-cols-3 gap-1">
+                  {/* Order Level Action Button */}
+                  <div className={`pt-2 border-t ${isLight ? 'border-stone-200' : 'border-white/5'}`}>
+                    {ord.orderStatus === 'pending' && (
                       <button
-                        type="button"
-                        onClick={() => handleUpdateStatus(ord.id, 'pending')}
-                        className={`py-2 rounded-xl text-xs font-mono font-bold uppercase cursor-pointer transition-all ${
-                          ord.orderStatus === 'pending'
-                            ? isLight ? 'bg-rose-100 text-rose-900 border border-rose-400 font-bold' : 'bg-rose-950 text-rose-300 border border-rose-500/60 shadow'
-                            : isLight ? 'bg-stone-100 text-stone-600 border border-stone-200' : 'bg-[#12131a] text-white/50 border border-white/5'
-                        }`}
-                      >
-                        Pending
-                      </button>
-                      <button
-                        type="button"
                         onClick={() => handleUpdateStatus(ord.id, 'preparing')}
-                        className={`py-2 rounded-xl text-xs font-mono font-bold uppercase cursor-pointer transition-all ${
-                          ord.orderStatus === 'preparing'
-                            ? isLight ? 'bg-amber-100 text-amber-900 border border-amber-400 font-bold' : 'bg-amber-950 text-amber-300 border border-amber-500/60 shadow'
-                            : isLight ? 'bg-stone-100 text-stone-600 border border-stone-200' : 'bg-[#12131a] text-white/50 border border-white/5'
-                        }`}
+                        className="w-full bg-[#c5a059] hover:bg-[#b08c47] text-black font-mono font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider flex justify-center items-center gap-1.5 cursor-pointer transition-all shadow"
                       >
-                        Preparing
+                        <Play className="w-3.5 h-3.5 fill-black" /> Start Preparing
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => handleUpdateStatus(ord.id, 'ready')}
-                        className={`py-2 rounded-xl text-xs font-mono font-bold uppercase cursor-pointer transition-all ${
-                          ord.orderStatus === 'ready'
-                            ? isLight ? 'bg-emerald-100 text-emerald-900 border border-emerald-400 font-bold' : 'bg-emerald-950 text-emerald-300 border border-emerald-500/60 shadow'
-                            : isLight ? 'bg-stone-100 text-stone-600 border border-stone-200' : 'bg-[#12131a] text-white/50 border border-white/5'
-                        }`}
-                      >
-                        Ready
-                      </button>
-                    </div>
+                    )}
+                    {ord.orderStatus === 'preparing' && (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleUpdateStatus(ord.id, 'pending')}
+                          className={`px-3 py-2 rounded-xl text-xs font-mono font-semibold transition-all cursor-pointer ${
+                            isLight ? 'bg-stone-100 text-stone-600 hover:bg-stone-200' : 'bg-stone-900 text-stone-400 hover:text-white'
+                          }`}
+                        >
+                          Back
+                        </button>
+                        <button
+                          onClick={() => handleUpdateStatus(ord.id, 'ready')}
+                          className="flex-1 bg-amber-500 hover:bg-amber-600 text-black font-mono font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider flex justify-center items-center gap-1.5 cursor-pointer transition-all shadow"
+                        >
+                          <CheckCircle className="w-3.5 h-3.5" /> Mark Ready
+                        </button>
+                      </div>
+                    )}
+                    {ord.orderStatus === 'ready' && (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleUpdateStatus(ord.id, 'preparing')}
+                          className={`px-3 py-2 rounded-xl text-xs font-mono font-semibold transition-all cursor-pointer ${
+                            isLight ? 'bg-stone-100 text-stone-600 hover:bg-stone-200' : 'bg-stone-900 text-stone-400 hover:text-white'
+                          }`}
+                        >
+                          Back
+                        </button>
+                        <button
+                          onClick={() => handleUpdateStatus(ord.id, 'completed')}
+                          className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-mono font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider flex justify-center items-center gap-1.5 cursor-pointer transition-all shadow"
+                        >
+                          <Check className="w-3.5 h-3.5" /> Handover Complete
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -745,74 +690,60 @@ export const KitchenExperience: React.FC = () => {
                         </td>
                         <td className={`p-3 ${isLight ? 'text-stone-600 font-semibold' : 'text-white/40'}`}>{getElapsedTime(ord.createdAt)}</td>
                         <td className="p-3">
-                          <div className="inline-flex flex-col gap-1">
-                            <span className={`px-2 py-0.5 rounded text-[9px] uppercase font-bold text-center ${
-                              ord.orderStatus === 'pending'
-                                ? isLight ? 'bg-rose-100 text-rose-800 border border-rose-300' : 'bg-rose-950/50 text-rose-300 border border-rose-800/40'
-                                : ord.orderStatus === 'preparing'
-                                  ? isLight ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-amber-950/50 text-amber-300 border border-amber-800/40'
-                                  : isLight ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-emerald-950/50 text-emerald-300 border border-emerald-800/40'
-                            }`}>
-                              {ord.orderStatus}
-                            </span>
-                            <div className="flex gap-0.5 mt-1">
-                              <button
-                                onClick={() => handleUpdateStatus(ord.id, 'pending')}
-                                className={`px-1.5 py-0.5 rounded text-[8px] uppercase font-bold cursor-pointer ${
-                                  ord.orderStatus === 'pending'
-                                    ? isLight ? 'bg-rose-200 text-rose-950 font-bold' : 'bg-rose-900 text-rose-200'
-                                    : isLight ? 'bg-stone-200 text-stone-600 hover:text-stone-900' : 'bg-white/5 text-white/40 hover:text-white'
-                                }`}
-                              >
-                                Pend
-                              </button>
-                              <button
-                                onClick={() => handleUpdateStatus(ord.id, 'preparing')}
-                                className={`px-1.5 py-0.5 rounded text-[8px] uppercase font-bold cursor-pointer ${
-                                  ord.orderStatus === 'preparing'
-                                    ? isLight ? 'bg-amber-200 text-amber-950 font-bold' : 'bg-amber-900 text-amber-200'
-                                    : isLight ? 'bg-stone-200 text-stone-600 hover:text-stone-900' : 'bg-white/5 text-white/40 hover:text-white'
-                                }`}
-                              >
-                                Prep
-                              </button>
-                              <button
-                                onClick={() => handleUpdateStatus(ord.id, 'ready')}
-                                className={`px-1.5 py-0.5 rounded text-[8px] uppercase font-bold cursor-pointer ${
-                                  ord.orderStatus === 'ready'
-                                    ? isLight ? 'bg-emerald-200 text-emerald-950 font-bold' : 'bg-emerald-900 text-emerald-200'
-                                    : isLight ? 'bg-stone-200 text-stone-600 hover:text-stone-900' : 'bg-white/5 text-white/40 hover:text-white'
-                                }`}
-                              >
-                                Ready
-                              </button>
-                            </div>
-                          </div>
+                          <span className={`px-2.5 py-1 rounded-lg text-[10px] uppercase font-bold inline-block border ${
+                            ord.orderStatus === 'pending'
+                              ? isLight ? 'bg-rose-50 text-rose-800 border-rose-200' : 'bg-rose-950/50 text-rose-300 border border-rose-800/40'
+                              : ord.orderStatus === 'preparing'
+                                ? isLight ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-amber-950/50 text-amber-300 border border-amber-800/40'
+                                : isLight ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-emerald-950/50 text-emerald-300 border border-emerald-800/40'
+                          }`}>
+                            {ord.orderStatus}
+                          </span>
                         </td>
                         <td className="p-3 text-right">
                           {ord.orderStatus === 'pending' && (
                             <button
                               onClick={() => handleUpdateStatus(ord.id, 'preparing')}
-                              className="bg-[#c5a059] hover:bg-[#b08c47] text-black font-bold px-3 py-1.5 rounded text-[10px] uppercase cursor-pointer shadow"
+                              className="bg-[#c5a059] hover:bg-[#b08c47] text-black font-bold px-3 py-1.5 rounded-lg text-[10px] uppercase cursor-pointer shadow transition-all flex items-center gap-1 ml-auto"
                             >
-                              Start
+                              <Play className="w-3 h-3 fill-black" /> Start
                             </button>
                           )}
                           {ord.orderStatus === 'preparing' && (
-                            <button
-                              onClick={() => handleUpdateStatus(ord.id, 'ready')}
-                              className="bg-amber-500 hover:bg-amber-600 text-black font-bold px-3 py-1.5 rounded text-[10px] uppercase cursor-pointer shadow"
-                            >
-                              Ready
-                            </button>
+                            <div className="flex items-center gap-1.5 justify-end">
+                              <button
+                                onClick={() => handleUpdateStatus(ord.id, 'pending')}
+                                className={`px-2 py-1 rounded-lg text-[9px] font-semibold transition-all cursor-pointer ${
+                                  isLight ? 'bg-stone-100 text-stone-600 hover:bg-stone-200' : 'bg-stone-900 text-stone-400 hover:text-white'
+                                }`}
+                              >
+                                Back
+                              </button>
+                              <button
+                                onClick={() => handleUpdateStatus(ord.id, 'ready')}
+                                className="bg-amber-500 hover:bg-amber-600 text-black font-bold px-3 py-1.5 rounded-lg text-[10px] uppercase cursor-pointer shadow transition-all flex items-center gap-1"
+                              >
+                                <CheckCircle className="w-3 h-3" /> Ready
+                              </button>
+                            </div>
                           )}
                           {ord.orderStatus === 'ready' && (
-                            <button
-                              onClick={() => handleUpdateStatus(ord.id, 'completed')}
-                              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded text-[10px] uppercase cursor-pointer shadow"
-                            >
-                              Complete
-                            </button>
+                            <div className="flex items-center gap-1.5 justify-end">
+                              <button
+                                onClick={() => handleUpdateStatus(ord.id, 'preparing')}
+                                className={`px-2 py-1 rounded-lg text-[9px] font-semibold transition-all cursor-pointer ${
+                                  isLight ? 'bg-stone-100 text-stone-600 hover:bg-stone-200' : 'bg-stone-900 text-stone-400 hover:text-white'
+                                }`}
+                              >
+                                Back
+                              </button>
+                              <button
+                                onClick={() => handleUpdateStatus(ord.id, 'completed')}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-lg text-[10px] uppercase cursor-pointer shadow transition-all flex items-center gap-1"
+                              >
+                                <Check className="w-3 h-3" /> Complete
+                              </button>
+                            </div>
                           )}
                         </td>
                       </tr>
