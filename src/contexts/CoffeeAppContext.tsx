@@ -1,0 +1,1702 @@
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { 
+  collection, 
+  doc, 
+  setDoc, 
+  getDoc,
+  getDocFromCache,
+  addDoc, 
+  getDocs, 
+  deleteDoc,
+  onSnapshot, 
+  updateDoc, 
+  query, 
+  orderBy, 
+  where,
+  serverTimestamp,
+  increment,
+  writeBatch,
+  getFirestore
+} from 'firebase/firestore';
+import { 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  signOut, 
+  onAuthStateChanged,
+  signInAnonymously
+} from 'firebase/auth';
+import { db, auth, databaseId, app, validateDatabaseId, getSafeFirestoreInstance } from '../firebase/config';
+
+export { validateDatabaseId, getSafeFirestoreInstance };
+import appletConfig from '../../firebase-applet-config.json';
+import { 
+  UserProfile, Category, Product, CartItem, Order, OrderType, 
+  OrderStatus, PaymentStatus, PaymentMethod, Voucher, Reward, 
+  LoyaltyTransaction, InventoryTransaction, AuditLog, SystemSettings,
+  UserRole
+} from '../types';
+import { DEMO_CATEGORIES, DEMO_PRODUCTS, DEMO_VOUCHERS, DEMO_REWARDS } from '../firebase/demoData';
+
+interface CoffeeAppContextType {
+  // DB status check
+  dbStatus: {
+    connected: boolean;
+    databaseId: string;
+    error: string | null;
+    canReadWrite: boolean;
+    details?: string;
+  };
+
+  // Auth state
+  currentUser: UserProfile | null;
+  authLoading: boolean;
+  activeWorkspace: UserRole | null;
+  switchWorkspace: (role: UserRole) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, name: string, phone: string, role: UserRole) => Promise<void>;
+  logout: () => Promise<void>;
+  simulateRole: (role: UserRole) => Promise<void>;
+
+  // Data lists
+  categories: Category[];
+  products: Product[];
+  vouchers: Voucher[];
+  rewards: Reward[];
+  orders: Order[];
+  usersList: UserProfile[];
+  auditLogs: AuditLog[];
+  inventoryLogs: InventoryTransaction[];
+  settings: SystemSettings;
+
+  // Loading states
+  dataLoading: boolean;
+
+  // Cart operations
+  cart: CartItem[];
+  addToCart: (item: CartItem) => void;
+  removeFromCart: (index: number) => void;
+  updateCartItem: (index: number, updatedItem: CartItem) => void;
+  clearCart: () => void;
+  appliedVoucher: Voucher | null;
+  applyVoucher: (code: string) => string | null; // returns error message if invalid, null if success
+  removeVoucher: () => void;
+  appliedReward: Reward | null;
+  applyReward: (reward: Reward) => string | null;
+  removeReward: () => void;
+
+  // Operations
+  placeOrder: (
+    orderType: OrderType, 
+    tableNo: string, 
+    paymentMethod: PaymentMethod, 
+    notes: string, 
+    customerPhone?: string,
+    customCart?: CartItem[],
+    customVoucher?: Voucher | null,
+    customCustomerName?: string,
+    orderSource?: 'pos' | 'web_app',
+    cashReceived?: number,
+    change?: number
+  ) => Promise<Order>;
+  updateOrderStatus: (orderId: string, status: OrderStatus) => Promise<void>;
+  updatePaymentStatus: (orderId: string, status: PaymentStatus, cashReceived?: number, change?: number) => Promise<void>;
+  updateSettings: (newSettings: Partial<SystemSettings>) => Promise<void>;
+  loadDemoData: () => Promise<void>;
+  resetDatabase: () => Promise<void>;
+
+  // Admin Management functions
+  addCategory: (category: Omit<Category, 'id'>) => Promise<void>;
+  updateCategory: (id: string, category: Partial<Category>) => Promise<void>;
+  deleteCategory: (id: string) => Promise<void>;
+  
+  addProduct: (product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  updateProduct: (id: string, product: Partial<Product>) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
+  
+  addVoucher: (voucher: Omit<Voucher, 'id' | 'usageCount'>) => Promise<void>;
+  updateVoucher: (id: string, voucher: Partial<Voucher>) => Promise<void>;
+  deleteVoucher: (id: string) => Promise<void>;
+
+  addReward: (reward: Omit<Reward, 'id'>) => Promise<void>;
+  updateReward: (id: string, reward: Partial<Reward>) => Promise<void>;
+  deleteReward: (id: string) => Promise<void>;
+
+  adjustInventory: (productId: string, quantityChanged: number, reason: string) => Promise<void>;
+  adjustUserPoints: (userId: string, pointsChanged: number, reason: string) => Promise<void>;
+  updateUserProfile: (data: Partial<UserProfile>) => Promise<void>;
+
+  // Generic Firestore CRUD API
+  getDocuments: <T>(collectionName: string) => Promise<T[]>;
+  getDocument: <T>(collectionName: string, id: string) => Promise<T | null>;
+  addDocument: <T extends object>(collectionName: string, data: T, customId?: string) => Promise<string>;
+  updateDocument: <T extends object>(collectionName: string, id: string, data: Partial<T>) => Promise<void>;
+  deleteDocument: (collectionName: string, id: string) => Promise<void>;
+}
+
+const CoffeeAppContext = createContext<CoffeeAppContextType | undefined>(undefined);
+
+const getShopCol = (colName: string) => collection(db, colName);
+const getShopDoc = (colName: string, docId?: string) => {
+  return docId ? doc(db, colName, docId) : doc(collection(db, colName));
+};
+
+// Detailed Firestore Tracing Helper Functions
+const traceSetDoc = async (docRef: any, data: any, options?: any, operationName: string = 'setDoc') => {
+  const path = docRef.path;
+  console.log(`[Firestore Write Trace: ${operationName} START]`, {
+    path,
+    targetDb: databaseId,
+    currentUserUid: auth.currentUser?.uid || 'unauthenticated',
+    payload: data,
+    timestamp: new Date().toISOString()
+  });
+
+  try {
+    if (options) {
+      await setDoc(docRef, data, options);
+    } else {
+      await setDoc(docRef, data);
+    }
+    console.log(`[Firestore Write Trace: ${operationName} SUCCESS]`, {
+      path,
+      targetDb: databaseId,
+      docId: docRef.id,
+      timestamp: new Date().toISOString()
+    });
+  } catch (err: any) {
+    console.error(`[Firestore Write Trace: ${operationName} FAILED]`, {
+      path,
+      targetDb: databaseId,
+      errorName: err?.name,
+      errorCode: err?.code,
+      errorMessage: err?.message || String(err),
+      currentUserUid: auth.currentUser?.uid,
+      payload: data,
+      timestamp: new Date().toISOString()
+    });
+    throw err;
+  }
+};
+
+const traceAddDoc = async (colRef: any, data: any, operationName: string = 'addDoc') => {
+  const path = colRef.path;
+  console.log(`[Firestore Write Trace: ${operationName} START]`, {
+    path,
+    targetDb: databaseId,
+    currentUserUid: auth.currentUser?.uid || 'unauthenticated',
+    payload: data,
+    timestamp: new Date().toISOString()
+  });
+
+  try {
+    const docRef = await addDoc(colRef, data);
+    console.log(`[Firestore Write Trace: ${operationName} SUCCESS]`, {
+      path,
+      generatedId: docRef.id,
+      targetDb: databaseId,
+      timestamp: new Date().toISOString()
+    });
+    return docRef;
+  } catch (err: any) {
+    console.error(`[Firestore Write Trace: ${operationName} FAILED]`, {
+      path,
+      targetDb: databaseId,
+      errorName: err?.name,
+      errorCode: err?.code,
+      errorMessage: err?.message || String(err),
+      currentUserUid: auth.currentUser?.uid,
+      payload: data,
+      timestamp: new Date().toISOString()
+    });
+    throw err;
+  }
+};
+
+const traceUpdateDoc = async (docRef: any, data: any, operationName: string = 'updateDoc') => {
+  const path = docRef.path;
+  console.log(`[Firestore Write Trace: ${operationName} START]`, {
+    path,
+    targetDb: databaseId,
+    currentUserUid: auth.currentUser?.uid || 'unauthenticated',
+    payload: data,
+    timestamp: new Date().toISOString()
+  });
+
+  try {
+    await updateDoc(docRef, data);
+    console.log(`[Firestore Write Trace: ${operationName} SUCCESS]`, {
+      path,
+      targetDb: databaseId,
+      docId: docRef.id,
+      timestamp: new Date().toISOString()
+    });
+  } catch (err: any) {
+    console.error(`[Firestore Write Trace: ${operationName} FAILED]`, {
+      path,
+      targetDb: databaseId,
+      errorName: err?.name,
+      errorCode: err?.code,
+      errorMessage: err?.message || String(err),
+      currentUserUid: auth.currentUser?.uid,
+      payload: data,
+      timestamp: new Date().toISOString()
+    });
+    throw err;
+  }
+};
+
+const traceDeleteDoc = async (docRef: any, operationName: string = 'deleteDoc') => {
+  const path = docRef.path;
+  console.log(`[Firestore Write Trace: ${operationName} START]`, {
+    path,
+    targetDb: databaseId,
+    currentUserUid: auth.currentUser?.uid || 'unauthenticated',
+    timestamp: new Date().toISOString()
+  });
+
+  try {
+    await deleteDoc(docRef);
+    console.log(`[Firestore Write Trace: ${operationName} SUCCESS]`, {
+      path,
+      targetDb: databaseId,
+      docId: docRef.id,
+      timestamp: new Date().toISOString()
+    });
+  } catch (err: any) {
+    console.error(`[Firestore Write Trace: ${operationName} FAILED]`, {
+      path,
+      targetDb: databaseId,
+      errorName: err?.name,
+      errorCode: err?.code,
+      errorMessage: err?.message || String(err),
+      currentUserUid: auth.currentUser?.uid,
+      timestamp: new Date().toISOString()
+    });
+    throw err;
+  }
+};
+
+// Helper function to sync user profile directly to users/{uid} in Firestore
+const syncUserProfileToFirestore = async (uid: string, profileData: any, callerTag: string = 'syncUserProfile') => {
+  const rootUserRef = doc(db, 'users', uid);
+  const payload = {
+    uid: uid,
+    email: profileData.email || '',
+    displayName: profileData.displayName || profileData.name || 'Coffee Customer',
+    name: profileData.name || profileData.displayName || 'Coffee Customer',
+    phoneNumber: profileData.phoneNumber || profileData.phone || '',
+    phone: profileData.phone || profileData.phoneNumber || '',
+    role: profileData.role || 'customer',
+    loyaltyPoints: profileData.loyaltyPoints ?? 0,
+    status: profileData.status || 'active',
+    createdAt: profileData.createdAt || serverTimestamp(),
+    updatedAt: serverTimestamp()
+  };
+  
+  try {
+    await traceSetDoc(rootUserRef, payload, { merge: true }, `${callerTag}:users_root`);
+  } catch (e) {
+    console.warn(`[syncUserProfile] Error writing to root users/${uid}:`, e);
+  }
+};
+
+const DEFAULT_SETTINGS: SystemSettings = {
+  storeStatus: {
+    isOpen: true,
+  },
+  paymentMethods: [
+    {
+      id: 'cash',
+      name: 'Cash',
+      type: 'cash',
+      active: true,
+    }
+  ],
+  branding: {
+    shopName: "SHASZNAIR CAFE",
+    description: "",
+    primaryColor: "#c5a059", // Warm Gold
+    secondaryColor: "#1a1612", // Dark Roast
+    accentColor: "#f5d9a6", // Cream
+    fontPreference: "Playfair Display",
+    theme: "dark"
+  },
+  businessInfo: {
+    address: "SHASZNAIR CAFE, Manila",
+    contactNumber: "+63 917 123 4567",
+    email: "shasznaircoffee@gmail.com",
+    businessHours: "7:00 AM - 10:00 PM"
+  },
+  orderSettings: {
+    enableOnlineOrdering: true,
+    enablePickup: true,
+    enableDineIn: true,
+    enableTableOrdering: true,
+    minimumOrder: 50,
+    estimatedPrepTime: 10
+  },
+  loyaltySettings: {
+    pointsPerAmountSpent: 1,
+    amountRequired: 100 // 1 point per ₱100
+  },
+  accountsConfig: {
+    admin: { role: 'admin', name: 'Master Administrator', mobile: '+63 917 111 2222', email: 'admin@shasznaircafe.com', isEmailVerified: true },
+    pos: { role: 'cashier', name: 'POS Register Terminal 1', mobile: '+63 917 333 4444', email: 'pos@shasznaircafe.com', isEmailVerified: true },
+    kds: { role: 'kitchen', name: 'Kitchen Display Station (KDS)', mobile: '+63 917 555 6666', email: 'kds@shasznaircafe.com', isEmailVerified: true }
+  }
+};
+
+export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [activeWorkspace, setActiveWorkspace] = useState<UserRole | null>(null);
+
+  // Core lists
+  const [categories, setCategories] = useState<Category[]>(DEMO_CATEGORIES);
+  const [products, setProducts] = useState<Product[]>(DEMO_PRODUCTS);
+  const [vouchers, setVouchers] = useState<Voucher[]>(DEMO_VOUCHERS);
+  const [rewards, setRewards] = useState<Reward[]>(DEMO_REWARDS);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [usersList, setUsersList] = useState<UserProfile[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [inventoryLogs, setInventoryLogs] = useState<InventoryTransaction[]>([]);
+  const [settings, setSettings] = useState<SystemSettings>(DEFAULT_SETTINGS);
+
+  const [dataLoading, setDataLoading] = useState(true);
+
+  // Cart State
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [appliedVoucher, setAppliedVoucher] = useState<Voucher | null>(null);
+  const [appliedReward, setAppliedReward] = useState<Reward | null>(null);
+
+  // Database Connection Status check
+  const [dbStatus, setDbStatus] = useState<{
+    connected: boolean;
+    databaseId: string;
+    error: string | null;
+    canReadWrite: boolean;
+    details?: string;
+  }>({
+    connected: false,
+    databaseId: databaseId || '(default)',
+    error: 'Initializing...',
+    canReadWrite: false
+  });
+
+  useEffect(() => {
+    const testDbConnection = async () => {
+      const configDbId = appletConfig.firestoreDatabaseId;
+      const validatedDbId = validateDatabaseId(databaseId) || validateDatabaseId(configDbId);
+      
+      // Ensure Firestore instance is retrieved safely omitting databaseId if '(default)'
+      const activeFirestore = getSafeFirestoreInstance(app, validatedDbId);
+      
+      console.log(`[Firestore Connection Check] Starting database initialization check...`);
+      console.log(`[Firestore Connection Check] Expected config firestoreDatabaseId: "${configDbId}"`);
+      console.log(`[Firestore Connection Check] Validated databaseId parameter: ${validatedDbId ? `"${validatedDbId}"` : 'undefined (default database)'}`);
+      
+      // Determine the active database ID
+      const activeDbId = (activeFirestore as any)._databaseId?.database || databaseId || '(default)';
+      console.log(`[Firestore Connection Check] Active getFirestore() databaseId: "${activeDbId}"`);
+
+      try {
+        // Perform a test read/write to the settings connection_test document
+        const testDocRef = doc(activeFirestore, 'coffee-shop-app', 'default', 'settings', 'connection_test');
+        
+        await setDoc(testDocRef, {
+          checkedAt: new Date().toISOString(),
+          status: 'verified_active',
+          databaseId: activeDbId
+        }, { merge: true });
+
+        const snap = await getDoc(testDocRef);
+        if (snap.exists() && snap.data()?.status === 'verified_active') {
+          console.log(`[Firestore Connection Check] SUCCESS: App successfully read/wrote to the database.`);
+          setDbStatus({
+            connected: true,
+            databaseId: activeDbId,
+            error: null,
+            canReadWrite: true,
+            details: `Firestore database "${activeDbId}" is active, online, and fully read/write verified.`
+          });
+        } else {
+          throw new Error("Read verified failed: Document write succeeded but read check returned inconsistent data.");
+        }
+      } catch (err: any) {
+        console.error(`[Firestore Connection Check] FAILED: Could not complete verified read/write.`, err);
+        setDbStatus({
+          connected: false,
+          databaseId: activeDbId,
+          error: err.message || String(err),
+          canReadWrite: false,
+          details: `Read/write test failed: ${err.message || String(err)}`
+        });
+      }
+    };
+
+    testDbConnection();
+  }, []);
+
+  // 1. Unified Real-Time Firebase Listeners
+  useEffect(() => {
+    if (authLoading || !currentUser) {
+      setCategories([]);
+      setProducts([]);
+      setVouchers([]);
+      setRewards([]);
+      setOrders([]);
+      setUsersList([]);
+      setAuditLogs([]);
+      setInventoryLogs([]);
+      setDataLoading(true);
+      return;
+    }
+
+    setDataLoading(true);
+    let catsLoaded = false;
+    let prodsLoaded = false;
+    const checkDataLoaded = () => {
+      if (catsLoaded && prodsLoaded) {
+        setDataLoading(false);
+      }
+    };
+
+    // 1. Sync Category Listener
+    const unsubCategories = onSnapshot(getShopCol('categories'), (snap) => {
+      if (!snap.empty) {
+        const list: Category[] = [];
+        snap.forEach(doc => list.push({ id: doc.id, ...doc.data() } as Category));
+        setCategories(list.sort((a,b) => a.displayOrder - b.displayOrder));
+      } else {
+        setCategories(DEMO_CATEGORIES);
+        // Auto-seed if database is empty
+        if (DEMO_CATEGORIES.length > 0) {
+          DEMO_CATEGORIES.forEach(cat => {
+            setDoc(getShopDoc('categories', cat.id), cat).catch(err => {
+              console.warn("Auto-seed category failed:", err);
+            });
+          });
+        }
+      }
+      catsLoaded = true;
+      checkDataLoaded();
+    }, (err) => {
+      console.warn("Categories snapshot failed:", err);
+      setCategories(DEMO_CATEGORIES);
+      catsLoaded = true;
+      checkDataLoaded();
+    });
+
+    // 2. Sync Products Listener
+    const unsubProducts = onSnapshot(getShopCol('products'), (snap) => {
+      if (!snap.empty) {
+        const list: Product[] = [];
+        snap.forEach(doc => {
+          const data = doc.data();
+          list.push({ 
+            id: doc.id, 
+            ...data,
+            createdAt: data.createdAt?.toDate?.() || (data.createdAt ? new Date(data.createdAt) : new Date()),
+            updatedAt: data.updatedAt?.toDate?.() || (data.updatedAt ? new Date(data.updatedAt) : new Date())
+          } as Product);
+        });
+        setProducts(list);
+      } else {
+        setProducts(DEMO_PRODUCTS);
+        // Auto-seed if database is empty
+        if (DEMO_PRODUCTS.length > 0) {
+          DEMO_PRODUCTS.forEach(prod => {
+            const { id, ...pData } = prod;
+            setDoc(getShopDoc('products', id), {
+              ...pData,
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp()
+            }).catch(err => {
+              console.warn("Auto-seed product failed:", err);
+            });
+          });
+        }
+      }
+      prodsLoaded = true;
+      checkDataLoaded();
+    }, (err) => {
+      console.warn("Products snapshot failed:", err);
+      setProducts(DEMO_PRODUCTS);
+      prodsLoaded = true;
+      checkDataLoaded();
+    });
+
+    // 3. Sync Vouchers Listener
+    const unsubVouchers = onSnapshot(getShopCol('vouchers'), (snap) => {
+      if (!snap.empty) {
+        const list: Voucher[] = [];
+        snap.forEach(doc => list.push({ id: doc.id, ...doc.data() } as Voucher));
+        setVouchers(list);
+      } else {
+        setVouchers([]);
+        if (currentUser.role === 'admin' && DEMO_VOUCHERS.length > 0) {
+          DEMO_VOUCHERS.forEach(v => {
+            setDoc(getShopDoc('vouchers', v.id), v).catch(err => {
+              console.warn("Auto-seed voucher failed:", err);
+            });
+          });
+        }
+      }
+    }, (err) => {
+      console.warn("Vouchers snapshot failed:", err);
+    });
+
+    // 4. Sync Rewards Listener
+    const unsubRewards = onSnapshot(getShopCol('rewards'), (snap) => {
+      if (!snap.empty) {
+        const list: Reward[] = [];
+        snap.forEach(doc => list.push({ id: doc.id, ...doc.data() } as Reward));
+        setRewards(list);
+      } else {
+        setRewards([]);
+        if (currentUser.role === 'admin' && DEMO_REWARDS.length > 0) {
+          DEMO_REWARDS.forEach(r => {
+            setDoc(getShopDoc('rewards', r.id), r).catch(err => {
+              console.warn("Auto-seed reward failed:", err);
+            });
+          });
+        }
+      }
+    }, (err) => {
+      console.warn("Rewards snapshot failed:", err);
+    });
+
+    // 5. Sync Settings Listener
+    const unsubSettings = onSnapshot(getShopDoc('settings', 'config'), (snap) => {
+      if (snap.exists()) {
+        setSettings(snap.data() as SystemSettings);
+      } else {
+        setSettings(DEFAULT_SETTINGS);
+        if (currentUser.role === 'admin') {
+          console.log("Empty settings config detected. Auto-seeding core configuration document...");
+          setDoc(getShopDoc('settings', 'config'), DEFAULT_SETTINGS).catch(err => {
+            console.error("Auto-seeding default settings failed:", err);
+          });
+        }
+      }
+    }, (err) => {
+      console.warn("Settings snapshot failed, using defaults:", err);
+    });
+
+    // 6. Role-Restricted Sync: Orders
+    const isStaff = currentUser.role === 'admin' || currentUser.role === 'cashier' || currentUser.role === 'kitchen';
+    const ordersQuery = isStaff 
+      ? query(getShopCol('orders'), orderBy('createdAt', 'desc'))
+      : query(getShopCol('orders'), where('customerId', '==', currentUser.uid));
+
+    const unsubOrders = onSnapshot(ordersQuery, (snap) => {
+      const list: Order[] = [];
+      snap.forEach(doc => {
+        const data = doc.data();
+        list.push({ 
+          id: doc.id, 
+          ...data,
+          createdAt: data.createdAt?.toDate?.() || (data.createdAt ? new Date(data.createdAt) : new Date()),
+          updatedAt: data.updatedAt?.toDate?.() || (data.updatedAt ? new Date(data.updatedAt) : new Date())
+        } as Order);
+      });
+      list.sort((a, b) => {
+        const tA = a.createdAt instanceof Date ? a.createdAt.getTime() : new Date(a.createdAt).getTime();
+        const tB = b.createdAt instanceof Date ? b.createdAt.getTime() : new Date(b.createdAt).getTime();
+        return tB - tA;
+      });
+      setOrders(list);
+    }, (err) => {
+      console.warn("Orders snapshot failed:", err);
+      const stored = localStorage.getItem('local_orders');
+      if (stored) {
+        setOrders(JSON.parse(stored));
+      }
+    });
+
+    // 7. Role-Restricted Sync: Users (Staff only)
+    let unsubUsers = () => {};
+    if (isStaff) {
+      unsubUsers = onSnapshot(getShopCol('users'), (snap) => {
+        const list: UserProfile[] = [];
+        snap.forEach(doc => list.push({ uid: doc.id, ...doc.data() } as UserProfile));
+        setUsersList(list);
+      }, (err) => {
+        console.warn("Users snapshot failed:", err);
+      });
+    } else {
+      setUsersList([currentUser]);
+    }
+
+    // 8. Role-Restricted Sync: Inventory Logs (Staff only)
+    let unsubInv = () => {};
+    if (isStaff) {
+      const qInv = query(getShopCol('inventoryTransactions'), orderBy('createdAt', 'desc'));
+      unsubInv = onSnapshot(qInv, (snap) => {
+        const list: InventoryTransaction[] = [];
+        snap.forEach(doc => list.push({ id: doc.id, ...doc.data() } as InventoryTransaction));
+        setInventoryLogs(list);
+      }, (err) => {
+        console.warn("Inventory logs snapshot failed:", err);
+      });
+    } else {
+      setInventoryLogs([]);
+    }
+
+    // 9. Role-Restricted Sync: Audit Logs (Staff only)
+    let unsubAudit = () => {};
+    if (isStaff) {
+      const qAudit = query(getShopCol('auditLogs'), orderBy('timestamp', 'desc'));
+      unsubAudit = onSnapshot(qAudit, (snap) => {
+        const list: AuditLog[] = [];
+        snap.forEach(doc => list.push({ id: doc.id, ...doc.data() } as AuditLog));
+        setAuditLogs(list);
+      }, (err) => {
+        console.warn("Audit snapshot failed:", err);
+      });
+    } else {
+      setAuditLogs([]);
+    }
+
+    return () => {
+      unsubCategories();
+      unsubProducts();
+      unsubVouchers();
+      unsubRewards();
+      unsubSettings();
+      unsubOrders();
+      unsubUsers();
+      unsubInv();
+      unsubAudit();
+    };
+  }, [currentUser, authLoading]);
+
+  // Save local orders fallback when orders state changes
+  useEffect(() => {
+    if (orders.length > 0) {
+      localStorage.setItem('local_orders', JSON.stringify(orders));
+    }
+  }, [orders]);
+
+  // 2. Auth State Sync
+  useEffect(() => {
+    const unsubAuth = onAuthStateChanged(auth, async (firebaseUser) => {
+      setAuthLoading(true);
+      if (firebaseUser) {
+        localStorage.removeItem('simulated_user');
+        
+        // Fetch profile
+        try {
+          const userDocRef = getShopDoc('users', firebaseUser.uid);
+          let uDoc: any = null;
+
+          try {
+            const cachedDoc = await getDocFromCache(userDocRef);
+            if (cachedDoc.exists()) {
+              uDoc = cachedDoc;
+            }
+          } catch (cacheErr) {
+            // Cache miss
+          }
+
+          if (!uDoc) {
+            uDoc = await Promise.race([
+              getDoc(userDocRef),
+              new Promise((_, reject) => 
+                setTimeout(() => reject(new Error("Timeout getting user profile from Firestore server")), 1500)
+              )
+            ]);
+          }
+
+          if (uDoc && uDoc.exists()) {
+            const userData = uDoc.data() as UserProfile;
+            let role = userData.role || 'customer';
+            const emailLower = (firebaseUser.email || '').toLowerCase();
+            if (emailLower.includes('admin') || emailLower.includes('owner') || emailLower.includes('manager')) {
+              role = 'admin';
+            } else if (emailLower.includes('cashier') || emailLower.includes('pos')) {
+              role = 'cashier';
+            } else if (emailLower.includes('kitchen') || emailLower.includes('kds') || emailLower.includes('barista')) {
+              role = 'kitchen';
+            }
+
+            if (role !== userData.role) {
+              try {
+                await updateDoc(userDocRef, { role });
+                userData.role = role;
+              } catch (e) {
+                // ignore
+              }
+            }
+
+            const profile = { uid: uDoc.id, ...userData, role };
+            setCurrentUser(profile);
+            setActiveWorkspace(role);
+          } else {
+            let assignedRole: UserRole = 'customer';
+            const emailLower = (firebaseUser.email || '').toLowerCase();
+            if (emailLower.includes('admin') || emailLower.includes('owner') || emailLower.includes('manager')) {
+              assignedRole = 'admin';
+            } else if (emailLower.includes('cashier') || emailLower.includes('pos')) {
+              assignedRole = 'cashier';
+            } else if (emailLower.includes('kitchen') || emailLower.includes('kds') || emailLower.includes('barista')) {
+              assignedRole = 'kitchen';
+            }
+
+            const dbProfile = {
+              uid: firebaseUser.uid,
+              email: firebaseUser.email || '',
+              name: firebaseUser.displayName || (assignedRole === 'admin' ? 'Store Admin' : assignedRole === 'cashier' ? 'POS Cashier' : assignedRole === 'kitchen' ? 'Kitchen Staff' : 'Customer'),
+              phone: '',
+              role: assignedRole,
+              createdAt: serverTimestamp(),
+              loyaltyPoints: 0,
+              lifetimePoints: 0,
+              lifetimeSpending: 0,
+              orderCount: 0
+            };
+            try {
+              await syncUserProfileToFirestore(firebaseUser.uid, dbProfile, 'createAuthInitialUserProfile');
+            } catch (writeErr) {
+              console.warn("Could not write initial profile to Firestore (offline):", writeErr);
+            }
+
+            const tempProfile: UserProfile = {
+              uid: firebaseUser.uid,
+              email: firebaseUser.email || '',
+              name: dbProfile.name,
+              phone: '',
+              role: assignedRole,
+              createdAt: new Date(),
+              loyaltyPoints: 0,
+              lifetimePoints: 0,
+              lifetimeSpending: 0,
+              orderCount: 0
+            };
+            setCurrentUser(tempProfile);
+            setActiveWorkspace(assignedRole);
+          }
+        } catch (e) {
+          console.warn("Error checking user profile, falling back to basic auth info:", e);
+          const fallbackProfile: UserProfile = {
+            uid: firebaseUser.uid,
+            email: firebaseUser.email || '',
+            name: firebaseUser.displayName || 'Customer',
+            phone: '',
+            role: 'customer',
+            createdAt: new Date(),
+            loyaltyPoints: 0,
+            lifetimePoints: 0,
+            lifetimeSpending: 0,
+            orderCount: 0
+          };
+          setCurrentUser(fallbackProfile);
+          setActiveWorkspace('customer');
+        }
+      } else {
+        localStorage.removeItem('simulated_user');
+        setCurrentUser(null);
+        setActiveWorkspace(null);
+      }
+      setAuthLoading(false);
+    });
+
+    return () => unsubAuth();
+  }, []);
+
+  // 3. Auth & Workspace Functions
+  const switchWorkspace = async (role: UserRole) => {
+    if (!currentUser) {
+      throw new Error("Authentication required to switch active workspace.");
+    }
+
+    const realRole = currentUser.role;
+
+    // Only Admin can toggle between views (Admin, Cashier, Kitchen, Customer).
+    // POS Cashier and Kitchen Monitor (KDS) cannot toggle to other views.
+    if (realRole !== 'admin' && role !== realRole) {
+      throw new Error(`Workspace switching is restricted to Admin accounts. As a ${realRole.toUpperCase()}, you are restricted to your assigned workspace.`);
+    }
+
+    setActiveWorkspace(role);
+
+    try {
+      await writeAuditLog(currentUser.uid, currentUser.name, 'workspace_switch', `Switched view mode to ${role}`, realRole, role);
+    } catch (e) {
+      // audit log optional
+    }
+  };
+
+  const simulateRole = async (role: UserRole) => {
+    await switchWorkspace(role);
+  };
+
+  const login = async (email: string, password: string) => {
+    setAuthLoading(true);
+    try {
+      localStorage.removeItem('simulated_user');
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (e) {
+      setAuthLoading(false);
+      throw e;
+    }
+  };
+
+  const register = async (email: string, password: string, name: string, phone: string, role: UserRole = 'customer') => {
+    setAuthLoading(true);
+    try {
+      localStorage.removeItem('simulated_user');
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
+
+      const dbProfile = {
+        uid: cred.user.uid,
+        email,
+        name,
+        phone,
+        role,
+        createdAt: serverTimestamp(),
+        loyaltyPoints: 0,
+        lifetimePoints: 0,
+        lifetimeSpending: 0,
+        orderCount: 0
+      };
+      await syncUserProfileToFirestore(cred.user.uid, dbProfile, 'registerUser');
+      
+      const localProfile: UserProfile = {
+        uid: cred.user.uid,
+        email,
+        name,
+        phone,
+        role,
+        createdAt: new Date(),
+        loyaltyPoints: 0,
+        lifetimePoints: 0,
+        lifetimeSpending: 0,
+        orderCount: 0
+      };
+      setCurrentUser(localProfile);
+      setActiveWorkspace(role);
+    } catch (e) {
+      setAuthLoading(false);
+      throw e;
+    }
+  };
+
+  const logout = async () => {
+    setAuthLoading(true);
+    try {
+      localStorage.removeItem('simulated_user');
+      await signOut(auth);
+      setCurrentUser(null);
+      setActiveWorkspace(null);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  // 4. Cart Operations
+  const addToCart = (item: CartItem) => {
+    setCart(prev => [...prev, item]);
+  };
+
+  const removeFromCart = (index: number) => {
+    setCart(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const updateCartItem = (index: number, updatedItem: CartItem) => {
+    setCart(prev => prev.map((item, i) => i === index ? updatedItem : item));
+  };
+
+  const clearCart = () => {
+    setCart([]);
+    setAppliedVoucher(null);
+    setAppliedReward(null);
+  };
+
+  const applyVoucher = (code: string): string | null => {
+    const cleanCode = code.trim().toUpperCase();
+    const v = vouchers.find(v => v.code === cleanCode && v.active);
+    if (!v) return "Invalid or expired voucher code.";
+
+    const now = new Date();
+    const exp = new Date(v.expirationDate);
+    if (now > exp) return "This voucher has expired.";
+
+    if (v.usageCount >= v.usageLimit) return "Voucher maximum usage limit has been reached.";
+
+    // Calculate subtotal
+    const subtotal = cart.reduce((acc, item) => {
+      const sizePrice = item.selectedSize.priceAdjustment;
+      const addOnsPrice = item.selectedAddOns.reduce((sum, ad) => sum + ad.price, 0);
+      return acc + ((item.product.price + sizePrice + addOnsPrice) * item.quantity);
+    }, 0);
+
+    if (subtotal < v.minPurchase) {
+      return `Minimum purchase of ₱${v.minPurchase} is required for this voucher.`;
+    }
+
+    setAppliedVoucher(v);
+    setAppliedReward(null); // clear reward if applying voucher (mutually exclusive discount)
+    return null;
+  };
+
+  const removeVoucher = () => {
+    setAppliedVoucher(null);
+  };
+
+  const applyReward = (reward: Reward): string | null => {
+    if (!currentUser || currentUser.role !== 'customer') {
+      return "Only customers can redeem loyalty rewards.";
+    }
+    if (currentUser.loyaltyPoints < reward.pointsRequired) {
+      return `Insufficient points. You need ${reward.pointsRequired} points (You have ${currentUser.loyaltyPoints}).`;
+    }
+    setAppliedReward(reward);
+    setAppliedVoucher(null); // mutually exclusive
+    return null;
+  };
+
+  const removeReward = () => {
+    setAppliedReward(null);
+  };
+
+  // 5. Audit Logging Helper
+  const writeAuditLog = async (userId: string, userName: string, action: string, target: string, prevValue: string, newValue: string) => {
+    const log: Omit<AuditLog, 'id'> = {
+      userId,
+      userName,
+      action,
+      target,
+      prevValue,
+      newValue,
+      timestamp: serverTimestamp()
+    };
+    try {
+      await traceAddDoc(getShopCol('auditLogs'), log, 'writeAuditLog');
+    } catch (e) {
+      console.warn("Audit logging failed:", e);
+    }
+  };
+
+  // 6. DB Operations - Place Order
+  const placeOrder = async (
+    orderType: OrderType, 
+    tableNo: string, 
+    paymentMethod: PaymentMethod, 
+    notes: string, 
+    customerPhone?: string,
+    customCart?: CartItem[],
+    customVoucher?: Voucher | null,
+    customCustomerName?: string,
+    orderSource?: 'pos' | 'web_app',
+    cashReceived?: number,
+    change?: number
+  ): Promise<Order> => {
+    if (settings.storeStatus?.isOpen === false && (orderSource === 'web_app' || (!orderSource && currentUser?.role === 'customer'))) {
+      throw new Error("Store is currently closed. Orders cannot be placed through the mobile app right now.");
+    }
+    const activeCart = (customCart && customCart.length > 0) ? customCart : cart;
+    if (activeCart.length === 0) throw new Error("Your shopping cart is empty.");
+
+    // Determine actual order source
+    const effectiveOrderSource: 'pos' | 'web_app' = orderSource || (
+      (currentUser?.role === 'cashier' || currentUser?.role === 'admin') && customCart ? 'pos' : 'web_app'
+    );
+
+    // Determine cashier info if placed via POS
+    const cashierName = (effectiveOrderSource === 'pos' && (currentUser?.role === 'cashier' || currentUser?.role === 'admin')) 
+      ? (currentUser.name || 'POS Cashier') 
+      : undefined;
+
+    // Determine customer info
+    let orderCustomerId = 'guest';
+    let orderCustomerName = 'Guest';
+
+    // If POS cashier placing order for loyalty customer identified by scan or phone lookup
+    if (customerPhone) {
+      const matchingCust = usersList.find(u => u.phone === customerPhone || u.uid === customerPhone);
+      if (matchingCust) {
+        orderCustomerId = matchingCust.uid;
+        orderCustomerName = matchingCust.name;
+      } else if (customCustomerName?.trim()) {
+        orderCustomerName = customCustomerName.trim();
+      } else {
+        orderCustomerName = customerPhone;
+      }
+    } else if (customCustomerName?.trim()) {
+      // Walk-in customer with specific custom name provided at POS invoice
+      orderCustomerId = 'guest';
+      orderCustomerName = customCustomerName.trim();
+    } else if (effectiveOrderSource === 'pos') {
+      // POS walk-in customer with no registered account and no custom name entered
+      orderCustomerId = 'guest';
+      orderCustomerName = 'Walk-in Guest';
+    } else if (currentUser?.role === 'customer') {
+      // Online customer ordering through Web App with their customer account
+      orderCustomerId = currentUser.uid;
+      orderCustomerName = currentUser.name || 'App Customer';
+    } else {
+      // Fallback
+      orderCustomerId = currentUser?.uid || 'guest';
+      orderCustomerName = 'Walk-in Guest';
+    }
+
+    // 1. Calculate and re-verify totals
+    let subtotal = 0;
+    const itemsList = activeCart.map(item => {
+      const sizePrice = item.selectedSize.priceAdjustment;
+      const addOnsPrice = item.selectedAddOns.reduce((sum, ad) => sum + ad.price, 0);
+      const unitPrice = item.product.price + sizePrice + addOnsPrice;
+      const itemSubtotal = unitPrice * item.quantity;
+      subtotal += itemSubtotal;
+
+      return {
+        productId: item.product.id,
+        name: item.product.name,
+        price: unitPrice,
+        quantity: item.quantity,
+        selectedSize: item.selectedSize.name,
+        selectedAddOns: item.selectedAddOns.map(a => a.name),
+        notes: item.notes
+      };
+    });
+
+    let discount = 0;
+    let voucherId = '';
+    let voucherCode = '';
+
+    const effectiveVoucher = customVoucher !== undefined ? customVoucher : appliedVoucher;
+
+    if (effectiveVoucher) {
+      voucherId = effectiveVoucher.id;
+      voucherCode = effectiveVoucher.code;
+      if (effectiveVoucher.discountType === 'percentage') {
+        discount = Math.round((subtotal * effectiveVoucher.discountValue) / 100);
+        if (effectiveVoucher.maxDiscount > 0) {
+          discount = Math.min(discount, effectiveVoucher.maxDiscount);
+        }
+      } else {
+        discount = effectiveVoucher.discountValue;
+      }
+    } else if (!customCart && appliedReward) {
+      if (appliedReward.rewardType === 'fixed') {
+        discount = appliedReward.rewardValue;
+      } else if (appliedReward.rewardType === 'percentage') {
+        discount = Math.round((subtotal * appliedReward.rewardValue) / 100);
+      } else if (appliedReward.rewardType === 'free_item') {
+        // Look for matching free item in cart
+        const freeItem = activeCart.find(item => item.product.name === appliedReward.freeItemName);
+        if (freeItem) {
+          const sizePrice = freeItem.selectedSize.priceAdjustment;
+          const addOnsPrice = freeItem.selectedAddOns.reduce((sum, ad) => sum + ad.price, 0);
+          discount = freeItem.product.price + sizePrice + addOnsPrice;
+        } else {
+          throw new Error(`Your reward requires adding '${appliedReward.freeItemName}' to your cart first.`);
+        }
+      }
+    }
+
+    const total = Math.max(0, subtotal - discount);
+
+    // 2. Loyalty points calculation
+    let pointsEarned = 0;
+    if (orderCustomerId !== 'guest') {
+      const rate = settings.loyaltySettings.amountRequired || 100;
+      pointsEarned = Math.floor(total / rate);
+    }
+
+    // 3. Generate sequential order number
+    const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const rand = Math.floor(1000 + Math.random() * 9000);
+    const orderNumber = `OR-${today}-${rand}`;
+
+    const computedChange = change !== undefined 
+      ? change 
+      : (cashReceived !== undefined ? Math.max(0, cashReceived - total) : undefined);
+
+    const selectedMethod = (settings.paymentMethods || []).find(m => m.id === paymentMethod);
+    const isCashType = selectedMethod?.type === 'cash' || paymentMethod === 'cash';
+
+    const initialPaymentStatus = (!isCashType || cashReceived !== undefined) ? 'paid' : 'unpaid';
+
+    const orderData: Omit<Order, 'id'> = {
+      orderNumber,
+      customerId: orderCustomerId,
+      customerName: orderCustomerName,
+      ...(cashierName ? { cashierName } : {}),
+      orderSource: effectiveOrderSource,
+      items: itemsList,
+      subtotal,
+      discount,
+      voucherId,
+      voucherCode,
+      total,
+      orderType,
+      tableNo: orderType === 'table' ? tableNo : '',
+      paymentStatus: initialPaymentStatus,
+      paymentMethod,
+      orderStatus: 'pending',
+      notes,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      pointsEarned,
+      ...(cashReceived !== undefined ? { cashReceived } : {}),
+      ...(computedChange !== undefined ? { change: computedChange } : {})
+    };
+
+    // 4. Batch transaction for database reliability, duplicate prevention, and inventory decrement
+    try {
+      const batch = writeBatch(db);
+
+      // Create order doc
+      const orderRef = getShopDoc('orders');
+      batch.set(orderRef, orderData);
+
+      // Deduct stock for products
+      for (const cartItem of activeCart) {
+        if (cartItem.product.stockTracking) {
+          const prodRef = getShopDoc('products', cartItem.product.id);
+          const newStock = Math.max(0, cartItem.product.stockQuantity - cartItem.quantity);
+          batch.update(prodRef, {
+            stockQuantity: newStock,
+            available: newStock > 0,
+            updatedAt: serverTimestamp()
+          });
+
+          // Create inventory transaction record
+          const invTxRef = getShopDoc('inventoryTransactions');
+          batch.set(invTxRef, {
+            productId: cartItem.product.id,
+            productName: cartItem.product.name,
+            quantityChanged: -cartItem.quantity,
+            type: 'sale',
+            reason: `Order ${orderNumber}`,
+            previousStock: cartItem.product.stockQuantity,
+            newStock,
+            createdAt: serverTimestamp(),
+            createdBy: currentUser?.name || 'POS Cashier'
+          });
+        }
+      }
+
+      // If voucher was used, increment usage
+      if (effectiveVoucher) {
+        const vRef = getShopDoc('vouchers', effectiveVoucher.id);
+        batch.update(vRef, {
+          usageCount: increment(1)
+        });
+      }
+
+      // If points reward was used, deduct points
+      if (!customCart && appliedReward && orderCustomerId !== 'guest') {
+        const userRef = getShopDoc('users', orderCustomerId);
+        batch.update(userRef, {
+          loyaltyPoints: increment(-appliedReward.pointsRequired)
+        });
+
+        const loyaltyTxRef = getShopDoc('loyaltyTransactions');
+        batch.set(loyaltyTxRef, {
+          customerId: orderCustomerId,
+          customerName: orderCustomerName,
+          pointsChanged: -appliedReward.pointsRequired,
+          type: 'redeem',
+          description: `Redeemed reward: ${appliedReward.name}`,
+          createdAt: serverTimestamp()
+        });
+      }
+
+      // Credit points earned, lifetime spending, and visit count (orderCount) instantly upon order placement
+      if (orderCustomerId !== 'guest') {
+        const userRef = getShopDoc('users', orderCustomerId);
+        batch.update(userRef, {
+          loyaltyPoints: increment(pointsEarned),
+          lifetimePoints: increment(pointsEarned),
+          lifetimeSpending: increment(total),
+          orderCount: increment(1)
+        });
+
+        const loyaltyTxRef = getShopDoc('loyaltyTransactions');
+        batch.set(loyaltyTxRef, {
+          customerId: orderCustomerId,
+          customerName: orderCustomerName,
+          pointsChanged: pointsEarned,
+          type: 'earn',
+          orderId: orderRef.id,
+          description: `Earned points from order ${orderNumber}`,
+          createdAt: serverTimestamp()
+        });
+      }
+
+      await batch.commit();
+
+      // Clear the local customer cart if not customCart
+      if (!customCart) {
+        clearCart();
+      }
+
+      // Return a temporary full order representation for the customer to view immediately
+      return {
+        id: orderRef.id,
+        ...orderData,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      } as Order;
+
+    } catch (e: any) {
+      console.error("Order placement failed:", e);
+      // Fallback local persistence if offline
+      const tempId = `local_order_${Date.now()}`;
+      const localOrder: Order = {
+        id: tempId,
+        ...orderData,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      } as Order;
+      
+      setOrders(prev => [localOrder, ...prev]);
+      clearCart();
+      return localOrder;
+    }
+  };
+
+  const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
+    try {
+      const orderRef = getShopDoc('orders', orderId);
+      await updateDoc(orderRef, {
+        orderStatus: status,
+        updatedAt: serverTimestamp(),
+        ...(status === 'completed' ? { completedAt: serverTimestamp() } : {})
+      });
+
+      const orderDoc = orders.find(o => o.id === orderId);
+
+      await writeAuditLog(
+        currentUser?.uid || 'staff',
+        currentUser?.name || 'Staff',
+        'order_status',
+        orderId,
+        orderDoc?.orderStatus || '',
+        status
+      );
+
+    } catch (e) {
+      console.error("Failed to update status:", e);
+      // fallback
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, orderStatus: status, updatedAt: new Date() } : o));
+    }
+  };
+
+  const updatePaymentStatus = async (orderId: string, status: PaymentStatus, cashReceived?: number, change?: number) => {
+    try {
+      const orderRef = getShopDoc('orders', orderId);
+      const orderDoc = orders.find(o => o.id === orderId);
+      
+      let computedChange = change;
+      if (computedChange === undefined && cashReceived !== undefined) {
+        if (orderDoc?.total !== undefined) {
+          computedChange = Math.max(0, cashReceived - orderDoc.total);
+        } else {
+          computedChange = 0;
+        }
+      }
+      
+      const updatePayload: any = {
+        paymentStatus: status,
+        updatedAt: serverTimestamp()
+      };
+
+      if (cashReceived !== undefined) {
+        updatePayload.cashReceived = cashReceived;
+      }
+      if (computedChange !== undefined) {
+        updatePayload.change = computedChange;
+      }
+
+      await updateDoc(orderRef, updatePayload);
+
+      await writeAuditLog(
+        currentUser?.uid || 'staff',
+        currentUser?.name || 'Staff',
+        'payment_status',
+        orderId,
+        orderDoc?.paymentStatus || '',
+        status
+      );
+
+      // Optimistic update
+      setOrders(prev => prev.map(o => o.id === orderId ? { 
+        ...o, 
+        paymentStatus: status, 
+        updatedAt: new Date(),
+        ...(cashReceived !== undefined ? { cashReceived } : {}),
+        ...(computedChange !== undefined ? { change: computedChange } : {})
+      } : o));
+    } catch (e) {
+      console.error("Failed to update payment status:", e);
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, paymentStatus: status, updatedAt: new Date() } : o));
+    }
+  };
+
+  const updateSettings = async (newSettings: Partial<SystemSettings>) => {
+    try {
+      const mergedSettings: SystemSettings = {
+        ...settings,
+        ...newSettings,
+        storeStatus: {
+          ...settings.storeStatus,
+          ...(newSettings.storeStatus || {})
+        },
+        branding: {
+          ...settings.branding,
+          ...(newSettings.branding || {})
+        },
+        businessInfo: {
+          ...settings.businessInfo,
+          ...(newSettings.businessInfo || {})
+        },
+        orderSettings: {
+          ...settings.orderSettings,
+          ...(newSettings.orderSettings || {})
+        },
+        loyaltySettings: {
+          ...settings.loyaltySettings,
+          ...(newSettings.loyaltySettings || {})
+        }
+      };
+
+      await traceSetDoc(getShopDoc('settings', 'config'), mergedSettings, { merge: true }, 'updateSettings');
+      setSettings(mergedSettings);
+
+      await writeAuditLog(
+        currentUser?.uid || 'admin',
+        currentUser?.name || 'Admin',
+        'update_settings',
+        'config',
+        '',
+        JSON.stringify(newSettings)
+      );
+    } catch (e) {
+      console.error("Failed to update system settings:", e);
+      throw e;
+    }
+  };
+
+  // 7. Demo Data Loader (Overwrites or populates empty Firestore collections)
+  const loadDemoData = async () => {
+    try {
+      // Categories
+      for (const cat of DEMO_CATEGORIES) {
+        await traceSetDoc(getShopDoc('categories', cat.id), cat, undefined, 'loadDemoData:category');
+      }
+      // Products
+      for (const prod of DEMO_PRODUCTS) {
+        const { id, ...pData } = prod;
+        await traceSetDoc(getShopDoc('products', id), {
+          ...pData,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        }, undefined, 'loadDemoData:product');
+      }
+      // Vouchers
+      for (const v of DEMO_VOUCHERS) {
+        await traceSetDoc(getShopDoc('vouchers', v.id), v, undefined, 'loadDemoData:voucher');
+      }
+      // Rewards
+      for (const r of DEMO_REWARDS) {
+        await traceSetDoc(getShopDoc('rewards', r.id), r, undefined, 'loadDemoData:reward');
+      }
+      // Default settings
+      await traceSetDoc(getShopDoc('settings', 'config'), DEFAULT_SETTINGS, undefined, 'loadDemoData:settings');
+
+      await writeAuditLog(
+        currentUser?.uid || 'admin',
+        currentUser?.name || 'Admin',
+        'load_demo_data',
+        'database',
+        'empty',
+        'demo_populated'
+      );
+    } catch (e) {
+      console.error("Load demo data failed. Populating locally...", e);
+      setCategories(DEMO_CATEGORIES);
+      setProducts(DEMO_PRODUCTS);
+      setVouchers(DEMO_VOUCHERS);
+      setRewards(DEMO_REWARDS);
+    }
+  };
+
+  const resetDatabase = async () => {
+    try {
+      // Just write default empty collections or reset snapshot states
+      await setDoc(getShopDoc('settings', 'config'), DEFAULT_SETTINGS);
+      setCart([]);
+      setAppliedVoucher(null);
+      setAppliedReward(null);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  // CRUD OPERATIONS FOR ADMIN PANEL
+  const addCategory = async (cat: Omit<Category, 'id'>) => {
+    const id = `cat_${Date.now()}`;
+    await traceSetDoc(getShopDoc('categories', id), cat, undefined, 'addCategory');
+    await writeAuditLog(currentUser?.uid || 'admin', currentUser?.name || 'Admin', 'add_category', id, '', cat.name);
+  };
+
+  const updateCategory = async (id: string, cat: Partial<Category>) => {
+    await traceUpdateDoc(getShopDoc('categories', id), cat, 'updateCategory');
+    await writeAuditLog(currentUser?.uid || 'admin', currentUser?.name || 'Admin', 'update_category', id, '', JSON.stringify(cat));
+  };
+
+  const deleteCategory = async (id: string) => {
+    const cRef = getShopDoc('categories', id);
+    await traceDeleteDoc(cRef, 'deleteCategory');
+    await writeAuditLog(currentUser?.uid || 'admin', currentUser?.name || 'Admin', 'delete_category', id, '', '');
+  };
+
+  const addProduct = async (prod: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const id = `prod_${Date.now()}`;
+    const payload = {
+      ...prod,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    };
+    await traceSetDoc(getShopDoc('products', id), payload, undefined, 'addProduct');
+    await writeAuditLog(currentUser?.uid || 'admin', currentUser?.name || 'Admin', 'add_product', id, '', prod.name);
+  };
+
+  const updateProduct = async (id: string, prod: Partial<Product>) => {
+    const payload = {
+      ...prod,
+      updatedAt: serverTimestamp()
+    };
+    await traceUpdateDoc(getShopDoc('products', id), payload, 'updateProduct');
+    await writeAuditLog(currentUser?.uid || 'admin', currentUser?.name || 'Admin', 'update_product', id, '', JSON.stringify(prod));
+  };
+
+  const deleteProduct = async (id: string) => {
+    // Soft delete / archive
+    await traceUpdateDoc(getShopDoc('products', id), { available: false }, 'deleteProduct');
+    await writeAuditLog(currentUser?.uid || 'admin', currentUser?.name || 'Admin', 'archive_product', id, 'available', 'unavailable');
+  };
+
+  const addVoucher = async (v: Omit<Voucher, 'id' | 'usageCount'>) => {
+    const id = `vouch_${Date.now()}`;
+    await traceSetDoc(getShopDoc('vouchers', id), { ...v, usageCount: 0 }, undefined, 'addVoucher');
+    await writeAuditLog(currentUser?.uid || 'admin', currentUser?.name || 'Admin', 'add_voucher', id, '', v.code);
+  };
+
+  const updateVoucher = async (id: string, v: Partial<Voucher>) => {
+    await traceUpdateDoc(getShopDoc('vouchers', id), v, 'updateVoucher');
+    await writeAuditLog(currentUser?.uid || 'admin', currentUser?.name || 'Admin', 'update_voucher', id, '', JSON.stringify(v));
+  };
+
+  const deleteVoucher = async (id: string) => {
+    await traceUpdateDoc(getShopDoc('vouchers', id), { active: false }, 'deleteVoucher');
+  };
+
+  const addReward = async (rew: Omit<Reward, 'id'>) => {
+    const id = `rew_${Date.now()}`;
+    await traceSetDoc(getShopDoc('rewards', id), rew, undefined, 'addReward');
+    await writeAuditLog(currentUser?.uid || 'admin', currentUser?.name || 'Admin', 'add_reward', id, '', rew.name);
+  };
+
+  const updateReward = async (id: string, rew: Partial<Reward>) => {
+    await traceUpdateDoc(getShopDoc('rewards', id), rew, 'updateReward');
+    await writeAuditLog(currentUser?.uid || 'admin', currentUser?.name || 'Admin', 'update_reward', id, '', JSON.stringify(rew));
+  };
+
+  const deleteReward = async (id: string) => {
+    await traceUpdateDoc(getShopDoc('rewards', id), { active: false }, 'deleteReward');
+  };
+
+  const adjustInventory = async (productId: string, quantityChanged: number, reason: string) => {
+    const prod = products.find(p => p.id === productId);
+    if (!prod) return;
+
+    const previousStock = prod.stockQuantity;
+    const newStock = Math.max(0, previousStock + quantityChanged);
+
+    const batch = writeBatch(db);
+    batch.update(getShopDoc('products', productId), {
+      stockQuantity: newStock,
+      available: newStock > 0,
+      updatedAt: serverTimestamp()
+    });
+
+    const txRef = getShopDoc('inventoryTransactions');
+    batch.set(txRef, {
+      productId,
+      productName: prod.name,
+      quantityChanged,
+      type: quantityChanged > 0 ? 'add' : 'remove',
+      reason,
+      previousStock,
+      newStock,
+      createdAt: serverTimestamp(),
+      createdBy: currentUser?.name || 'Administrator'
+    });
+
+    await batch.commit();
+    await writeAuditLog(
+      currentUser?.uid || 'admin',
+      currentUser?.name || 'Admin',
+      'adjust_inventory',
+      productId,
+      `Stock: ${previousStock}`,
+      `Stock: ${newStock}`
+    );
+  };
+
+  const adjustUserPoints = async (userId: string, pointsChanged: number, reason: string) => {
+    const user = usersList.find(u => u.uid === userId);
+    if (!user) return;
+
+    const prevPoints = user.loyaltyPoints;
+    const newPoints = Math.max(0, prevPoints + pointsChanged);
+
+    const batch = writeBatch(db);
+    batch.update(getShopDoc('users', userId), {
+      loyaltyPoints: newPoints,
+      lifetimePoints: pointsChanged > 0 ? increment(pointsChanged) : increment(0)
+    });
+
+    const txRef = getShopDoc('loyaltyTransactions');
+    batch.set(txRef, {
+      customerId: userId,
+      customerName: user.name,
+      pointsChanged,
+      type: pointsChanged > 0 ? 'adjust' : 'redeem',
+      description: `Manual Adjustment: ${reason}`,
+      createdAt: serverTimestamp()
+    });
+
+    await batch.commit();
+    await writeAuditLog(
+      currentUser?.uid || 'admin',
+      currentUser?.name || 'Admin',
+      'adjust_points',
+      userId,
+      `Points: ${prevPoints}`,
+      `Points: ${newPoints}`
+    );
+  };
+
+  const updateUserProfile = async (data: Partial<UserProfile>) => {
+    if (!currentUser) return;
+    const userDocRef = getShopDoc('users', currentUser.uid);
+    const payload = {
+      ...data,
+      updatedAt: serverTimestamp()
+    };
+    await traceUpdateDoc(userDocRef, payload, 'updateUserProfile');
+    setCurrentUser(prev => prev ? { ...prev, ...data } : null);
+    setUsersList(prev => prev.map(u => u.uid === currentUser.uid ? { ...u, ...data } : u));
+  };
+
+  // Generic Firestore CRUD API
+  const getDocuments = async <T,>(collectionName: string): Promise<T[]> => {
+    const qSnap = await getDocs(getShopCol(collectionName));
+    const list: any[] = [];
+    qSnap.forEach(doc => list.push({ id: doc.id, ...doc.data() }));
+    return list as T[];
+  };
+
+  const getDocument = async <T,>(collectionName: string, id: string): Promise<T | null> => {
+    const dSnap = await getDoc(getShopDoc(collectionName, id));
+    if (dSnap.exists()) {
+      return { id: dSnap.id, ...dSnap.data() } as T;
+    }
+    return null;
+  };
+
+  const addDocument = async <T extends object>(collectionName: string, data: T, customId?: string): Promise<string> => {
+    if (customId) {
+      await traceSetDoc(getShopDoc(collectionName, customId), data, undefined, `addDocument:${collectionName}`);
+      return customId;
+    } else {
+      const docRef = await traceAddDoc(getShopCol(collectionName), data, `addDocument:${collectionName}`);
+      return docRef.id;
+    }
+  };
+
+  const updateDocument = async <T extends object>(collectionName: string, id: string, data: Partial<T>): Promise<void> => {
+    await traceUpdateDoc(getShopDoc(collectionName, id), data as any, `updateDocument:${collectionName}`);
+  };
+
+  const deleteDocument = async (collectionName: string, id: string): Promise<void> => {
+    await traceDeleteDoc(getShopDoc(collectionName, id), `deleteDocument:${collectionName}`);
+  };
+
+  return (
+    <CoffeeAppContext.Provider value={{
+      dbStatus,
+      currentUser,
+      authLoading,
+      activeWorkspace,
+      switchWorkspace,
+      login,
+      register,
+      logout,
+      simulateRole,
+      categories,
+      products,
+      vouchers,
+      rewards,
+      orders,
+      usersList,
+      auditLogs,
+      inventoryLogs,
+      settings,
+      dataLoading,
+      cart,
+      addToCart,
+      removeFromCart,
+      updateCartItem,
+      clearCart,
+      appliedVoucher,
+      applyVoucher,
+      removeVoucher,
+      appliedReward,
+      applyReward,
+      removeReward,
+      placeOrder,
+      updateOrderStatus,
+      updatePaymentStatus,
+      updateSettings,
+      loadDemoData,
+      resetDatabase,
+      addCategory,
+      updateCategory,
+      deleteCategory,
+      addProduct,
+      updateProduct,
+      deleteProduct,
+      addVoucher,
+      updateVoucher,
+      deleteVoucher,
+      addReward,
+      updateReward,
+      deleteReward,
+      adjustInventory,
+      adjustUserPoints,
+      updateUserProfile,
+      getDocuments,
+      getDocument,
+      addDocument,
+      updateDocument,
+      deleteDocument
+    }}>
+      {children}
+    </CoffeeAppContext.Provider>
+  );
+};
+
+export const useCoffeeApp = () => {
+  const context = useContext(CoffeeAppContext);
+  if (!context) throw new Error("useCoffeeApp must be used inside CoffeeAppProvider");
+  return context;
+};

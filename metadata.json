@@ -1,0 +1,6 @@
+{
+  "name": "Coffee Shop Online Ordering, POS & Management",
+  "description": "An integrated coffee shop online ordering platform, touchscreen POS, kitchen display system, inventory tracking, and reporting app.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

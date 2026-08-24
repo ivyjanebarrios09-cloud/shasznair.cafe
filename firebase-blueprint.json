@@ -1,0 +1,484 @@
+{
+  "entities": {
+    "Category": {
+      "title": "Category",
+      "description": "Store categories for products",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "maxLength": 100 },
+        "active": { "type": "boolean" },
+        "displayOrder": { "type": "number" },
+        "icon": { "type": "string", "maxLength": 50 },
+        "createdBy": { "type": "string", "maxLength": 128 },
+        "updatedBy": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "active", "displayOrder", "createdBy", "createdAt"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Store items or products",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "maxLength": 100 },
+        "categoryId": { "type": "string", "maxLength": 100 },
+        "categoryName": { "type": "string", "maxLength": 100 },
+        "price": { "type": "number" },
+        "description": { "type": "string", "maxLength": 500 },
+        "image": { "type": "string", "maxLength": 500 },
+        "available": { "type": "boolean" },
+        "stockTracking": { "type": "boolean" },
+        "stockQuantity": { "type": "number" },
+        "createdBy": { "type": "string", "maxLength": 128 },
+        "updatedBy": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "categoryId", "price", "available", "createdBy", "createdAt"]
+    },
+    "ProductOption": {
+      "title": "Product Option",
+      "description": "Configurable parameters for drinks or food items",
+      "type": "object",
+      "properties": {
+        "productId": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 100 },
+        "type": { "type": "string", "enum": ["single", "multiple"] },
+        "required": { "type": "boolean" },
+        "values": { "type": "array", "description": "Custom option values with names and prices" },
+        "createdBy": { "type": "string", "maxLength": 128 },
+        "updatedBy": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["productId", "name", "type", "required", "values", "createdBy", "createdAt"]
+    },
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "System user account profile",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "format": "email", "maxLength": 200 },
+        "name": { "type": "string", "maxLength": 100 },
+        "phone": { "type": "string", "maxLength": 30 },
+        "role": { "type": "string", "enum": ["customer", "cashier", "kitchen", "admin"] },
+        "createdBy": { "type": "string", "maxLength": 128 },
+        "updatedBy": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "name", "role", "createdAt"]
+    },
+    "Customer": {
+      "title": "Customer",
+      "description": "Store loyalty customer profiles",
+      "type": "object",
+      "properties": {
+        "customerId": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "format": "email", "maxLength": 200 },
+        "phone": { "type": "string", "maxLength": 30 },
+        "tier": { "type": "string", "enum": ["bronze", "silver", "gold", "platinum"] },
+        "status": { "type": "string", "enum": ["active", "suspended"] },
+        "loyaltyPoints": { "type": "number" },
+        "lifetimePoints": { "type": "number" },
+        "lifetimeSpending": { "type": "number" },
+        "totalOrders": { "type": "number" },
+        "createdBy": { "type": "string", "maxLength": 128 },
+        "updatedBy": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["customerId", "name", "tier", "status", "loyaltyPoints", "createdBy", "createdAt"]
+    },
+    "Staff": {
+      "title": "Staff",
+      "description": "Store store staff and employees profiles",
+      "type": "object",
+      "properties": {
+        "staffId": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "format": "email", "maxLength": 200 },
+        "role": { "type": "string", "enum": ["cashier", "kitchen", "barista", "manager", "admin"] },
+        "status": { "type": "string", "enum": ["active", "on_leave", "terminated"] },
+        "shift": { "type": "string", "maxLength": 50 },
+        "createdBy": { "type": "string", "maxLength": 128 },
+        "updatedBy": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["staffId", "name", "email", "role", "status", "createdBy", "createdAt"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Store sales transaction order",
+      "type": "object",
+      "properties": {
+        "orderNumber": { "type": "string", "maxLength": 50 },
+        "customerId": { "type": "string", "maxLength": 128 },
+        "customerName": { "type": "string", "maxLength": 100 },
+        "staffId": { "type": "string", "maxLength": 128 },
+        "tableId": { "type": "string", "maxLength": 128 },
+        "subtotal": { "type": "number" },
+        "discount": { "type": "number" },
+        "tax": { "type": "number" },
+        "total": { "type": "number" },
+        "orderType": { "type": "string", "enum": ["dine_in", "pickup", "table", "delivery"] },
+        "tableNo": { "type": "string", "maxLength": 20 },
+        "paymentStatus": { "type": "string", "enum": ["unpaid", "pending", "paid", "refunded"] },
+        "orderStatus": { "type": "string", "enum": ["pending", "preparing", "ready", "completed", "cancelled"] },
+        "notes": { "type": "string", "maxLength": 500 },
+        "createdBy": { "type": "string", "maxLength": 128 },
+        "updatedBy": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["orderNumber", "customerId", "customerName", "subtotal", "total", "orderType", "paymentStatus", "orderStatus", "createdBy", "createdAt"]
+    },
+    "OrderItem": {
+      "title": "Order Item",
+      "description": "Specific line item purchased inside an order",
+      "type": "object",
+      "properties": {
+        "orderItemId": { "type": "string", "maxLength": 128 },
+        "orderId": { "type": "string", "maxLength": 128 },
+        "productId": { "type": "string", "maxLength": 128 },
+        "productName": { "type": "string", "maxLength": 100 },
+        "quantity": { "type": "number" },
+        "unitPrice": { "type": "number" },
+        "subtotal": { "type": "number" },
+        "selectedOptions": { "type": "array" },
+        "itemStatus": { "type": "string", "enum": ["pending", "preparing", "ready", "served", "cancelled"] },
+        "createdBy": { "type": "string", "maxLength": 128 },
+        "updatedBy": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["orderItemId", "orderId", "productId", "productName", "quantity", "unitPrice", "subtotal", "itemStatus", "createdBy", "createdAt"]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "description": "POS general sales or cash transactions",
+      "type": "object",
+      "properties": {
+        "transactionId": { "type": "string", "maxLength": 128 },
+        "orderId": { "type": "string", "maxLength": 128 },
+        "type": { "type": "string", "enum": ["sale", "refund", "payout", "payin"] },
+        "amount": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "success", "failed", "reversed"] },
+        "paymentMethod": { "type": "string", "enum": ["cash", "gcash", "maya", "card"] },
+        "createdBy": { "type": "string", "maxLength": 128 },
+        "updatedBy": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["transactionId", "orderId", "type", "amount", "status", "paymentMethod", "createdBy", "createdAt"]
+    },
+    "Payment": {
+      "title": "Payment",
+      "description": "Store specific payments made",
+      "type": "object",
+      "properties": {
+        "paymentId": { "type": "string", "maxLength": 128 },
+        "transactionId": { "type": "string", "maxLength": 128 },
+        "orderId": { "type": "string", "maxLength": 128 },
+        "amount": { "type": "number" },
+        "paymentMethod": { "type": "string", "enum": ["cash", "gcash", "maya", "card"] },
+        "paymentStatus": { "type": "string", "enum": ["pending", "completed", "failed", "refunded"] },
+        "referenceNumber": { "type": "string", "maxLength": 100 },
+        "createdBy": { "type": "string", "maxLength": 128 },
+        "updatedBy": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["paymentId", "orderId", "amount", "paymentMethod", "paymentStatus", "createdBy", "createdAt"]
+    },
+    "Inventory": {
+      "title": "Inventory",
+      "description": "Store raw ingredients and stock items",
+      "type": "object",
+      "properties": {
+        "itemId": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 100 },
+        "sku": { "type": "string", "maxLength": 50 },
+        "currentStock": { "type": "number" },
+        "reorderLevel": { "type": "number" },
+        "unit": { "type": "string", "maxLength": 20 },
+        "status": { "type": "string", "enum": ["in_stock", "low_stock", "out_of_stock"] },
+        "createdBy": { "type": "string", "maxLength": 128 },
+        "updatedBy": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["itemId", "name", "currentStock", "reorderLevel", "unit", "status", "createdBy", "createdAt"]
+    },
+    "InventoryTransaction": {
+      "title": "Inventory Transaction",
+      "description": "Logs for stock inputs and wastage",
+      "type": "object",
+      "properties": {
+        "transactionId": { "type": "string", "maxLength": 128 },
+        "itemId": { "type": "string", "maxLength": 128 },
+        "type": { "type": "string", "enum": ["stock_in", "stock_out", "waste", "adjustment", "sale"] },
+        "quantity": { "type": "number" },
+        "referenceId": { "type": "string", "maxLength": 128 },
+        "notes": { "type": "string", "maxLength": 500 },
+        "createdBy": { "type": "string", "maxLength": 128 },
+        "updatedBy": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["transactionId", "itemId", "type", "quantity", "createdBy", "createdAt"]
+    },
+    "Voucher": {
+      "title": "Voucher",
+      "description": "Promo and coupon codes",
+      "type": "object",
+      "properties": {
+        "voucherId": { "type": "string", "maxLength": 128 },
+        "code": { "type": "string", "maxLength": 50 },
+        "discountType": { "type": "string", "enum": ["percentage", "fixed"] },
+        "discountValue": { "type": "number" },
+        "minPurchase": { "type": "number" },
+        "maxDiscount": { "type": "number" },
+        "usageLimit": { "type": "number" },
+        "usageCount": { "type": "number" },
+        "status": { "type": "string", "enum": ["active", "expired", "inactive"] },
+        "expirationDate": { "type": "string" },
+        "createdBy": { "type": "string", "maxLength": 128 },
+        "updatedBy": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["voucherId", "code", "discountType", "discountValue", "minPurchase", "status", "createdBy", "createdAt"]
+    },
+    "VoucherClaim": {
+      "title": "Voucher Claim",
+      "description": "Records voucher claims and redemption usage",
+      "type": "object",
+      "properties": {
+        "claimId": { "type": "string", "maxLength": 128 },
+        "voucherId": { "type": "string", "maxLength": 128 },
+        "customerId": { "type": "string", "maxLength": 128 },
+        "orderId": { "type": "string", "maxLength": 128 },
+        "discountApplied": { "type": "number" },
+        "status": { "type": "string", "enum": ["claimed", "used", "refunded"] },
+        "createdBy": { "type": "string", "maxLength": 128 },
+        "updatedBy": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["claimId", "voucherId", "customerId", "status", "createdBy", "createdAt"]
+    },
+    "Reward": {
+      "title": "Reward",
+      "description": "Loyalty points reward redemptions",
+      "type": "object",
+      "properties": {
+        "rewardId": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 100 },
+        "description": { "type": "string", "maxLength": 300 },
+        "pointsRequired": { "type": "number" },
+        "rewardType": { "type": "string", "enum": ["fixed", "percentage", "free_item"] },
+        "rewardValue": { "type": "number" },
+        "freeItemName": { "type": "string", "maxLength": 100 },
+        "status": { "type": "string", "enum": ["active", "inactive"] },
+        "createdBy": { "type": "string", "maxLength": 128 },
+        "updatedBy": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["rewardId", "name", "pointsRequired", "rewardType", "rewardValue", "status", "createdBy", "createdAt"]
+    },
+    "LoyaltyTransaction": {
+      "title": "Loyalty Transaction",
+      "description": "Points ledger for auditing loyalty changes",
+      "type": "object",
+      "properties": {
+        "loyaltyTxId": { "type": "string", "maxLength": 128 },
+        "customerId": { "type": "string", "maxLength": 128 },
+        "orderId": { "type": "string", "maxLength": 128 },
+        "type": { "type": "string", "enum": ["earn", "redeem", "refund_earn", "refund_redeem"] },
+        "points": { "type": "number" },
+        "notes": { "type": "string", "maxLength": 200 },
+        "createdBy": { "type": "string", "maxLength": 128 },
+        "updatedBy": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["loyaltyTxId", "customerId", "type", "points", "createdBy", "createdAt"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "Customer order alerts or store broadcasts",
+      "type": "object",
+      "properties": {
+        "notificationId": { "type": "string", "maxLength": 128 },
+        "recipientId": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 150 },
+        "body": { "type": "string", "maxLength": 500 },
+        "type": { "type": "string", "enum": ["order_ready", "order_status", "loyalty", "broadcast"] },
+        "status": { "type": "string", "enum": ["unread", "read", "archived"] },
+        "createdBy": { "type": "string", "maxLength": 128 },
+        "updatedBy": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["notificationId", "recipientId", "title", "body", "type", "status", "createdBy", "createdAt"]
+    },
+    "Report": {
+      "title": "Report",
+      "description": "Sales, shifts and inventory status reports",
+      "type": "object",
+      "properties": {
+        "reportId": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 150 },
+        "type": { "type": "string", "enum": ["daily_sales", "monthly_sales", "inventory_waste", "employee_shifts"] },
+        "data": { "type": "object", "description": "Structured metrics and sales tables" },
+        "status": { "type": "string", "enum": ["draft", "final"] },
+        "createdBy": { "type": "string", "maxLength": 128 },
+        "updatedBy": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["reportId", "title", "type", "data", "status", "createdBy", "createdAt"]
+    },
+    "Table": {
+      "title": "Table",
+      "description": "Dine-in floor table layout",
+      "type": "object",
+      "properties": {
+        "tableId": { "type": "string", "maxLength": 128 },
+        "tableNo": { "type": "string", "maxLength": 20 },
+        "capacity": { "type": "number" },
+        "status": { "type": "string", "enum": ["available", "occupied", "reserved", "cleaning"] },
+        "currentOrderId": { "type": "string", "maxLength": 128 },
+        "createdBy": { "type": "string", "maxLength": 128 },
+        "updatedBy": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["tableId", "tableNo", "capacity", "status", "createdBy", "createdAt"]
+    },
+    "Setting": {
+      "title": "Setting",
+      "description": "System-wide configurations and parameters",
+      "type": "object",
+      "properties": {
+        "settingId": { "type": "string", "maxLength": 128 },
+        "key": { "type": "string", "maxLength": 100 },
+        "value": { "type": "object", "description": "Generic system config Map" },
+        "description": { "type": "string", "maxLength": 250 },
+        "updatedBy": { "type": "string", "maxLength": 128 },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["settingId", "key", "value", "updatedBy", "updatedAt"]
+    },
+    "AuditLog": {
+      "title": "Audit Log",
+      "description": "Merchant operational events",
+      "type": "object",
+      "properties": {
+        "logId": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "userName": { "type": "string", "maxLength": 100 },
+        "action": { "type": "string", "maxLength": 100 },
+        "target": { "type": "string", "maxLength": 200 },
+        "prevValue": { "type": "string", "maxLength": 1000 },
+        "newValue": { "type": "string", "maxLength": 1000 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["logId", "userId", "userName", "action", "target", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/categories/{categoryId}": {
+      "schema": "Category",
+      "description": "Menu categories"
+    },
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Cafe menu items"
+    },
+    "/productOptions/{optionId}": {
+      "schema": "ProductOption",
+      "description": "Add-ons and customizable ingredients options"
+    },
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "System registered accounts profiles"
+    },
+    "/customers/{customerId}": {
+      "schema": "Customer",
+      "description": "Loyalty customer registry"
+    },
+    "/staff/{staffId}": {
+      "schema": "Staff",
+      "description": "Cafe employees registry"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Sales orders records"
+    },
+    "/orders/{orderId}/items/{itemId}": {
+      "schema": "OrderItem",
+      "description": "Specific line items nested inside orders"
+    },
+    "/transactions/{transactionId}": {
+      "schema": "Transaction",
+      "description": "Cash register transaction history"
+    },
+    "/payments/{paymentId}": {
+      "schema": "Payment",
+      "description": "Order sales payment records"
+    },
+    "/inventory/{itemId}": {
+      "schema": "Inventory",
+      "description": "Cafe ingredient stock levels"
+    },
+    "/inventoryTransactions/{transactionId}": {
+      "schema": "InventoryTransaction",
+      "description": "Wastage and adjustments history logs"
+    },
+    "/vouchers/{voucherId}": {
+      "schema": "Voucher",
+      "description": "Merchant coupons and discounts options"
+    },
+    "/voucherClaims/{claimId}": {
+      "schema": "VoucherClaim",
+      "description": "Loyalty coupon redemptions claims tracking"
+    },
+    "/rewards/{rewardId}": {
+      "schema": "Reward",
+      "description": "Point-based loyalty store rewards"
+    },
+    "/loyaltyTransactions/{loyaltyTxId}": {
+      "schema": "LoyaltyTransaction",
+      "description": "Point earn and burn ledger logs"
+    },
+    "/notifications/{notificationId}": {
+      "schema": "Notification",
+      "description": "Customer notification and store updates"
+    },
+    "/reports/{reportId}": {
+      "schema": "Report",
+      "description": "Daily cashier reports and closing audits"
+    },
+    "/tables/{tableId}": {
+      "schema": "Table",
+      "description": "Dine-in table occupancy status mapping"
+    },
+    "/settings/{settingId}": {
+      "schema": "Setting",
+      "description": "Merchant parameters"
+    },
+    "/auditLogs/{logId}": {
+      "schema": "AuditLog",
+      "description": "Operational event log audit"
+    }
+  }
+}

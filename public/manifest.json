@@ -1,0 +1,17 @@
+{
+  "short_name": "Shasznair Cafe",
+  "name": "Shasznair Cafe POS & Kitchen Display",
+  "icons": [
+    {
+      "src": "/coffee_logo.jpg",
+      "type": "image/jpeg",
+      "sizes": "192x192 512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#07080c",
+  "theme_color": "#07080c",
+  "display": "standalone",
+  "orientation": "portrait"
+}
