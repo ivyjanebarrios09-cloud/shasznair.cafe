@@ -1,15 +1,30 @@
 {
+  "id": "/",
   "short_name": "Shasznair Cafe",
   "name": "Shasznair Cafe POS & Kitchen Display",
+  "description": "Artisan coffee shop online ordering, touchscreen POS, and kitchen display system.",
   "icons": [
     {
       "src": "/coffee_logo.jpg",
       "type": "image/jpeg",
-      "sizes": "192x192 512x512",
-      "purpose": "any maskable"
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "/coffee_logo.jpg",
+      "type": "image/jpeg",
+      "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "/coffee_logo.jpg",
+      "type": "image/jpeg",
+      "sizes": "512x512",
+      "purpose": "maskable"
     }
   ],
   "start_url": "/",
+  "scope": "/",
   "background_color": "#07080c",
   "theme_color": "#07080c",
   "display": "standalone",
