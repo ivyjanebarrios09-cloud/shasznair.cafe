@@ -26,6 +26,7 @@ export const AdminExperience: React.FC = () => {
     inventoryLogs,
     settings,
     updateSettings,
+    syncStaffAccounts,
     addCategory,
     updateCategory,
     deleteCategory,
@@ -38,7 +39,9 @@ export const AdminExperience: React.FC = () => {
     adjustInventory,
     adjustUserPoints,
     loadDemoData,
-    resetDatabase
+    resetDatabase,
+    updateDocument,
+    addDocument
   } = useCoffeeApp();
 
   // Navigation Panel Tab: 'dashboard' | 'products' | 'categories' | 'vouchers' | 'customers' | 'reports' | 'audit' | 'settings'
@@ -73,6 +76,23 @@ export const AdminExperience: React.FC = () => {
   const [verifyingAccountKey, setVerifyingAccountKey] = useState<'admin' | 'pos' | 'kds' | null>(null);
   const [verificationCodeInput, setVerificationCodeInput] = useState('');
   const [generatedCode, setGeneratedCode] = useState('123456');
+
+  // Firestore Staff/Terminal User Management States
+  const [editingStaffUser, setEditingStaffUser] = useState<UserProfile | null>(null);
+  const [showAddStaffModal, setShowAddStaffModal] = useState(false);
+  const [newStaffForm, setNewStaffForm] = useState<{
+    name: string;
+    email: string;
+    phone: string;
+    role: 'admin' | 'cashier' | 'kitchen';
+    status: 'active' | 'suspended';
+  }>({
+    name: '',
+    email: '',
+    phone: '',
+    role: 'cashier',
+    status: 'active'
+  });
 
   React.useEffect(() => {
     if (settings) {
@@ -2323,174 +2343,148 @@ export const AdminExperience: React.FC = () => {
               </div>
             </div>
 
-            {/* ACCOUNT CONFIGURATION FOR ADMIN, POS & KDS */}
-            <div className={`${isLight ? 'bg-white border-stone-200 text-stone-900 shadow-sm' : 'bg-[#121212] border-white/10 text-white shadow-lg'} p-5 rounded-2xl border space-y-4`}>
-              <div className={`flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b ${isLight ? 'border-stone-200' : 'border-white/5'} pb-3`}>
-                <div className="flex items-center gap-2 text-[#c5a059]">
-                  <Users className="w-5 h-5" />
+            {/* ACCOUNT CONFIGURATION & LIVE FIREBASE USERS COLLECTION REFLECTION FOR ADMIN, POS & KDS */}
+            <div className={`${isLight ? 'bg-white border-stone-200 text-stone-900 shadow-sm' : 'bg-[#121212] border-white/10 text-white shadow-lg'} p-5 rounded-2xl border space-y-5`}>
+              <div className={`flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b ${isLight ? 'border-stone-200' : 'border-white/5'} pb-4`}>
+                <div className="flex items-center gap-2.5 text-[#c5a059]">
+                  <Users className="w-5 h-5 shrink-0" />
                   <div>
-                    <h3 className={`font-bold ${isLight ? 'text-stone-900' : 'text-white'} text-xs font-serif uppercase tracking-wider`}>Terminal & Staff Account Security & Access</h3>
-                    <p className={`text-[10px] ${isLight ? 'text-stone-500' : 'text-white/40'}`}>Manage Admin, POS Register, and KDS Kitchen login credentials, phone numbers, and Gmail verification.</p>
+                    <h3 className={`font-bold ${isLight ? 'text-stone-900' : 'text-white'} text-sm font-serif uppercase tracking-wider`}>Terminal &amp; Staff Account Security &amp; Access</h3>
+                    <p className={`text-[11px] ${isLight ? 'text-stone-500' : 'text-white/40'}`}>Real-time records from Firebase Firestore <code>users</code> collection filtered by Admin, POS Register (Cashier), and KDS Kitchen roles.</p>
                   </div>
                 </div>
-                {/* Account Role Tabs */}
-                <div className={`flex ${isLight ? 'bg-stone-100 border-stone-300' : 'bg-[#080808] border-white/10'} p-1 rounded-xl border`}>
-                  {(['admin', 'pos', 'kds'] as const).map((roleKey) => {
-                    const label = roleKey === 'admin' ? 'Admin' : roleKey === 'pos' ? 'POS Register' : 'KDS Kitchen';
-                    const isActive = selectedAccountTab === roleKey;
-                    return (
-                      <button
-                        key={roleKey}
-                        type="button"
-                        onClick={() => setSelectedAccountTab(roleKey)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                          isActive ? 'bg-[#c5a059] text-black shadow-md' : isLight ? 'text-stone-600 hover:text-stone-900' : 'text-white/60 hover:text-white'
-                        }`}
-                      >
-                        {label}
-                      </button>
-                    );
-                  })}
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddStaffModal(true)}
+                    className="bg-[#c5a059] hover:bg-[#b08c47] text-black font-extrabold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 shadow-md cursor-pointer transition-colors"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add Staff Account
+                  </button>
+                  <button
+                    type="button"
+                    disabled={settingsSaving}
+                    onClick={async () => {
+                      setSettingsSaving(true);
+                      try {
+                        await syncStaffAccounts(settingsForm.accountsConfig);
+                        setSettingsSuccessMsg("Staff accounts successfully synced to Firebase Users collection!");
+                        setTimeout(() => setSettingsSuccessMsg(null), 4000);
+                      } catch (err: any) {
+                        alert("Failed to sync accounts: " + (err.message || err));
+                      } finally {
+                        setSettingsSaving(false);
+                      }
+                    }}
+                    className={`bg-stone-500/10 hover:bg-stone-500/20 ${isLight ? 'text-stone-700 border-stone-300' : 'text-white/80 border-white/15'} border font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50`}
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${settingsSaving ? 'animate-spin' : ''}`} /> Sync Users
+                  </button>
                 </div>
               </div>
 
-              {/* Account Form for selectedAccountTab */}
-              {(() => {
-                const acc = settingsForm.accountsConfig?.[selectedAccountTab] || {
-                  role: selectedAccountTab,
-                  name: '',
-                  mobile: '',
-                  email: '',
-                  isEmailVerified: true
-                };
+              {/* LIVE FIREBASE USERS COLLECTION STAFF CARDS */}
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-extrabold uppercase text-[#c5a059] tracking-wider flex items-center gap-1">
+                    <ShieldCheck className="w-3.5 h-3.5" /> Accounts in Firebase Users Collection
+                  </span>
+                  <span className={`text-[10px] ${isLight ? 'text-stone-500' : 'text-white/50'} font-mono`}>
+                    Total Staff Records: {usersList.filter(u => u.role === 'admin' || u.role === 'cashier' || u.role === 'kitchen' || (u as any).role === 'pos' || (u as any).role === 'kds').length}
+                  </span>
+                </div>
 
-                return (
-                  <div className="space-y-4 pt-2">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-extrabold uppercase text-[#c5a059] tracking-wider flex items-center gap-1">
-                          <User className="w-3 h-3" /> Account / Staff Name
-                        </label>
-                        <input
-                          type="text"
-                          value={acc.name}
-                          onChange={(e) => {
-                            const updated = {
-                              ...(settingsForm.accountsConfig || {
-                                admin: { role: 'admin', name: '', mobile: '', email: '', isEmailVerified: true },
-                                pos: { role: 'cashier', name: '', mobile: '', email: '', isEmailVerified: true },
-                                kds: { role: 'kitchen', name: '', mobile: '', email: '', isEmailVerified: true }
-                              }),
-                              [selectedAccountTab]: { ...acc, name: e.target.value }
-                            };
-                            setSettingsForm({ ...settingsForm, accountsConfig: updated });
-                          }}
-                          placeholder="Full Name or Terminal Name"
-                          className={`w-full p-2.5 rounded-xl ${isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-[#080808] border-white/15 text-white'} border focus:border-[#c5a059] outline-none`}
-                        />
-                      </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {usersList
+                    .filter(u => u.role === 'admin' || u.role === 'cashier' || u.role === 'kitchen' || (u as any).role === 'pos' || (u as any).role === 'kds')
+                    .map((staffUser) => {
+                      const isAdm = staffUser.role === 'admin';
+                      const isPos = staffUser.role === 'cashier' || (staffUser as any).role === 'pos';
+                      const isKds = staffUser.role === 'kitchen' || (staffUser as any).role === 'kds';
 
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-extrabold uppercase text-[#c5a059] tracking-wider flex items-center gap-1">
-                          <Phone className="w-3 h-3" /> Mobile Number
-                        </label>
-                        <input
-                          type="text"
-                          value={acc.mobile}
-                          onChange={(e) => {
-                            const updated = {
-                              ...(settingsForm.accountsConfig || {
-                                admin: { role: 'admin', name: '', mobile: '', email: '', isEmailVerified: true },
-                                pos: { role: 'cashier', name: '', mobile: '', email: '', isEmailVerified: true },
-                                kds: { role: 'kitchen', name: '', mobile: '', email: '', isEmailVerified: true }
-                              }),
-                              [selectedAccountTab]: { ...acc, mobile: e.target.value }
-                            };
-                            setSettingsForm({ ...settingsForm, accountsConfig: updated });
-                          }}
-                          placeholder="+63 917 000 0000"
-                          className={`w-full p-2.5 rounded-xl ${isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-[#080808] border-white/15 text-white'} border focus:border-[#c5a059] outline-none font-mono`}
-                        />
-                      </div>
+                      const roleBadgeBg = isAdm
+                        ? 'bg-purple-500/10 text-purple-400 border-purple-500/20'
+                        : isPos
+                        ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                        : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
 
-                      <div className="space-y-1.5">
-                        <div className="flex justify-between items-center">
-                          <label className="text-[10px] font-extrabold uppercase text-[#c5a059] tracking-wider flex items-center gap-1">
-                            <Mail className="w-3 h-3" /> Gmail Address
-                          </label>
-                          {acc.isEmailVerified ? (
-                            <span className="text-[9px] font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 px-1.5 py-0.5 rounded flex items-center gap-1">
-                              <Check className="w-2.5 h-2.5" /> Verified Gmail
+                      const roleLabel = isAdm ? 'Admin' : isPos ? 'POS Register' : 'KDS Kitchen';
+
+                      return (
+                        <div
+                          key={staffUser.uid}
+                          className={`${isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#080808] border-white/10'} p-3.5 rounded-xl border flex flex-col justify-between gap-3 space-y-1 relative`}
+                        >
+                          <div className="flex justify-between items-start gap-2">
+                            <div className="flex items-center gap-2.5 overflow-hidden">
+                              <div className={`w-9 h-9 rounded-xl ${isAdm ? 'bg-purple-500/20 text-purple-400' : isPos ? 'bg-blue-500/20 text-blue-400' : 'bg-emerald-500/20 text-emerald-400'} flex items-center justify-center shrink-0`}>
+                                {isAdm ? <Shield className="w-4 h-4" /> : isPos ? <Store className="w-4 h-4" /> : <Coffee className="w-4 h-4" />}
+                              </div>
+                              <div className="truncate">
+                                <h4 className={`font-bold ${isLight ? 'text-stone-900' : 'text-white'} text-xs truncate`}>{staffUser.displayName || staffUser.name || 'Staff User'}</h4>
+                                <p className={`text-[10px] ${isLight ? 'text-stone-500' : 'text-white/40'} truncate font-mono`}>{staffUser.email}</p>
+                              </div>
+                            </div>
+
+                            <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full border uppercase tracking-wider shrink-0 ${roleBadgeBg}`}>
+                              {roleLabel}
                             </span>
-                          ) : (
+                          </div>
+
+                          <div className="text-[10px] space-y-1 pt-1 border-t border-white/5">
+                            <div className="flex justify-between items-center">
+                              <span className={isLight ? 'text-stone-500' : 'text-white/40'}>Mobile Phone:</span>
+                              <span className={`font-mono font-bold ${isLight ? 'text-stone-800' : 'text-white/80'}`}>{staffUser.phoneNumber || staffUser.phone || 'N/A'}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className={isLight ? 'text-stone-500' : 'text-white/40'}>Firestore Document ID:</span>
+                              <span className="font-mono text-[9px] text-[#c5a059] bg-[#c5a059]/10 px-1.5 py-0.2 rounded border border-[#c5a059]/20 truncate max-w-[120px]">{staffUser.uid}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className={isLight ? 'text-stone-500' : 'text-white/40'}>Status:</span>
+                              <span className={`font-bold px-1.5 py-0.2 rounded text-[9px] uppercase ${staffUser.status === 'suspended' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'}`}>
+                                {staffUser.status || 'active'}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 pt-1">
                             <button
                               type="button"
-                              onClick={() => {
-                                setVerifyingAccountKey(selectedAccountTab);
-                                setGeneratedCode(Math.floor(100000 + Math.random() * 900000).toString());
-                                setShowEmailVerificationModal(true);
-                              }}
-                              className="text-[9px] font-bold bg-amber-500/10 text-amber-600 border border-amber-500/20 px-2 py-0.5 rounded hover:bg-amber-500/20 cursor-pointer"
+                              onClick={() => setEditingStaffUser(staffUser)}
+                              className="flex-1 bg-[#c5a059]/10 hover:bg-[#c5a059]/20 text-[#c5a059] border border-[#c5a059]/30 text-[10px] font-bold py-1 px-2 rounded-lg transition-colors cursor-pointer text-center flex items-center justify-center gap-1"
                             >
-                              Verify Gmail Required
+                              <Edit2 className="w-3 h-3" /> Edit Profile
                             </button>
-                          )}
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                const newStatus = staffUser.status === 'suspended' ? 'active' : 'suspended';
+                                try {
+                                  await updateDocument('users', staffUser.uid, { status: newStatus });
+                                  setSettingsSuccessMsg(`Status updated to ${newStatus} for user ${staffUser.uid}`);
+                                  setTimeout(() => setSettingsSuccessMsg(null), 3000);
+                                } catch (e: any) {
+                                  alert("Error updating status: " + e.message);
+                                }
+                              }}
+                              className={`text-[10px] font-bold py-1 px-2 rounded-lg border transition-colors cursor-pointer ${
+                                staffUser.status === 'suspended'
+                                  ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                                  : 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border-rose-500/30'
+                              }`}
+                            >
+                              {staffUser.status === 'suspended' ? 'Activate' : 'Suspend'}
+                            </button>
+                          </div>
                         </div>
-                        <input
-                          type="email"
-                          value={acc.email}
-                          onChange={(e) => {
-                            const updated = {
-                              ...(settingsForm.accountsConfig || {
-                                admin: { role: 'admin', name: '', mobile: '', email: '', isEmailVerified: true },
-                                pos: { role: 'cashier', name: '', mobile: '', email: '', isEmailVerified: true },
-                                kds: { role: 'kitchen', name: '', mobile: '', email: '', isEmailVerified: true }
-                              }),
-                              [selectedAccountTab]: { ...acc, email: e.target.value, isEmailVerified: false }
-                            };
-                            setSettingsForm({ ...settingsForm, accountsConfig: updated });
-                          }}
-                          placeholder="account@gmail.com"
-                          className={`w-full p-2.5 rounded-xl ${isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-[#080808] border-white/15 text-white'} border focus:border-[#c5a059] outline-none`}
-                        />
-                      </div>
-                    </div>
+                      );
+                    })}
+                </div>
+              </div>
 
-                    <div className={`flex flex-col sm:flex-row justify-between items-center gap-3 pt-2 border-t ${isLight ? 'border-stone-200' : 'border-white/5'}`}>
-                      <div className={`text-[11px] ${isLight ? 'text-stone-600' : 'text-white/50'}`}>
-                        Password Security: {acc.password ? 'Custom Password Set' : 'Default Secure Password'}
-                      </div>
-                      <div className="flex gap-2 w-full sm:w-auto">
-                        {!acc.isEmailVerified && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setVerifyingAccountKey(selectedAccountTab);
-                              setGeneratedCode(Math.floor(100000 + Math.random() * 900000).toString());
-                              setShowEmailVerificationModal(true);
-                            }}
-                            className="flex-1 sm:flex-none bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold px-4 py-2 rounded-xl transition-colors cursor-pointer"
-                          >
-                            Verify Gmail Code
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setPasswordTarget(selectedAccountTab);
-                            setNewPasswordVal('');
-                            setConfirmPasswordVal('');
-                            setShowPasswordModal(true);
-                          }}
-                          className={`flex-1 sm:flex-none ${isLight ? 'bg-stone-100 hover:bg-stone-200 text-stone-800 border-stone-300' : 'bg-white/5 hover:bg-white/10 text-white border-white/10'} border text-xs font-bold px-4 py-2 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1.5`}
-                        >
-                          <ShieldCheck className="w-3.5 h-3.5 text-[#c5a059]" /> Change Account Password
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
+
 
               <div className={`flex justify-end pt-3 border-t ${isLight ? 'border-stone-200' : 'border-white/5'}`}>
                 <button
@@ -2500,7 +2494,7 @@ export const AdminExperience: React.FC = () => {
                     setSettingsSaving(true);
                     try {
                       await updateSettings(settingsForm);
-                      setSettingsSuccessMsg("Terminal & staff accounts successfully saved!");
+                      setSettingsSuccessMsg("Terminal & staff accounts saved and reflected in Firebase Users collection!");
                       setTimeout(() => setSettingsSuccessMsg(null), 4000);
                     } catch (err: any) {
                       alert("Failed to save accounts: " + (err.message || err));
@@ -3291,6 +3285,241 @@ export const AdminExperience: React.FC = () => {
             >
               Verify Gmail Address
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT FIRESTORE STAFF USER MODAL */}
+      {editingStaffUser && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className={`${isLight ? 'bg-white border-stone-200 text-stone-900 shadow-2xl' : 'bg-[#121212] border-white/10 text-white shadow-2xl'} w-full max-w-md rounded-2xl border p-5 space-y-4 animate-zoom-in text-xs`}>
+            <div className={`flex justify-between items-center border-b ${isLight ? 'border-stone-200' : 'border-white/10'} pb-3`}>
+              <div className="flex items-center gap-2 text-[#c5a059]">
+                <Edit2 className="w-4 h-4" />
+                <h3 className="font-bold text-sm">Edit Staff Profile in Firestore</h3>
+              </div>
+              <button onClick={() => setEditingStaffUser(null)} className={`p-1 ${isLight ? 'hover:bg-stone-100' : 'hover:bg-white/10'} rounded-full cursor-pointer`}>
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-[10px] font-extrabold uppercase text-[#c5a059]">Full Name / Display Name</label>
+                <input
+                  type="text"
+                  value={editingStaffUser.displayName || editingStaffUser.name || ''}
+                  onChange={(e) => setEditingStaffUser({ ...editingStaffUser, displayName: e.target.value, name: e.target.value })}
+                  className={`w-full p-2.5 rounded-xl ${isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-[#080808] border-white/10 text-white'} border outline-none focus:border-[#c5a059]`}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-extrabold uppercase text-[#c5a059]">Email Address</label>
+                <input
+                  type="email"
+                  value={editingStaffUser.email || ''}
+                  onChange={(e) => setEditingStaffUser({ ...editingStaffUser, email: e.target.value })}
+                  className={`w-full p-2.5 rounded-xl ${isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-[#080808] border-white/10 text-white'} border outline-none focus:border-[#c5a059]`}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-extrabold uppercase text-[#c5a059]">Mobile Phone Number</label>
+                <input
+                  type="text"
+                  value={editingStaffUser.phoneNumber || editingStaffUser.phone || ''}
+                  onChange={(e) => setEditingStaffUser({ ...editingStaffUser, phoneNumber: e.target.value, phone: e.target.value })}
+                  className={`w-full p-2.5 rounded-xl ${isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-[#080808] border-white/10 text-white'} border outline-none focus:border-[#c5a059] font-mono`}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-extrabold uppercase text-[#c5a059]">Assigned Staff Role</label>
+                  <select
+                    value={editingStaffUser.role}
+                    onChange={(e) => setEditingStaffUser({ ...editingStaffUser, role: e.target.value as any })}
+                    className={`w-full p-2.5 rounded-xl ${isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-[#080808] border-white/10 text-white'} border outline-none focus:border-[#c5a059]`}
+                  >
+                    <option value="admin">Admin</option>
+                    <option value="cashier">POS Register (Cashier)</option>
+                    <option value="kitchen">KDS Kitchen</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-extrabold uppercase text-[#c5a059]">Account Status</label>
+                  <select
+                    value={editingStaffUser.status || 'active'}
+                    onChange={(e) => setEditingStaffUser({ ...editingStaffUser, status: e.target.value as any })}
+                    className={`w-full p-2.5 rounded-xl ${isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-[#080808] border-white/10 text-white'} border outline-none focus:border-[#c5a059]`}
+                  >
+                    <option value="active">Active</option>
+                    <option value="suspended">Suspended</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setEditingStaffUser(null)}
+                className={`flex-1 ${isLight ? 'bg-stone-100 text-stone-800' : 'bg-white/10 text-white'} py-2.5 rounded-xl font-bold transition-colors cursor-pointer`}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await updateDocument('users', editingStaffUser.uid, {
+                      displayName: editingStaffUser.displayName || editingStaffUser.name,
+                      name: editingStaffUser.displayName || editingStaffUser.name,
+                      email: editingStaffUser.email,
+                      phoneNumber: editingStaffUser.phoneNumber || editingStaffUser.phone,
+                      phone: editingStaffUser.phoneNumber || editingStaffUser.phone,
+                      role: editingStaffUser.role,
+                      status: editingStaffUser.status || 'active'
+                    });
+                    setEditingStaffUser(null);
+                    setSettingsSuccessMsg("Updated user profile in Firebase Users collection!");
+                    setTimeout(() => setSettingsSuccessMsg(null), 3500);
+                  } catch (err: any) {
+                    alert("Failed to update user profile in Firestore: " + (err.message || err));
+                  }
+                }}
+                className="flex-1 bg-[#c5a059] hover:bg-[#b08c47] text-black py-2.5 rounded-xl font-bold transition-colors cursor-pointer"
+              >
+                Save to Firestore
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ADD NEW FIRESTORE STAFF USER MODAL */}
+      {showAddStaffModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className={`${isLight ? 'bg-white border-stone-200 text-stone-900 shadow-2xl' : 'bg-[#121212] border-white/10 text-white shadow-2xl'} w-full max-w-md rounded-2xl border p-5 space-y-4 animate-zoom-in text-xs`}>
+            <div className={`flex justify-between items-center border-b ${isLight ? 'border-stone-200' : 'border-white/10'} pb-3`}>
+              <div className="flex items-center gap-2 text-[#c5a059]">
+                <Plus className="w-4 h-4" />
+                <h3 className="font-bold text-sm">Add Staff Account to Firestore Users</h3>
+              </div>
+              <button onClick={() => setShowAddStaffModal(false)} className={`p-1 ${isLight ? 'hover:bg-stone-100' : 'hover:bg-white/10'} rounded-full cursor-pointer`}>
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-[10px] font-extrabold uppercase text-[#c5a059]">Full Name / Staff Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Maria Clara"
+                  value={newStaffForm.name}
+                  onChange={(e) => setNewStaffForm({ ...newStaffForm, name: e.target.value })}
+                  className={`w-full p-2.5 rounded-xl ${isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-[#080808] border-white/10 text-white'} border outline-none focus:border-[#c5a059]`}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-extrabold uppercase text-[#c5a059]">Gmail Address</label>
+                <input
+                  type="email"
+                  placeholder="e.g. maria.clara@gmail.com"
+                  value={newStaffForm.email}
+                  onChange={(e) => setNewStaffForm({ ...newStaffForm, email: e.target.value })}
+                  className={`w-full p-2.5 rounded-xl ${isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-[#080808] border-white/10 text-white'} border outline-none focus:border-[#c5a059]`}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-extrabold uppercase text-[#c5a059]">Mobile Phone Number</label>
+                <input
+                  type="text"
+                  placeholder="+63 917 123 4567"
+                  value={newStaffForm.phone}
+                  onChange={(e) => setNewStaffForm({ ...newStaffForm, phone: e.target.value })}
+                  className={`w-full p-2.5 rounded-xl ${isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-[#080808] border-white/10 text-white'} border outline-none focus:border-[#c5a059] font-mono`}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-extrabold uppercase text-[#c5a059]">Assigned Staff Role</label>
+                  <select
+                    value={newStaffForm.role}
+                    onChange={(e) => setNewStaffForm({ ...newStaffForm, role: e.target.value as any })}
+                    className={`w-full p-2.5 rounded-xl ${isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-[#080808] border-white/10 text-white'} border outline-none focus:border-[#c5a059]`}
+                  >
+                    <option value="admin">Admin</option>
+                    <option value="cashier">POS Register (Cashier)</option>
+                    <option value="kitchen">KDS Kitchen</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-extrabold uppercase text-[#c5a059]">Account Status</label>
+                  <select
+                    value={newStaffForm.status}
+                    onChange={(e) => setNewStaffForm({ ...newStaffForm, status: e.target.value as any })}
+                    className={`w-full p-2.5 rounded-xl ${isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-[#080808] border-white/10 text-white'} border outline-none focus:border-[#c5a059]`}
+                  >
+                    <option value="active">Active</option>
+                    <option value="suspended">Suspended</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setShowAddStaffModal(false)}
+                className={`flex-1 ${isLight ? 'bg-stone-100 text-stone-800' : 'bg-white/10 text-white'} py-2.5 rounded-xl font-bold transition-colors cursor-pointer`}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!newStaffForm.name || !newStaffForm.email) {
+                    alert("Please provide a name and email address.");
+                    return;
+                  }
+                  try {
+                    const customUid = `terminal_${newStaffForm.role}_${Date.now().toString().slice(-4)}`;
+                    await updateDocument('users', customUid, {
+                      uid: customUid,
+                      name: newStaffForm.name,
+                      displayName: newStaffForm.name,
+                      email: newStaffForm.email,
+                      phone: newStaffForm.phone,
+                      phoneNumber: newStaffForm.phone,
+                      role: newStaffForm.role,
+                      status: newStaffForm.status || 'active',
+                      isEmailVerified: true,
+                      loyaltyPoints: 0,
+                      lifetimePoints: 0,
+                      lifetimeSpending: 0,
+                      orderCount: 0
+                    });
+                    setShowAddStaffModal(false);
+                    setNewStaffForm({ name: '', email: '', phone: '', role: 'cashier', status: 'active' });
+                    setSettingsSuccessMsg("Created new staff user directly in Firebase Users collection!");
+                    setTimeout(() => setSettingsSuccessMsg(null), 4000);
+                  } catch (err: any) {
+                    alert("Failed to create staff account: " + (err.message || err));
+                  }
+                }}
+                className="flex-1 bg-[#c5a059] hover:bg-[#b08c47] text-black py-2.5 rounded-xl font-bold transition-colors cursor-pointer"
+              >
+                Create Staff Account
+              </button>
+            </div>
           </div>
         </div>
       )}

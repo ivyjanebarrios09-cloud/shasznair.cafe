@@ -125,6 +125,7 @@ interface CoffeeAppContextType {
   adjustInventory: (productId: string, quantityChanged: number, reason: string) => Promise<void>;
   adjustUserPoints: (userId: string, pointsChanged: number, reason: string) => Promise<void>;
   updateUserProfile: (data: Partial<UserProfile>) => Promise<void>;
+  syncStaffAccounts: (overrideConfig?: SystemSettings['accountsConfig']) => Promise<void>;
 
   // Generic Firestore CRUD API
   getDocuments: <T>(collectionName: string) => Promise<T[]>;
@@ -298,6 +299,94 @@ const syncUserProfileToFirestore = async (uid: string, profileData: any, callerT
     await traceSetDoc(rootUserRef, payload, { merge: true }, `${callerTag}:users_root`);
   } catch (e) {
     console.warn(`[syncUserProfile] Error writing to root users/${uid}:`, e);
+  }
+};
+
+// Helper function to sync staff and terminal accounts (admin, POS register cashier, KDS kitchen) to users & staff collections in Firestore
+const syncStaffAccountsToFirestore = async (accountsConfig?: SystemSettings['accountsConfig']) => {
+  const cfg = accountsConfig || DEFAULT_SETTINGS.accountsConfig;
+  if (!cfg) return;
+
+  const staffEntries = [
+    { key: 'admin', role: 'admin' as UserRole, defaultName: 'Master Administrator', defaultEmail: 'admin@shasznaircafe.com', defaultPhone: '+63 917 111 2222' },
+    { key: 'pos', role: 'cashier' as UserRole, defaultName: 'POS Register Terminal 1', defaultEmail: 'pos@shasznaircafe.com', defaultPhone: '+63 917 333 4444' },
+    { key: 'kds', role: 'kitchen' as UserRole, defaultName: 'Kitchen Display Station (KDS)', defaultEmail: 'kds@shasznaircafe.com', defaultPhone: '+63 917 555 6666' }
+  ];
+
+  for (const entry of staffEntries) {
+    const acc: any = cfg[entry.key as keyof typeof cfg] || {};
+    const uid = `terminal_${entry.key}`;
+    const staffId = `staff_${entry.key}`;
+    const email = acc.email || entry.defaultEmail;
+    const name = acc.name || entry.defaultName;
+    const phone = acc.mobile || entry.defaultPhone;
+
+    // 1. Sync User Profile document in `users` collection in Firestore
+    const userDocRef = doc(db, 'users', uid);
+    const userPayload = {
+      uid,
+      email,
+      name,
+      displayName: name,
+      phone,
+      phoneNumber: phone,
+      role: entry.role,
+      status: 'active',
+      isEmailVerified: acc.isEmailVerified ?? true,
+      updatedAt: serverTimestamp(),
+      createdAt: serverTimestamp(),
+      loyaltyPoints: 0,
+      lifetimePoints: 0,
+      lifetimeSpending: 0,
+      orderCount: 0
+    };
+
+    try {
+      await traceSetDoc(userDocRef, userPayload, { merge: true }, `syncStaffAccounts:users:${entry.key}`);
+    } catch (e) {
+      console.warn(`[syncStaffAccounts] Error writing users/${uid}:`, e);
+    }
+
+    // 2. Sync Staff Document in `staff` collection in Firestore
+    const staffDocRef = doc(db, 'staff', staffId);
+    const staffPayload = {
+      staffId,
+      userId: uid,
+      name,
+      email,
+      role: entry.role,
+      status: 'active',
+      shift: 'full_time',
+      createdBy: 'system_admin',
+      updatedAt: serverTimestamp(),
+      createdAt: serverTimestamp()
+    };
+
+    try {
+      await traceSetDoc(staffDocRef, staffPayload, { merge: true }, `syncStaffAccounts:staff:${entry.key}`);
+    } catch (e) {
+      console.warn(`[syncStaffAccounts] Error writing staff/${staffId}:`, e);
+    }
+
+    // 3. Update any auth-created user profile with matching email in `users` collection to have the correct role
+    try {
+      if (email) {
+        const q = query(collection(db, 'users'), where('email', '==', email));
+        const snap = await getDocs(q);
+        snap.forEach(async (docSnap) => {
+          if (docSnap.id !== uid) {
+            await updateDoc(docSnap.ref, {
+              role: entry.role,
+              name: name,
+              phone: phone,
+              updatedAt: serverTimestamp()
+            }).catch(() => {});
+          }
+        });
+      }
+    } catch (e) {
+      // ignore
+    }
   }
 };
 
@@ -574,7 +663,11 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     // 5. Sync Settings Listener
     const unsubSettings = onSnapshot(getShopDoc('settings', 'config'), (snap) => {
       if (snap.exists()) {
-        setSettings(snap.data() as SystemSettings);
+        const data = snap.data() as SystemSettings;
+        setSettings(data);
+        if (data.accountsConfig) {
+          syncStaffAccountsToFirestore(data.accountsConfig);
+        }
       } else {
         setSettings(DEFAULT_SETTINGS);
         if (currentUser.role === 'admin') {
@@ -583,9 +676,11 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             console.error("Auto-seeding default settings failed:", err);
           });
         }
+        syncStaffAccountsToFirestore(DEFAULT_SETTINGS.accountsConfig);
       }
     }, (err) => {
       console.warn("Settings snapshot failed, using defaults:", err);
+      syncStaffAccountsToFirestore(DEFAULT_SETTINGS.accountsConfig);
     });
 
     // 6. Role-Restricted Sync: Orders
@@ -1440,6 +1535,10 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       await traceSetDoc(getShopDoc('settings', 'config'), mergedSettings, { merge: true }, 'updateSettings');
       setSettings(mergedSettings);
 
+      if (mergedSettings.accountsConfig) {
+        await syncStaffAccountsToFirestore(mergedSettings.accountsConfig);
+      }
+
       await writeAuditLog(
         currentUser?.uid || 'admin',
         currentUser?.name || 'Admin',
@@ -1452,6 +1551,10 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       console.error("Failed to update system settings:", e);
       throw e;
     }
+  };
+
+  const syncStaffAccounts = async (overrideConfig?: SystemSettings['accountsConfig']) => {
+    await syncStaffAccountsToFirestore(overrideConfig || settings.accountsConfig);
   };
 
   // 7. Demo Data Loader (Overwrites or populates empty Firestore collections)
@@ -1756,6 +1859,7 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       adjustInventory,
       adjustUserPoints,
       updateUserProfile,
+      syncStaffAccounts,
       getDocuments,
       getDocument,
       addDocument,
