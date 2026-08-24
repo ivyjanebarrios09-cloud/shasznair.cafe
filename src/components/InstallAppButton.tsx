@@ -8,19 +8,37 @@ export const InstallAppButton: React.FC<{ className?: string }> = ({ className =
   const [isStandalone, setIsStandalone] = useState(false);
   const [activeDeviceTab, setActiveDeviceTab] = useState<'ios' | 'android' | 'desktop'>('android');
 
+  const [showAutoBanner, setShowAutoBanner] = useState(false);
+
   useEffect(() => {
     const userAgent = window.navigator.userAgent.toLowerCase();
     const iosDevice = /iphone|ipad|ipod/.test(userAgent);
+    const androidDevice = /android/.test(userAgent);
     setIsIOS(iosDevice);
     if (iosDevice) setActiveDeviceTab('ios');
+    if (androidDevice) setActiveDeviceTab('android');
 
     // Check if app is already running as an installed PWA
     const inStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
     setIsStandalone(inStandalone);
 
+    // Auto-show install prompt / banner on load if not installed
+    const hasDismissed = sessionStorage.getItem('pwa_banner_dismissed');
+    if (!inStandalone && !hasDismissed) {
+      // Auto open popup after short delay for immediate visibility on Android
+      const timer = setTimeout(() => {
+        setShowAutoBanner(true);
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
+      // Automatically prompt or show popup immediately on Android when ready
+      if (!inStandalone && !hasDismissed) {
+        setShowInstallModal(true);
+      }
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -163,14 +181,57 @@ export const InstallAppButton: React.FC<{ className?: string }> = ({ className =
               </div>
             )}
 
-            <div className="pt-2">
+            <div className="pt-2 flex gap-2">
+              <button
+                onClick={handleInstallClick}
+                className="flex-1 bg-[#c5a059] hover:bg-[#b08c47] text-black text-xs font-extrabold py-2.5 px-4 rounded-xl transition-all cursor-pointer shadow-md flex items-center justify-center gap-2"
+              >
+                <Smartphone className="w-4 h-4" />
+                <span>Install App Now</span>
+              </button>
               <button
                 onClick={() => setShowInstallModal(false)}
-                className="w-full bg-[#c5a059] hover:bg-[#b08c47] text-black text-xs font-extrabold py-2.5 px-4 rounded-xl transition-all cursor-pointer shadow-md"
+                className="bg-white/10 hover:bg-white/15 text-white text-xs font-bold py-2.5 px-4 rounded-xl transition-all cursor-pointer"
               >
-                Understood & Close
+                Close
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* IMMEDIATE FLOATING INSTALL POPUP BANNER FOR ANDROID & MOBILE */}
+      {showAutoBanner && !showInstallModal && !isStandalone && (
+        <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:max-w-sm bg-[#18181b] border-2 border-[#c5a059]/60 p-3.5 rounded-2xl shadow-2xl z-[150] flex items-center justify-between gap-3 animate-slide-up">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[#c5a059]/20 border border-[#c5a059]/40 flex items-center justify-center flex-shrink-0 text-[#c5a059]">
+              <Smartphone className="w-5 h-5 animate-pulse" />
+            </div>
+            <div>
+              <p className="text-xs font-extrabold text-white">Install Android / Mobile App</p>
+              <p className="text-[10px] text-white/60">Get instant access & offline mobile ordering</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => {
+                setShowAutoBanner(false);
+                handleInstallClick();
+              }}
+              className="bg-[#c5a059] hover:bg-[#b08c47] text-black font-extrabold text-xs px-3 py-1.5 rounded-xl transition-all cursor-pointer shadow flex items-center gap-1"
+            >
+              <span>Install</span>
+            </button>
+            <button
+              onClick={() => {
+                setShowAutoBanner(false);
+                sessionStorage.setItem('pwa_banner_dismissed', 'true');
+              }}
+              className="text-white/40 hover:text-white p-1 rounded-lg transition-all cursor-pointer"
+              title="Dismiss"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
         </div>
       )}
