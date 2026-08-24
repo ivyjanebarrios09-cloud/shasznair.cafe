@@ -273,7 +273,7 @@ export const CustomerExperience: React.FC = () => {
             )}
           </div>
           <div className="min-w-0 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2.5">
-            <h1 className="text-base sm:text-lg font-black font-serif text-white leading-tight tracking-wider flex items-center gap-1.5 truncate">
+            <h1 className={`text-base sm:text-lg font-black font-serif leading-tight tracking-wider flex items-center gap-1.5 truncate ${isLight ? 'text-stone-900' : 'text-white'}`}>
               <span className="text-[var(--color-primary)]">{settings.branding.shopName}</span>
             </h1>
             <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border w-fit ${
@@ -339,18 +339,24 @@ export const CustomerExperience: React.FC = () => {
             >
               {/* SEARCH PRODUCTS BAR */}
               <div className="relative">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/35 w-4 h-4" />
+                <Search className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 ${isLight ? 'text-stone-400' : 'text-white/35'}`} />
                 <input
                   type="text"
                   placeholder="Search products..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-[#121212] text-white pl-10 pr-4 py-2.5 text-sm rounded-2xl border border-white/10 outline-none focus:border-[#c5a059] focus:ring-2 focus:ring-[#c5a059]/20 shadow-inner transition-all placeholder-white/35"
+                  className={`w-full pl-10 pr-4 py-2.5 text-sm rounded-2xl border outline-none focus:border-[#c5a059] focus:ring-2 focus:ring-[#c5a059]/20 shadow-inner transition-all ${
+                    isLight 
+                      ? 'bg-white text-stone-900 border-stone-300 placeholder-stone-400 shadow-stone-100' 
+                      : 'bg-[#121212] text-white border-white/10 placeholder-white/35'
+                  }`}
                 />
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors"
+                    className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full transition-colors ${
+                      isLight ? 'text-stone-400 hover:text-stone-800 hover:bg-stone-200' : 'text-white/40 hover:text-white hover:bg-white/10'
+                    }`}
                     aria-label="Clear search"
                   >
                     <X className="w-3.5 h-3.5" />
@@ -364,14 +370,16 @@ export const CustomerExperience: React.FC = () => {
                   <motion.button
                     whileTap={{ scale: 0.95 }}
                     onClick={() => setShowBestSellers(!showBestSellers)}
-                    className="inline-flex items-center gap-1.5 text-xs font-bold text-white/80 hover:text-white cursor-pointer py-1 px-2 rounded-lg hover:bg-white/5 transition-colors"
+                    className={`inline-flex items-center gap-1.5 text-xs font-bold cursor-pointer py-1 px-2 rounded-lg transition-colors ${
+                      isLight ? 'text-stone-700 hover:text-stone-900 hover:bg-stone-200/60' : 'text-white/80 hover:text-white hover:bg-white/5'
+                    }`}
                   >
                     <Flame className="w-3.5 h-3.5 text-amber-500 fill-amber-500/20" />
-                    <span className="text-[11px] font-black uppercase tracking-wider text-white/90">BEST SELLER</span>
+                    <span className={`text-[11px] font-black uppercase tracking-wider ${isLight ? 'text-stone-800' : 'text-white/90'}`}>BEST SELLER</span>
                     {showBestSellers ? (
-                      <ChevronUp className="w-3.5 h-3.5 text-white/50" />
+                      <ChevronUp className={`w-3.5 h-3.5 ${isLight ? 'text-stone-500' : 'text-white/50'}`} />
                     ) : (
-                      <ChevronDown className="w-3.5 h-3.5 text-white/50" />
+                      <ChevronDown className={`w-3.5 h-3.5 ${isLight ? 'text-stone-500' : 'text-white/50'}`} />
                     )}
                   </motion.button>
                 </div>
@@ -468,7 +476,9 @@ export const CustomerExperience: React.FC = () => {
                   className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
                     selectedCategory === 'all'
                       ? 'bg-[#c5a059] text-black shadow-[0_0_8px_rgba(197,160,89,0.3)] font-bold'
-                      : 'bg-[#121212] border border-white/10 text-white/70 hover:text-white'
+                      : isLight
+                        ? 'bg-white border border-stone-300 text-stone-700 hover:text-stone-900 shadow-xs'
+                        : 'bg-[#121212] border border-white/10 text-white/70 hover:text-white'
                   }`}
                 >
                   <Layers className="w-3.5 h-3.5" />
@@ -482,7 +492,9 @@ export const CustomerExperience: React.FC = () => {
                     className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
                       selectedCategory === cat.id
                         ? 'bg-[#c5a059] text-black shadow-[0_0_8px_rgba(197,160,89,0.3)] font-bold'
-                        : 'bg-[#121212] border border-white/10 text-white/70 hover:text-white'
+                        : isLight
+                          ? 'bg-white border border-stone-300 text-stone-700 hover:text-stone-900 shadow-xs'
+                          : 'bg-[#121212] border border-white/10 text-white/70 hover:text-white'
                     }`}
                   >
                     <CategoryIcon iconId={cat.icon} categoryName={cat.name} className="w-3.5 h-3.5 shrink-0" />
@@ -496,7 +508,11 @@ export const CustomerExperience: React.FC = () => {
                 <motion.div 
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="bg-gradient-to-br from-[#121212] to-[#080808] text-white rounded-2xl p-4 border border-white/10 shadow-lg relative overflow-hidden"
+                  className={`rounded-2xl p-4 border shadow-lg relative overflow-hidden text-white ${
+                    isLight 
+                      ? 'bg-gradient-to-br from-amber-950 via-stone-900 to-amber-900 border-amber-900/30' 
+                      : 'bg-gradient-to-br from-[#121212] to-[#080808] border-white/10'
+                  }`}
                 >
                   <div className="relative z-10 space-y-1.5 max-w-[65%]">
                     <span className="bg-[#c5a059]/20 text-[#c5a059] border border-[#c5a059]/30 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider inline-flex items-center gap-1">
@@ -516,15 +532,15 @@ export const CustomerExperience: React.FC = () => {
                   <h2 className="text-xs font-bold text-[#c5a059] uppercase tracking-widest">
                     {selectedCategory === 'all' ? 'All Delights' : categories.find(c => c.id === selectedCategory)?.name}
                   </h2>
-                  <span className="text-[10px] text-white/40 font-mono font-medium">
+                  <span className={`text-[10px] font-mono font-medium ${isLight ? 'text-stone-600' : 'text-white/40'}`}>
                     {filteredProducts.length} {filteredProducts.length === 1 ? 'item' : 'items'}
                   </span>
                 </div>
 
                 {filteredProducts.length === 0 ? (
-                  <div className="bg-[#121212] rounded-2xl p-8 border border-white/10 text-center text-white/50 space-y-2">
-                    <p className="text-sm font-medium">No results found matching your selection.</p>
-                    <p className="text-xs text-white/30">Try adjusting your search filters.</p>
+                  <div className={`rounded-2xl p-8 border text-center space-y-2 ${isLight ? 'bg-white border-stone-200 text-stone-700 shadow-sm' : 'bg-[#121212] border-white/10 text-white/50'}`}>
+                    <p className={`text-sm font-bold ${isLight ? 'text-stone-900' : 'text-white'}`}>No results found matching your selection.</p>
+                    <p className={`text-xs ${isLight ? 'text-stone-500' : 'text-white/30'}`}>Try adjusting your search filters.</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-2.5 sm:gap-3.5">
@@ -539,12 +555,16 @@ export const CustomerExperience: React.FC = () => {
                           whileHover={{ y: -2 }}
                           whileTap={{ scale: 0.98 }}
                           onClick={() => !isOutOfStock && handleOpenCustomize(prod)}
-                          className={`bg-[#121212] rounded-2xl border border-white/10 shadow-md hover:border-[#c5a059]/40 transition-all flex flex-col justify-between overflow-hidden relative group select-none cursor-pointer ${
+                          className={`rounded-2xl border transition-all flex flex-col justify-between overflow-hidden relative group select-none cursor-pointer ${
+                            isLight 
+                              ? 'bg-white border-stone-200/90 shadow-sm hover:shadow-md hover:border-[#c5a059]' 
+                              : 'bg-[#121212] border-white/10 shadow-md hover:border-[#c5a059]/40'
+                          } ${
                             isOutOfStock ? 'opacity-70 cursor-not-allowed border-rose-500/30' : ''
                           }`}
                         >
                           {/* Square Thumbnail */}
-                          <div className="w-full aspect-square relative bg-[#080808] overflow-hidden border-b border-white/5">
+                          <div className={`w-full aspect-square relative overflow-hidden border-b ${isLight ? 'bg-stone-100 border-stone-200' : 'bg-[#080808] border-white/5'}`}>
                             <img
                               src={prod.image || 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&q=80&w=300'}
                               alt={prod.name}
@@ -576,17 +596,17 @@ export const CustomerExperience: React.FC = () => {
                           {/* Product Details & Actions */}
                           <div className="p-2.5 flex-1 flex flex-col justify-between space-y-2">
                             <div className="space-y-0.5">
-                              <h3 className="font-bold text-xs text-white truncate leading-tight" title={prod.name}>
+                              <h3 className={`font-bold text-xs truncate leading-tight ${isLight ? 'text-stone-900' : 'text-white'}`} title={prod.name}>
                                 {prod.name}
                               </h3>
                               {prod.description && (
-                                <p className="text-[10px] text-white/50 line-clamp-1 leading-snug">
+                                <p className={`text-[10px] line-clamp-1 leading-snug ${isLight ? 'text-stone-600' : 'text-white/50'}`}>
                                   {prod.description}
                                 </p>
                               )}
                             </div>
 
-                            <div className="flex items-center justify-between pt-1 border-t border-white/5">
+                            <div className={`flex items-center justify-between pt-1 border-t ${isLight ? 'border-stone-200' : 'border-white/5'}`}>
                               <span className="text-xs sm:text-sm font-extrabold text-[#c5a059]">
                                 ₱{prod.price}
                               </span>
@@ -600,7 +620,7 @@ export const CustomerExperience: React.FC = () => {
                                 }}
                                 className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition-all flex items-center gap-1 shadow-sm cursor-pointer active:scale-95 ${
                                   isOutOfStock 
-                                    ? 'bg-white/5 text-white/30 cursor-not-allowed'
+                                    ? isLight ? 'bg-stone-200 text-stone-400 cursor-not-allowed' : 'bg-white/5 text-white/30 cursor-not-allowed'
                                     : 'bg-[#c5a059] text-black hover:bg-[#b08c47]'
                                 }`}
                               >
@@ -627,16 +647,16 @@ export const CustomerExperience: React.FC = () => {
               transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
               className="space-y-4 pb-8"
             >
-              <h2 className="text-base font-bold text-white font-serif tracking-wide">Order History & Tracking</h2>
+              <h2 className={`text-base font-bold font-serif tracking-wide ${isLight ? 'text-stone-900' : 'text-white'}`}>Order History & Tracking</h2>
 
               {customerOrders.length === 0 ? (
-                <div className="bg-[#121212] rounded-2xl p-8 border border-white/10 text-center text-white/50 space-y-3 shadow-md">
+                <div className={`rounded-2xl p-8 border text-center space-y-3 shadow-md ${isLight ? 'bg-white border-stone-200 text-stone-600' : 'bg-[#121212] border-white/10 text-white/50'}`}>
                   <div className="w-12 h-12 bg-[#c5a059]/10 text-[#c5a059] rounded-2xl flex items-center justify-center mx-auto border border-[#c5a059]/20 shadow-inner">
                     <ReceiptText className="w-6 h-6" />
                   </div>
                   <div className="space-y-1">
-                    <p className="text-sm font-bold text-white">No orders placed yet</p>
-                    <p className="text-xs text-white/40">Head over to the menu to order your first brew!</p>
+                    <p className={`text-sm font-bold ${isLight ? 'text-stone-900' : 'text-white'}`}>No orders placed yet</p>
+                    <p className={`text-xs ${isLight ? 'text-stone-500' : 'text-white/40'}`}>Head over to the menu to order your first brew!</p>
                   </div>
                   <motion.button
                     whileTap={{ scale: 0.95 }}
@@ -656,14 +676,16 @@ export const CustomerExperience: React.FC = () => {
                         key={ord.id}
                         initial={{ opacity: 0, y: 6 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className={`bg-[#121212] rounded-xl p-4 border shadow-md space-y-3 ${
-                          isActive ? 'border-[#c5a059]/40 ring-1 ring-[#c5a059]/10' : 'border-white/10'
+                        className={`rounded-xl p-4 border shadow-md space-y-3 ${
+                          isLight ? 'bg-white' : 'bg-[#121212]'
+                        } ${
+                          isActive ? 'border-[#c5a059]/60 ring-1 ring-[#c5a059]/20' : isLight ? 'border-stone-200' : 'border-white/10'
                         }`}
                       >
-                        <div className="flex justify-between items-start text-xs pb-2 border-b border-white/5">
+                        <div className={`flex justify-between items-start text-xs pb-2 border-b ${isLight ? 'border-stone-100' : 'border-white/5'}`}>
                           <div>
                             <div className="flex items-center gap-1.5">
-                              <p className="font-mono text-white/50">{ord.orderNumber}</p>
+                              <p className={`font-mono font-semibold ${isLight ? 'text-stone-700' : 'text-white/50'}`}>{ord.orderNumber}</p>
                               <span className={`inline-flex items-center gap-0.5 text-[8px] font-bold px-1.5 py-0.5 rounded ${
                                 ord.orderSource === 'pos' ? 'bg-blue-950/70 text-blue-300 border border-blue-800/40' : 'bg-purple-950/70 text-purple-300 border border-purple-800/40'
                               }`}>
@@ -671,7 +693,7 @@ export const CustomerExperience: React.FC = () => {
                                 {ord.orderSource === 'pos' ? 'POS Counter' : 'Online App'}
                               </span>
                             </div>
-                            <p className="text-white/30 mt-0.5 text-[10px]">
+                            <p className={`${isLight ? 'text-stone-500' : 'text-white/30'} mt-0.5 text-[10px]`}>
                               {ord.createdAt instanceof Date ? ord.createdAt.toLocaleString() : 'Just now'}
                             </p>
                           </div>
@@ -680,25 +702,25 @@ export const CustomerExperience: React.FC = () => {
                             ord.orderStatus === 'cancelled' ? 'bg-rose-950 text-rose-300 border border-rose-900/30' :
                             ord.orderStatus === 'ready' ? 'bg-indigo-950 text-indigo-300 border border-indigo-900/30 animate-pulse' :
                             ord.orderStatus === 'preparing' ? 'bg-amber-950 text-amber-300 border border-amber-900/30' :
-                            'bg-white/5 text-white/70 border border-white/10'
+                            isLight ? 'bg-stone-100 text-stone-800 border border-stone-300' : 'bg-white/5 text-white/70 border border-white/10'
                           }`}>
                             {ord.orderStatus}
                           </span>
                         </div>
 
                         {/* Item summaries */}
-                        <div className="text-xs text-white/80 space-y-2 max-h-32 overflow-y-auto pr-2">
+                        <div className={`text-xs space-y-2 max-h-32 overflow-y-auto pr-2 ${isLight ? 'text-stone-800' : 'text-white/80'}`}>
                           {ord.items.map((it, idx) => (
                             <div key={idx} className="flex flex-col">
                               <div className="flex justify-between">
-                                <span className="font-medium text-white/90">{it.quantity}x {it.name} <span className="text-white/40">({it.selectedSize})</span></span>
-                                <span className="text-[#c5a059]">₱{it.price * it.quantity}</span>
+                                <span className={`font-medium ${isLight ? 'text-stone-900' : 'text-white/90'}`}>{it.quantity}x {it.name} <span className={isLight ? 'text-stone-500' : 'text-white/40'}>({it.selectedSize})</span></span>
+                                <span className="text-[#c5a059] font-bold">₱{it.price * it.quantity}</span>
                               </div>
                               {it.selectedAddOns && it.selectedAddOns.length > 0 && (
-                                <span className="text-[10px] text-white/40 pl-4 mt-0.5">+ {it.selectedAddOns.join(', ')}</span>
+                                <span className={`text-[10px] pl-4 mt-0.5 ${isLight ? 'text-stone-600' : 'text-white/40'}`}>+ {it.selectedAddOns.join(', ')}</span>
                               )}
                               {it.notes && (
-                                <span className="text-[10px] text-white/30 pl-4 italic mt-0.5">"{it.notes}"</span>
+                                <span className={`text-[10px] pl-4 italic mt-0.5 ${isLight ? 'text-stone-500' : 'text-white/30'}`}>"{it.notes}"</span>
                               )}
                             </div>
                           ))}
@@ -706,13 +728,13 @@ export const CustomerExperience: React.FC = () => {
 
                         {/* Status Tracker step indicators if order is active */}
                         {isActive && (
-                          <div className="bg-[#080808] rounded-lg p-2.5 space-y-2 border border-white/5">
-                            <p className="text-[10px] font-bold uppercase text-[#c5a059] flex items-center gap-1">
-                              <Clock className="w-3 h-3 animate-spin" /> Live Order Status Progress
+                          <div className={`rounded-lg p-2.5 space-y-2 border ${isLight ? 'bg-amber-50/70 border-amber-200' : 'bg-[#080808] border-white/5'}`}>
+                            <p className="text-[10px] font-bold uppercase text-amber-800 flex items-center gap-1">
+                              <Clock className="w-3 h-3 animate-spin text-amber-700" /> Live Order Status Progress
                             </p>
                             <div className="grid grid-cols-4 gap-1 relative pt-2">
                               {/* Lines connecting steps */}
-                              <div className="absolute top-4 left-[12%] right-[12%] h-0.5 bg-white/10 z-0">
+                              <div className={`absolute top-4 left-[12%] right-[12%] h-0.5 z-0 ${isLight ? 'bg-stone-300' : 'bg-white/10'}`}>
                                 <div 
                                   className="h-full bg-[#c5a059] transition-all duration-500 shadow-[0_0_8px_rgba(197,160,89,0.5)]" 
                                   style={{
@@ -739,12 +761,12 @@ export const CustomerExperience: React.FC = () => {
                                     <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold transition-colors ${
                                       isPastOrCurrent 
                                         ? 'bg-[#c5a059] text-black shadow' 
-                                        : 'bg-white/10 text-white/40'
+                                        : isLight ? 'bg-stone-200 text-stone-500' : 'bg-white/10 text-white/40'
                                     }`}>
                                       {isPastOrCurrent ? '✓' : idx + 1}
                                     </div>
                                     <span className={`text-[9px] mt-1 font-semibold ${
-                                      isPastOrCurrent ? 'text-[#c5a059]' : 'text-white/30'
+                                      isPastOrCurrent ? 'text-amber-800 font-bold' : isLight ? 'text-stone-500' : 'text-white/30'
                                     }`}>{step}</span>
                                   </div>
                                 );
@@ -755,13 +777,17 @@ export const CustomerExperience: React.FC = () => {
 
                         <div className="flex justify-between items-center text-xs pt-1">
                           <div>
-                            <p className="text-white/40 text-[10px]">Total Charged</p>
+                            <p className={`${isLight ? 'text-stone-500' : 'text-white/40'} text-[10px]`}>Total Charged</p>
                             <p className="text-sm font-extrabold text-[#c5a059]">₱{ord.total}</p>
                           </div>
                           <motion.button
                             whileTap={{ scale: 0.94 }}
                             onClick={() => setSelectedOrderDetails(ord)}
-                            className="border border-white/10 hover:border-[#c5a059] text-white/80 hover:text-white px-3 py-1 rounded text-xs font-semibold flex items-center gap-1 cursor-pointer bg-white/5 transition-all"
+                            className={`px-3 py-1 rounded text-xs font-semibold flex items-center gap-1 cursor-pointer border transition-all ${
+                              isLight 
+                                ? 'bg-stone-100 hover:bg-stone-200 border-stone-300 text-stone-800' 
+                                : 'bg-white/5 hover:border-[#c5a059] border-white/10 text-white/80 hover:text-white'
+                            }`}
                           >
                             <Eye className="w-3.5 h-3.5" /> Details
                           </motion.button>
@@ -784,7 +810,7 @@ export const CustomerExperience: React.FC = () => {
               className="space-y-4 pb-12"
             >
               <div className="flex items-center justify-between">
-                <h2 className="text-base font-bold text-white font-serif tracking-wide">Customer Account Profile</h2>
+                <h2 className={`text-base font-bold font-serif tracking-wide ${isLight ? 'text-stone-900' : 'text-white'}`}>Customer Account Profile</h2>
                 <button
                   onClick={handleOpenEditProfile}
                   className="px-3 py-1.5 rounded-xl bg-[#c5a059]/15 border border-[#c5a059]/30 text-[#c5a059] hover:bg-[#c5a059]/25 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 shadow-xs"
@@ -795,11 +821,11 @@ export const CustomerExperience: React.FC = () => {
               </div>
 
               {/* PROFILE CARD */}
-              <div className="bg-[#121212] rounded-2xl p-5 border border-white/10 shadow-lg space-y-4 text-center">
+              <div className={`rounded-2xl p-5 border shadow-lg space-y-4 text-center ${isLight ? 'bg-white border-stone-200' : 'bg-[#121212] border-white/10'}`}>
                 {/* AVATAR & HEADER */}
                 <div className="flex flex-col items-center gap-2">
                   <div className="relative group">
-                    <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-[#c5a059]/50 shadow-md bg-[#080808] flex items-center justify-center">
+                    <div className={`w-20 h-20 rounded-full overflow-hidden border-2 border-[#c5a059]/50 shadow-md flex items-center justify-center ${isLight ? 'bg-stone-100' : 'bg-[#080808]'}`}>
                       {currentUser?.avatar || currentUser?.photoURL ? (
                         <img 
                           src={currentUser.avatar || currentUser.photoURL} 
@@ -808,14 +834,14 @@ export const CustomerExperience: React.FC = () => {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <div className="w-full h-full bg-[#1c1c1c] text-[#c5a059] flex items-center justify-center font-serif text-2xl font-black">
+                        <div className={`w-full h-full flex items-center justify-center font-serif text-2xl font-black ${isLight ? 'bg-stone-100 text-[#c5a059]' : 'bg-[#1c1c1c] text-[#c5a059]'}`}>
                           {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : <User className="w-8 h-8 opacity-60" />}
                         </div>
                       )}
                     </div>
                     <button
                       onClick={handleOpenEditProfile}
-                      className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-[#c5a059] text-black border-2 border-[#121212] flex items-center justify-center shadow hover:bg-[#b08c47] transition-all cursor-pointer"
+                      className={`absolute bottom-0 right-0 w-7 h-7 rounded-full bg-[#c5a059] text-black border-2 flex items-center justify-center shadow hover:bg-[#b08c47] transition-all cursor-pointer ${isLight ? 'border-white' : 'border-[#121212]'}`}
                       title="Change Profile Photo"
                       aria-label="Change Profile Photo"
                     >
@@ -824,7 +850,7 @@ export const CustomerExperience: React.FC = () => {
                   </div>
 
                   <div className="space-y-0.5">
-                    <h3 className="text-base font-bold text-white tracking-wide leading-tight">
+                    <h3 className={`text-base font-bold tracking-wide leading-tight ${isLight ? 'text-stone-900' : 'text-white'}`}>
                       {currentUser?.name || currentUser?.displayName || "Guest Customer"}
                     </h3>
                     <p className="text-xs text-[#c5a059] font-medium">{currentUser?.email}</p>
@@ -832,14 +858,14 @@ export const CustomerExperience: React.FC = () => {
                 </div>
 
                 {/* COMPACT DIGITAL LOYALTY PASS (QR CODE) */}
-                <div className="bg-[#080808] p-3.5 rounded-xl border border-white/5 space-y-2 flex flex-col items-center">
-                  <div className="flex items-center gap-1.5 text-[9.5px] font-bold uppercase text-[#c5a059] tracking-widest">
+                <div className={`p-3.5 rounded-xl border space-y-2 flex flex-col items-center ${isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#080808] border-white/5'}`}>
+                  <div className="flex items-center gap-1.5 text-[9.5px] font-bold uppercase text-amber-800 tracking-widest">
                     <ShieldCheck className="w-3.5 h-3.5" />
                     <span>Digital Loyalty Pass</span>
                   </div>
                   
                   {/* COMPACT QR IMAGE */}
-                  <div className="w-28 h-28 sm:w-32 sm:h-32 bg-white p-2 rounded-xl flex items-center justify-center shadow-md relative border border-white/20">
+                  <div className="w-28 h-28 sm:w-32 sm:h-32 bg-white p-2 rounded-xl flex items-center justify-center shadow-md relative border border-stone-200">
                     <img
                       src={getQRCodeUrl(currentUser?.uid || 'guest_unregistered')}
                       alt="Customer QR Identifier"
@@ -849,46 +875,46 @@ export const CustomerExperience: React.FC = () => {
                   </div>
 
                   <div className="text-center space-y-0.5">
-                    <p className="text-[9.5px] font-mono text-white/40">ID: {currentUser?.uid.slice(0, 12)}...</p>
-                    <p className="text-[10px] text-white/60 max-w-[90%] leading-tight mx-auto">
+                    <p className={`text-[9.5px] font-mono ${isLight ? 'text-stone-500' : 'text-white/40'}`}>ID: {currentUser?.uid.slice(0, 12)}...</p>
+                    <p className={`text-[10px] max-w-[90%] leading-tight mx-auto ${isLight ? 'text-stone-600' : 'text-white/60'}`}>
                       Scan at checkout to earn points and claim rewards.
                     </p>
                   </div>
                 </div>
 
                 {/* STATS ROW */}
-                <div className="grid grid-cols-3 gap-2 text-center border-t border-b border-white/5 py-3">
+                <div className={`grid grid-cols-3 gap-2 text-center border-t border-b py-3 ${isLight ? 'border-stone-200' : 'border-white/5'}`}>
                   <div className="space-y-0.5">
-                    <span className="text-[10px] text-white/40 font-semibold block">Total Visited</span>
+                    <span className={`text-[10px] font-semibold block ${isLight ? 'text-stone-500' : 'text-white/40'}`}>Total Visited</span>
                     <strong className="text-xs sm:text-sm font-extrabold text-[#c5a059]">{currentUser?.orderCount || 0} Orders</strong>
                   </div>
-                  <div className="space-y-0.5 border-l border-r border-white/5">
-                    <span className="text-[10px] text-white/40 font-semibold block">Total Spent</span>
+                  <div className={`space-y-0.5 border-l border-r ${isLight ? 'border-stone-200' : 'border-white/5'}`}>
+                    <span className={`text-[10px] font-semibold block ${isLight ? 'text-stone-500' : 'text-white/40'}`}>Total Spent</span>
                     <strong className="text-xs sm:text-sm font-extrabold text-[#c5a059]">₱{currentUser?.lifetimeSpending || 0}</strong>
                   </div>
                   <div className="space-y-0.5">
-                    <span className="text-[10px] text-white/40 font-semibold block">Points Balance</span>
+                    <span className={`text-[10px] font-semibold block ${isLight ? 'text-stone-500' : 'text-white/40'}`}>Points Balance</span>
                     <strong className="text-xs sm:text-sm font-extrabold text-[#c5a059]">{currentUser?.loyaltyPoints || 0} pts</strong>
                   </div>
                 </div>
 
                 {/* PERSONAL INFO DETAILS */}
                 <div className="text-left space-y-2 text-xs">
-                  <div className="flex justify-between border-b border-white/5 pb-1.5">
-                    <span className="text-white/40">Full Name</span>
-                    <span className="font-bold text-white/90">{currentUser?.name || currentUser?.displayName || 'Not Specified'}</span>
+                  <div className={`flex justify-between border-b pb-1.5 ${isLight ? 'border-stone-200' : 'border-white/5'}`}>
+                    <span className={isLight ? 'text-stone-500' : 'text-white/40'}>Full Name</span>
+                    <span className={`font-bold ${isLight ? 'text-stone-900' : 'text-white/90'}`}>{currentUser?.name || currentUser?.displayName || 'Not Specified'}</span>
                   </div>
-                  <div className="flex justify-between border-b border-white/5 pb-1.5">
-                    <span className="text-white/40">Email Address</span>
-                    <span className="font-bold text-white/90">{currentUser?.email}</span>
+                  <div className={`flex justify-between border-b pb-1.5 ${isLight ? 'border-stone-200' : 'border-white/5'}`}>
+                    <span className={isLight ? 'text-stone-500' : 'text-white/40'}>Email Address</span>
+                    <span className={`font-bold ${isLight ? 'text-stone-900' : 'text-white/90'}`}>{currentUser?.email}</span>
                   </div>
-                  <div className="flex justify-between border-b border-white/5 pb-1.5">
-                    <span className="text-white/40">Mobile Phone</span>
-                    <span className="font-bold text-white/90">{currentUser?.phone || currentUser?.phoneNumber || 'Not Specified'}</span>
+                  <div className={`flex justify-between border-b pb-1.5 ${isLight ? 'border-stone-200' : 'border-white/5'}`}>
+                    <span className={isLight ? 'text-stone-500' : 'text-white/40'}>Mobile Phone</span>
+                    <span className={`font-bold ${isLight ? 'text-stone-900' : 'text-white/90'}`}>{currentUser?.phone || currentUser?.phoneNumber || 'Not Specified'}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-white/40">Member Since</span>
-                    <span className="font-bold text-white/90">
+                    <span className={isLight ? 'text-stone-500' : 'text-white/40'}>Member Since</span>
+                    <span className={`font-bold ${isLight ? 'text-stone-900' : 'text-white/90'}`}>
                       {currentUser?.createdAt 
                         ? (currentUser.createdAt instanceof Date 
                             ? currentUser.createdAt.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
@@ -901,7 +927,9 @@ export const CustomerExperience: React.FC = () => {
                 {/* Quick Edit Profile Action */}
                 <button
                   onClick={handleOpenEditProfile}
-                  className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white/90 font-bold py-2 px-4 rounded-xl text-xs transition-all flex items-center justify-center gap-2 cursor-pointer mt-2"
+                  className={`w-full font-bold py-2 px-4 rounded-xl text-xs transition-all flex items-center justify-center gap-2 cursor-pointer mt-2 border ${
+                    isLight ? 'bg-stone-100 hover:bg-stone-200 border-stone-300 text-stone-800' : 'bg-white/5 hover:bg-white/10 border-white/10 text-white/90'
+                  }`}
                 >
                   <Edit2 className="w-3.5 h-3.5 text-[#c5a059]" />
                   <span>Update Name, Phone & Photo</span>
@@ -912,7 +940,9 @@ export const CustomerExperience: React.FC = () => {
                   whileTap={{ scale: 0.96 }}
                   onClick={() => logout()}
                   id="customer-logout-btn"
-                  className="w-full bg-rose-950/20 hover:bg-rose-950/40 border border-rose-500/20 hover:border-rose-500/30 text-rose-300 font-bold py-2.5 px-4 rounded-xl text-xs transition-all flex items-center justify-center gap-2 cursor-pointer mt-2"
+                  className={`w-full font-bold py-2.5 px-4 rounded-xl text-xs transition-all flex items-center justify-center gap-2 cursor-pointer mt-2 ${
+                    isLight ? 'bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700' : 'bg-rose-950/20 hover:bg-rose-950/40 border border-rose-500/20 hover:border-rose-500/30 text-rose-300'
+                  }`}
                 >
                   Sign Out of Account
                 </motion.button>
@@ -934,22 +964,26 @@ export const CustomerExperience: React.FC = () => {
                       initial={{ scale: 0.95, opacity: 0, y: 15 }}
                       animate={{ scale: 1, opacity: 1, y: 0 }}
                       exit={{ scale: 0.95, opacity: 0, y: 15 }}
-                      className="relative z-10 bg-[#141414] border border-white/15 w-full max-w-sm rounded-2xl shadow-2xl p-5 space-y-4 overflow-hidden text-left"
+                      className={`relative z-10 border w-full max-w-sm rounded-2xl shadow-2xl p-5 space-y-4 overflow-hidden text-left ${
+                        isLight ? 'bg-white border-stone-200' : 'bg-[#141414] border-white/15'
+                      }`}
                     >
-                      <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                      <div className={`flex items-center justify-between border-b pb-3 ${isLight ? 'border-stone-200' : 'border-white/10'}`}>
                         <div className="flex items-center gap-2">
                           <div className="w-8 h-8 rounded-xl bg-[#c5a059]/20 text-[#c5a059] flex items-center justify-center border border-[#c5a059]/30">
                             <UserCheck className="w-4 h-4" />
                           </div>
                           <div>
-                            <h3 className="font-bold text-sm text-white">Edit Profile Details</h3>
-                            <p className="text-[10px] text-white/40">Update your account information</p>
+                            <h3 className={`font-bold text-sm ${isLight ? 'text-stone-900' : 'text-white'}`}>Edit Profile Details</h3>
+                            <p className={`text-[10px] ${isLight ? 'text-stone-500' : 'text-white/40'}`}>Update your account information</p>
                           </div>
                         </div>
                         <button
                           onClick={() => setIsEditingProfile(false)}
                           disabled={isSavingProfile}
-                          className="text-white/40 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
+                          className={`p-1 rounded-lg transition-colors ${
+                            isLight ? 'text-stone-400 hover:text-stone-700 hover:bg-stone-100' : 'text-white/40 hover:text-white hover:bg-white/10'
+                          }`}
                         >
                           <X className="w-4 h-4" />
                         </button>
@@ -972,11 +1006,13 @@ export const CustomerExperience: React.FC = () => {
                       <form onSubmit={handleSaveProfile} className="space-y-3.5">
                         {/* PROFILE PHOTO EDIT / UPLOAD */}
                         <div className="space-y-1.5">
-                          <label className="text-[10px] font-extrabold uppercase tracking-wider text-white/60 block">
+                          <label className={`text-[10px] font-extrabold uppercase tracking-wider block ${isLight ? 'text-stone-600' : 'text-white/60'}`}>
                             Profile Photo
                           </label>
                           <div className="flex items-center gap-3">
-                            <div className="w-14 h-14 rounded-full overflow-hidden border border-white/20 bg-[#080808] flex items-center justify-center shrink-0">
+                            <div className={`w-14 h-14 rounded-full overflow-hidden border flex items-center justify-center shrink-0 ${
+                              isLight ? 'border-stone-300 bg-stone-100' : 'border-white/20 bg-[#080808]'
+                            }`}>
                               {editAvatar ? (
                                 <img 
                                   src={editAvatar} 
@@ -985,12 +1021,14 @@ export const CustomerExperience: React.FC = () => {
                                   className="w-full h-full object-cover" 
                                 />
                               ) : (
-                                <User className="w-6 h-6 text-white/30" />
+                                <User className={`w-6 h-6 ${isLight ? 'text-stone-400' : 'text-white/30'}`} />
                               )}
                             </div>
 
                             <div className="flex-1 space-y-1.5">
-                              <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold border border-white/10 cursor-pointer transition-all active:scale-95">
+                              <label className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border cursor-pointer transition-all active:scale-95 ${
+                                isLight ? 'bg-stone-100 hover:bg-stone-200 text-stone-800 border-stone-300' : 'bg-white/10 hover:bg-white/15 text-white border-white/10'
+                              }`}>
                                 <Upload className="w-3.5 h-3.5 text-[#c5a059]" />
                                 <span>Upload Photo</span>
                                 <input
@@ -1004,7 +1042,7 @@ export const CustomerExperience: React.FC = () => {
                                 <button
                                   type="button"
                                   onClick={() => setEditAvatar('')}
-                                  className="text-[10px] text-rose-400 hover:text-rose-300 block font-medium"
+                                  className="text-[10px] text-rose-500 hover:text-rose-600 block font-semibold"
                                 >
                                   Remove photo
                                 </button>
@@ -1019,14 +1057,16 @@ export const CustomerExperience: React.FC = () => {
                               value={editAvatar}
                               onChange={(e) => setEditAvatar(e.target.value)}
                               placeholder="Or paste image URL (e.g. https://...)"
-                              className="w-full bg-[#0a0a0a] border border-white/10 text-white text-xs px-3 py-1.5 rounded-xl placeholder-white/30 focus:outline-none focus:border-[#c5a059]/60"
+                              className={`w-full border text-xs px-3 py-1.5 rounded-xl focus:outline-none focus:border-[#c5a059]/60 ${
+                                isLight ? 'bg-stone-50 border-stone-300 text-stone-900 placeholder-stone-400' : 'bg-[#0a0a0a] border-white/10 text-white placeholder-white/30'
+                              }`}
                             />
                           </div>
                         </div>
 
                         {/* NAME INPUT */}
                         <div className="space-y-1">
-                          <label className="text-[10px] font-extrabold uppercase tracking-wider text-white/60 block">
+                          <label className={`text-[10px] font-extrabold uppercase tracking-wider block ${isLight ? 'text-stone-600' : 'text-white/60'}`}>
                             Full Name
                           </label>
                           <input
@@ -1035,13 +1075,15 @@ export const CustomerExperience: React.FC = () => {
                             value={editName}
                             onChange={(e) => setEditName(e.target.value)}
                             placeholder="e.g. Maria Santos"
-                            className="w-full bg-[#0a0a0a] border border-white/10 text-white text-xs px-3 py-2 rounded-xl placeholder-white/30 focus:outline-none focus:border-[#c5a059]/60 font-medium"
+                            className={`w-full border text-xs px-3 py-2 rounded-xl focus:outline-none focus:border-[#c5a059]/60 font-medium ${
+                              isLight ? 'bg-stone-50 border-stone-300 text-stone-900 placeholder-stone-400' : 'bg-[#0a0a0a] border-white/10 text-white placeholder-white/30'
+                            }`}
                           />
                         </div>
 
                         {/* PHONE NUMBER INPUT */}
                         <div className="space-y-1">
-                          <label className="text-[10px] font-extrabold uppercase tracking-wider text-white/60 block">
+                          <label className={`text-[10px] font-extrabold uppercase tracking-wider block ${isLight ? 'text-stone-600' : 'text-white/60'}`}>
                             Mobile Phone Number
                           </label>
                           <input
@@ -1049,17 +1091,21 @@ export const CustomerExperience: React.FC = () => {
                             value={editPhone}
                             onChange={(e) => setEditPhone(e.target.value)}
                             placeholder="e.g. +63 912 345 6789"
-                            className="w-full bg-[#0a0a0a] border border-white/10 text-white text-xs px-3 py-2 rounded-xl placeholder-white/30 focus:outline-none focus:border-[#c5a059]/60 font-medium"
+                            className={`w-full border text-xs px-3 py-2 rounded-xl focus:outline-none focus:border-[#c5a059]/60 font-medium ${
+                              isLight ? 'bg-stone-50 border-stone-300 text-stone-900 placeholder-stone-400' : 'bg-[#0a0a0a] border-white/10 text-white placeholder-white/30'
+                            }`}
                           />
                         </div>
 
                         {/* FORM ACTIONS */}
-                        <div className="flex items-center gap-2 pt-2 border-t border-white/10">
+                        <div className={`flex items-center gap-2 pt-2 border-t ${isLight ? 'border-stone-200' : 'border-white/10'}`}>
                           <button
                             type="button"
                             disabled={isSavingProfile}
                             onClick={() => setIsEditingProfile(false)}
-                            className="flex-1 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 text-xs font-bold transition-all cursor-pointer"
+                            className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                              isLight ? 'bg-stone-100 hover:bg-stone-200 text-stone-700' : 'bg-white/5 hover:bg-white/10 text-white/70'
+                            }`}
                           >
                             Cancel
                           </button>
@@ -1747,7 +1793,11 @@ export const CustomerExperience: React.FC = () => {
       </AnimatePresence>
 
       {/* 7. PERSISTENT MOBILE NAVIGATION BAR (COMPACT) */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#0d0e14]/95 backdrop-blur-xl border-t border-[#c5a059]/20 shadow-[0_-8px_25px_rgba(0,0,0,0.8)] px-2 py-1 max-w-sm sm:max-w-md mx-auto">
+      <nav className={`fixed bottom-0 left-0 right-0 z-40 backdrop-blur-xl border-t px-2 py-1 max-w-sm sm:max-w-md mx-auto transition-colors ${
+        isLight 
+          ? 'bg-white/95 border-stone-200 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]' 
+          : 'bg-[#0d0e14]/95 border-[#c5a059]/20 shadow-[0_-8px_25px_rgba(0,0,0,0.8)]'
+      }`}>
         {/* Subtle Ambient Gold Glow Top Edge */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-[1px] bg-gradient-to-r from-transparent via-[#c5a059]/60 to-transparent" />
 
@@ -1789,8 +1839,8 @@ export const CustomerExperience: React.FC = () => {
                 }}
                 className={`relative flex flex-col items-center gap-0 py-0.5 px-2 rounded-xl cursor-pointer group select-none ${
                   isSelected 
-                    ? 'text-white' 
-                    : 'text-white/40 hover:text-white/80'
+                    ? isLight ? 'text-stone-900' : 'text-white'
+                    : isLight ? 'text-stone-500 hover:text-stone-800' : 'text-white/40 hover:text-white/80'
                 }`}
               >
                 {/* FLOATING ICON DOCK CONTAINER */}
@@ -1828,7 +1878,9 @@ export const CustomerExperience: React.FC = () => {
                   <div className={`relative z-10 p-1 w-6.5 h-6.5 rounded-lg transition-all duration-150 flex items-center justify-center ${
                     isSelected
                       ? 'text-black font-extrabold'
-                      : 'bg-white/[0.04] text-white/50 group-hover:bg-white/[0.08] group-hover:text-white/90'
+                      : isLight 
+                        ? 'bg-stone-100 text-stone-600 group-hover:bg-stone-200 group-hover:text-stone-900' 
+                        : 'bg-white/[0.04] text-white/50 group-hover:bg-white/[0.08] group-hover:text-white/90'
                   }`}>
                     <Icon className={`w-3 h-3 transition-transform ${isSelected ? 'stroke-[2.5px] scale-105' : 'stroke-[1.8px]'}`} />
                     {tab.badge}
@@ -1837,7 +1889,7 @@ export const CustomerExperience: React.FC = () => {
 
                 {/* LABEL */}
                 <span className={`text-[8.5px] tracking-wider uppercase font-bold mt-0.5 leading-none transition-colors ${
-                  isSelected ? 'text-[#c5a059] font-black' : 'text-white/40 group-hover:text-white/70'
+                  isSelected ? 'text-[#c5a059] font-black' : isLight ? 'text-stone-500 group-hover:text-stone-800' : 'text-white/40 group-hover:text-white/70'
                 }`}>
                   {tab.label}
                 </span>

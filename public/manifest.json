@@ -5,19 +5,19 @@
   "description": "Artisan coffee shop online ordering, touchscreen POS, and kitchen display system.",
   "icons": [
     {
-      "src": "/coffee_logo.jpg",
+      "src": "https://pub-592579d2fd244afeb67e8542cbe5fe1c.r2.dev/1787405830668-1000005848.jpg",
       "type": "image/jpeg",
       "sizes": "192x192",
       "purpose": "any"
     },
     {
-      "src": "/coffee_logo.jpg",
+      "src": "https://pub-592579d2fd244afeb67e8542cbe5fe1c.r2.dev/1787405830668-1000005848.jpg",
       "type": "image/jpeg",
       "sizes": "512x512",
       "purpose": "any"
     },
     {
-      "src": "/coffee_logo.jpg",
+      "src": "https://pub-592579d2fd244afeb67e8542cbe5fe1c.r2.dev/1787405830668-1000005848.jpg",
       "type": "image/jpeg",
       "sizes": "512x512",
       "purpose": "maskable"

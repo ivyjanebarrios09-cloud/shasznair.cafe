@@ -127,31 +127,6 @@ export const AuthScreen: React.FC = () => {
                 </div>
               </div>
 
-              {/* Account Role */}
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-extrabold uppercase text-white/40 tracking-wider">Account Role</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { id: 'customer', label: 'Customer' },
-                    { id: 'cashier', label: 'POS Cashier' },
-                    { id: 'kitchen', label: 'Kitchen KDS' },
-                    { id: 'admin', label: 'Admin' },
-                  ].map((r) => (
-                    <button
-                      key={r.id}
-                      type="button"
-                      onClick={() => setSelectedRole(r.id as any)}
-                      className={`py-2 px-3 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
-                        selectedRole === r.id
-                          ? 'bg-[#c5a059] text-black border-[#c5a059] shadow'
-                          : 'bg-stone-900 text-stone-300 border-white/5 hover:border-white/20'
-                      }`}
-                    >
-                      {r.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
             </div>
           )}
 
