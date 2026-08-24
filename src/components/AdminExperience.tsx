@@ -60,6 +60,9 @@ export const AdminExperience: React.FC = () => {
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [settingsSuccessMsg, setSettingsSuccessMsg] = useState<string | null>(null);
 
+  // Inventory Stock Filter State
+  const [stockFilter, setStockFilter] = useState<'all' | 'low_stock' | 'out_of_stock'>('all');
+
   // Account Configuration States
   const [selectedAccountTab, setSelectedAccountTab] = useState<'admin' | 'pos' | 'kds'>('admin');
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -319,9 +322,20 @@ export const AdminExperience: React.FC = () => {
     return Object.values(productStats).sort((a, b) => b.qty - a.qty).slice(0, 4);
   }, [orders, products]);
 
-  // Stock alerts
-  const lowStockProducts = products.filter(p => p.stockTracking && p.stockQuantity <= p.minStock && p.stockQuantity > 0);
+  // Stock alerts using threshold defined in system settings
+  const lowStockThreshold = settings?.inventorySettings?.lowStockThreshold ?? 10;
+  const enableAlerts = settings?.inventorySettings?.enableAlerts ?? true;
+
+  const lowStockProducts = products.filter(p => p.stockTracking && p.stockQuantity <= lowStockThreshold && p.stockQuantity > 0);
   const outOfStockProducts = products.filter(p => p.stockTracking && p.stockQuantity === 0);
+
+  const filteredProducts = products.filter(p => {
+    const isLow = p.stockTracking && p.stockQuantity <= lowStockThreshold && p.stockQuantity > 0;
+    const isOut = p.stockTracking && p.stockQuantity === 0;
+    if (stockFilter === 'low_stock') return isLow;
+    if (stockFilter === 'out_of_stock') return isOut;
+    return true;
+  });
 
   // 2. TRANSACTION REPORTS FILTERING & STATS
   const filteredReportOrders = orders.filter(o => {
@@ -822,30 +836,50 @@ export const AdminExperience: React.FC = () => {
             </div>
 
             {/* CRITICAL STOCK ALERTS SECTION */}
-            {(lowStockProducts.length > 0 || outOfStockProducts.length > 0) && (
+            {enableAlerts && (lowStockProducts.length > 0 || outOfStockProducts.length > 0) && (
               <motion.div 
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="bg-amber-950/30 border border-[#c5a059]/40 rounded-2xl p-4 flex gap-3 items-start shadow-md"
+                className="bg-amber-950/40 border-2 border-amber-500/60 rounded-2xl p-4 flex flex-col sm:flex-row gap-3.5 items-start sm:items-center justify-between shadow-xl shadow-amber-950/20"
               >
-                <AlertTriangle className="w-5 h-5 text-[#c5a059] flex-shrink-0 mt-0.5 animate-bounce" />
-                <div className="space-y-1 flex-1">
-                  <h4 className="text-xs font-extrabold text-[#c5a059] uppercase tracking-wider">Critical Stock Inventory Warning</h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-medium">
-                    {outOfStockProducts.length > 0 && (
-                      <div className="bg-rose-950/40 p-2.5 rounded-xl border border-rose-800/40">
-                        <p className="font-bold text-rose-400 uppercase text-[10px] tracking-wider mb-1">Out of Stock (Action Required):</p>
-                        <p className="text-white/90 text-xs font-semibold">{outOfStockProducts.map(p => p.name).join(', ')}</p>
-                      </div>
-                    )}
-                    {lowStockProducts.length > 0 && (
-                      <div className="bg-amber-950/40 p-2.5 rounded-xl border border-amber-800/40">
-                        <p className="font-bold text-amber-300 uppercase text-[10px] tracking-wider mb-1">Low Inventory Alert:</p>
-                        <p className="text-white/90 text-xs font-semibold">{lowStockProducts.map(p => `${p.name} (${p.stockQuantity} left)`).join(', ')}</p>
-                      </div>
-                    )}
+                <div className="flex gap-3 items-start flex-1">
+                  <div className="p-2 bg-amber-500/20 rounded-xl border border-amber-500/30 text-amber-400">
+                    <AlertTriangle className="w-5 h-5 animate-pulse" />
+                  </div>
+                  <div className="space-y-1 flex-1">
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-xs font-black text-amber-400 uppercase tracking-wider">Low Stock Inventory Warning</h4>
+                      <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-mono font-bold border border-amber-500/30">
+                        Alert Threshold: &le; {lowStockThreshold} units
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-medium pt-1">
+                      {outOfStockProducts.length > 0 && (
+                        <div className="bg-rose-950/50 p-2.5 rounded-xl border border-rose-800/60">
+                          <p className="font-extrabold text-rose-400 uppercase text-[10px] tracking-wider mb-1 flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping inline-block" /> Out of Stock ({outOfStockProducts.length}):
+                          </p>
+                          <p className="text-white/90 text-xs font-semibold">{outOfStockProducts.map(p => p.name).join(', ')}</p>
+                        </div>
+                      )}
+                      {lowStockProducts.length > 0 && (
+                        <div className="bg-amber-950/50 p-2.5 rounded-xl border border-amber-800/60">
+                          <p className="font-extrabold text-amber-300 uppercase text-[10px] tracking-wider mb-1">Low Inventory Alert ({lowStockProducts.length}):</p>
+                          <p className="text-white/90 text-xs font-semibold">{lowStockProducts.map(p => `${p.name} (${p.stockQuantity} left)`).join(', ')}</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
+                <button
+                  onClick={() => {
+                    setActiveTab('products');
+                    setStockFilter('low_stock');
+                  }}
+                  className="w-full sm:w-auto bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs px-4 py-2.5 rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer flex-shrink-0"
+                >
+                  Manage Stock <ArrowRight className="w-3.5 h-3.5 stroke-[3]" />
+                </button>
               </motion.div>
             )}
 
@@ -997,7 +1031,10 @@ export const AdminExperience: React.FC = () => {
         {activeTab === 'products' && (
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <h2 className="font-serif font-extrabold text-white text-base tracking-wide">Beverages & Pastries Master Records</h2>
+              <div>
+                <h2 className={`font-serif font-extrabold ${isLight ? 'text-stone-900' : 'text-white'} text-base tracking-wide`}>Beverages & Pastries Master Records</h2>
+                <p className={`text-[11px] ${isLight ? 'text-stone-500' : 'text-white/50'}`}>Active stock tracking threshold: <strong className="text-[#c5a059]">{lowStockThreshold} units</strong></p>
+              </div>
               <button
                 onClick={() => {
                   setEditingProduct(null);
@@ -1010,7 +1047,7 @@ export const AdminExperience: React.FC = () => {
                     image: '',
                     stockTracking: true,
                     stockQuantity: 100,
-                    minStock: 10
+                    minStock: lowStockThreshold
                   });
                   setModalError(null);
                   setModalSuccess(null);
@@ -1022,10 +1059,63 @@ export const AdminExperience: React.FC = () => {
               </button>
             </div>
 
+            {/* STOCK FILTER BAR & ALERT COUNTERS */}
+            <div className={`flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl ${isLight ? 'bg-stone-100 border-stone-200' : 'bg-[#121212] border-white/10'} border`}>
+              <div className="flex items-center gap-2">
+                <AlertTriangle className={`w-4 h-4 ${lowStockProducts.length > 0 || outOfStockProducts.length > 0 ? 'text-amber-500 animate-pulse' : 'text-stone-400'}`} />
+                <span className={`text-xs font-bold ${isLight ? 'text-stone-800' : 'text-stone-200'}`}>
+                  Low Stock Threshold: <span className="text-[#c5a059] font-mono font-extrabold">&le; {lowStockThreshold} units</span>
+                </span>
+              </div>
+
+              <div className="flex items-center gap-1.5 text-xs">
+                <button
+                  onClick={() => setStockFilter('all')}
+                  className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
+                    stockFilter === 'all' 
+                      ? 'bg-[#c5a059] text-black shadow-md font-extrabold' 
+                      : isLight ? 'bg-white hover:bg-stone-200 text-stone-700' : 'bg-white/5 hover:bg-white/10 text-stone-300'
+                  }`}
+                >
+                  All ({products.length})
+                </button>
+
+                <button
+                  onClick={() => setStockFilter('low_stock')}
+                  className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    stockFilter === 'low_stock' 
+                      ? 'bg-amber-500 text-black shadow-md font-extrabold' 
+                      : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20'
+                  }`}
+                >
+                  <AlertTriangle className="w-3 h-3" />
+                  Low Stock Alert ({lowStockProducts.length})
+                </button>
+
+                <button
+                  onClick={() => setStockFilter('out_of_stock')}
+                  className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    stockFilter === 'out_of_stock' 
+                      ? 'bg-rose-600 text-white shadow-md font-extrabold' 
+                      : 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20'
+                  }`}
+                >
+                  Out of Stock ({outOfStockProducts.length})
+                </button>
+              </div>
+            </div>
+
+            {filteredProducts.length === 0 && (
+              <div className={`p-8 text-center rounded-2xl border ${isLight ? 'bg-stone-50 border-stone-200 text-stone-500' : 'bg-[#121212] border-white/5 text-white/40'}`}>
+                <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-stone-400 opacity-60" />
+                <p className="font-bold text-xs">No products match the selected stock filter ({stockFilter.replace('_', ' ')}).</p>
+              </div>
+            )}
+
             {/* MOBILE CARD VIEW - PRODUCTS (SQUARE STYLE GRID) */}
             <div className="lg:hidden grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3.5">
-              {products.map(prod => {
-                const isLowStock = prod.stockTracking && prod.stockQuantity <= (prod.minStock || 10) && prod.stockQuantity > 0;
+              {filteredProducts.map(prod => {
+                const isLowStock = prod.stockTracking && prod.stockQuantity <= lowStockThreshold && prod.stockQuantity > 0;
                 const isOutOfStock = prod.stockTracking && prod.stockQuantity === 0;
                 const cat = categories.find(c => c.id === prod.category);
                 
@@ -1033,7 +1123,7 @@ export const AdminExperience: React.FC = () => {
                   <div 
                     key={prod.id} 
                     className={`${isLight ? 'bg-white border-stone-200 text-stone-900 shadow-sm' : 'bg-[#121212] border-white/10 text-white shadow-md'} rounded-xl border flex flex-col justify-between overflow-hidden relative group hover:border-[#c5a059]/40 transition-all ${
-                      isOutOfStock ? 'border-rose-500/40 bg-rose-950/10' : isLowStock ? 'border-amber-500/40' : ''
+                      isOutOfStock ? 'border-rose-500 bg-rose-950/20 shadow-lg shadow-rose-950/20' : isLowStock ? 'border-2 border-amber-500 bg-amber-950/20 shadow-lg shadow-amber-950/20' : ''
                     }`}
                   >
                     {/* Square Image / Thumbnail Area */}
@@ -1062,11 +1152,11 @@ export const AdminExperience: React.FC = () => {
                       {/* Stock / Warning Badge */}
                       {isOutOfStock ? (
                         <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded bg-rose-600 text-white font-extrabold text-[8px] uppercase tracking-wider shadow">
-                          Out
+                          OUT
                         </span>
                       ) : isLowStock ? (
-                        <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded bg-amber-500 text-black font-extrabold text-[8px] uppercase tracking-wider shadow">
-                          Low ({prod.stockQuantity})
+                        <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded bg-amber-500 text-black font-black text-[8px] uppercase tracking-wider shadow flex items-center gap-1">
+                          <AlertTriangle className="w-2.5 h-2.5" /> LOW ({prod.stockQuantity})
                         </span>
                       ) : prod.stockTracking ? (
                         <span className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded bg-black/80 backdrop-blur-md text-[8px] font-mono font-bold text-white/80 border border-white/10 shadow-sm">
@@ -1132,13 +1222,13 @@ export const AdminExperience: React.FC = () => {
                     </tr>
                   </thead>
                 <tbody className={`divide-y ${isLight ? 'divide-stone-200' : 'divide-white/5'}`}>
-                  {products.map(prod => {
-                    const isLowStock = prod.stockTracking && prod.stockQuantity <= prod.minStock && prod.stockQuantity > 0;
+                  {filteredProducts.map(prod => {
+                    const isLowStock = prod.stockTracking && prod.stockQuantity <= lowStockThreshold && prod.stockQuantity > 0;
                     const isOutOfStock = prod.stockTracking && prod.stockQuantity === 0;
 
                     return (
                       <tr key={prod.id} className={`${isLight ? 'hover:bg-stone-50' : 'hover:bg-white/5'} transition-colors ${
-                        isOutOfStock ? 'bg-rose-950/30 border-l-4 border-rose-500' : isLowStock ? 'bg-amber-950/25 border-l-4 border-amber-500' : ''
+                        isOutOfStock ? 'bg-rose-950/30 border-l-4 border-rose-500' : isLowStock ? 'bg-amber-950/35 border-l-4 border-amber-500' : ''
                       }`}>
                         <td className="p-3 flex items-center gap-3">
                           <div className="relative">
@@ -1151,7 +1241,7 @@ export const AdminExperience: React.FC = () => {
                             {(isLowStock || isOutOfStock) && (
                               <span className={`absolute -top-1 -right-1 rounded-full p-0.5 shadow-md flex items-center justify-center ${
                                 isOutOfStock ? 'bg-rose-500 text-black' : 'bg-amber-500 text-black'
-                              }`} title={isOutOfStock ? "Out of Stock" : "Low Stock Warning"}>
+                              }`} title={isOutOfStock ? "Out of Stock" : `Low Stock Alert (<= ${lowStockThreshold} units)`}>
                                 <AlertTriangle className="w-3 h-3 stroke-[3]" />
                               </span>
                             )}
@@ -1164,8 +1254,8 @@ export const AdminExperience: React.FC = () => {
                                   Out of Stock
                                 </span>
                               ) : isLowStock ? (
-                                <span className="px-1.5 py-0.2 bg-amber-900/70 text-amber-300 border border-amber-700/40 text-[9px] font-extrabold rounded uppercase tracking-wider flex items-center gap-1">
-                                  <AlertTriangle className="w-2.5 h-2.5" /> Low Stock
+                                <span className="px-1.5 py-0.2 bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[9px] font-extrabold rounded uppercase tracking-wider flex items-center gap-1 shadow-sm">
+                                  <AlertTriangle className="w-2.5 h-2.5 text-amber-400" /> Low Stock (&le;{lowStockThreshold})
                                 </span>
                               ) : null}
                             </div>
@@ -2150,6 +2240,85 @@ export const AdminExperience: React.FC = () => {
                 >
                   {settingsSaving ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
                   Save Rules
+                </button>
+              </div>
+            </div>
+
+            {/* 4. INVENTORY & LOW STOCK ALERT SETTINGS */}
+            <div className={`${isLight ? 'bg-white border-stone-200 text-stone-900 shadow-sm' : 'bg-[#121212] border-white/10 text-white shadow-lg'} p-5 rounded-2xl border space-y-4`}>
+              <div className={`flex items-center gap-2 text-[#c5a059] border-b ${isLight ? 'border-stone-200' : 'border-white/5'} pb-2.5`}>
+                <AlertTriangle className="w-4 h-4 text-amber-500" />
+                <div>
+                  <h3 className={`font-bold ${isLight ? 'text-stone-900' : 'text-white'} text-xs font-serif uppercase tracking-wider`}>Inventory & Low Stock Alerts Configuration</h3>
+                  <p className={`text-[10px] ${isLight ? 'text-stone-500' : 'text-white/40'}`}>Set inventory thresholds to automatically trigger warning badges and dashboard alerts when stock runs low.</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-extrabold uppercase text-[#c5a059] tracking-wider">Low Stock Alert Threshold (Units)</label>
+                  <p className={`text-[10px] ${isLight ? 'text-stone-500' : 'text-white/50'}`}>Items with stock quantity at or below this number will be flagged with Low Stock alerts.</p>
+                  <input
+                    type="number"
+                    min={0}
+                    max={1000}
+                    value={settingsForm.inventorySettings?.lowStockThreshold ?? 10}
+                    onChange={(e) => setSettingsForm({
+                      ...settingsForm,
+                      inventorySettings: {
+                        lowStockThreshold: parseInt(e.target.value) >= 0 ? parseInt(e.target.value) : 10,
+                        enableAlerts: settingsForm.inventorySettings?.enableAlerts ?? true
+                      }
+                    })}
+                    className={`w-full p-2.5 rounded-xl ${isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-[#080808] border-white/15 text-white'} border focus:border-[#c5a059] outline-none font-mono font-bold text-amber-500`}
+                  />
+                </div>
+
+                <div className="space-y-1.5 flex flex-col justify-center">
+                  <label className="text-[10px] font-extrabold uppercase text-[#c5a059] tracking-wider mb-1">Enable Low Stock Banner & Highlighting</label>
+                  <label className="flex items-center gap-2.5 cursor-pointer pt-1">
+                    <input
+                      type="checkbox"
+                      checked={settingsForm.inventorySettings?.enableAlerts ?? true}
+                      onChange={(e) => setSettingsForm({
+                        ...settingsForm,
+                        inventorySettings: {
+                          lowStockThreshold: settingsForm.inventorySettings?.lowStockThreshold ?? 10,
+                          enableAlerts: e.target.checked
+                        }
+                      })}
+                      className="w-4.5 h-4.5 accent-[#c5a059] rounded cursor-pointer"
+                    />
+                    <span className={`text-xs font-bold ${isLight ? 'text-stone-800' : 'text-white/90'}`}>
+                      Display Warning Banners & Visual Badges on Dashboard and Products List
+                    </span>
+                  </label>
+                  <p className={`text-[10px] ${isLight ? 'text-stone-500' : 'text-white/50'} mt-1`}>
+                    When active, items with stock &le; <strong className="text-amber-500">{settingsForm.inventorySettings?.lowStockThreshold ?? 10} units</strong> will be highlighted in orange with warning icons.
+                  </p>
+                </div>
+              </div>
+
+              <div className={`flex justify-end pt-2 border-t ${isLight ? 'border-stone-200' : 'border-white/5'}`}>
+                <button
+                  type="button"
+                  disabled={settingsSaving}
+                  onClick={async () => {
+                    setSettingsSaving(true);
+                    try {
+                      await updateSettings(settingsForm);
+                      setSettingsSuccessMsg(`Inventory low stock threshold (<= ${settingsForm.inventorySettings?.lowStockThreshold ?? 10} units) saved successfully!`);
+                      setTimeout(() => setSettingsSuccessMsg(null), 4000);
+                    } catch (err: any) {
+                      alert("Failed to save inventory settings: " + (err.message || err));
+                    } finally {
+                      setSettingsSaving(false);
+                    }
+                  }}
+                  className="bg-[#c5a059] hover:bg-[#b08c47] text-black font-extrabold px-5 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-md shadow-[#c5a059]/20 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {settingsSaving ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                  Save Threshold Settings
                 </button>
               </div>
             </div>

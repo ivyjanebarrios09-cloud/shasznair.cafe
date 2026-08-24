@@ -99,6 +99,7 @@ interface CoffeeAppContextType {
     change?: number
   ) => Promise<Order>;
   updateOrderStatus: (orderId: string, status: OrderStatus) => Promise<void>;
+  updateOrderItemStatus: (orderId: string, itemIndex: number, itemStatus: 'pending' | 'preparing' | 'ready') => Promise<void>;
   updatePaymentStatus: (orderId: string, status: PaymentStatus, cashReceived?: number, change?: number) => Promise<void>;
   updateSettings: (newSettings: Partial<SystemSettings>) => Promise<void>;
   loadDemoData: () => Promise<void>;
@@ -338,6 +339,10 @@ const DEFAULT_SETTINGS: SystemSettings = {
   loyaltySettings: {
     pointsPerAmountSpent: 1,
     amountRequired: 100 // 1 point per ₱100
+  },
+  inventorySettings: {
+    lowStockThreshold: 10,
+    enableAlerts: true
   },
   accountsConfig: {
     admin: { role: 'admin', name: 'Master Administrator', mobile: '+63 917 111 2222', email: 'admin@shasznaircafe.com', isEmailVerified: true },
@@ -812,7 +817,12 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     const realRole = currentUser.role;
 
-    // Only Admin can toggle between views (Admin, Cashier, Kitchen, Customer).
+    // Admin accounts are explicitly disallowed from accessing the Customer App
+    if (realRole === 'admin' && role === 'customer') {
+      throw new Error("Admin accounts do not have access to the Customer App.");
+    }
+
+    // Only Admin can toggle between staff views (Admin, Cashier, Kitchen).
     // POS Cashier and Kitchen Monitor (KDS) cannot toggle to other views.
     if (realRole !== 'admin' && role !== realRole) {
       throw new Error(`Workspace switching is restricted to Admin accounts. As a ${realRole.toUpperCase()}, you are restricted to your assigned workspace.`);
@@ -1288,6 +1298,67 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   };
 
+  const updateOrderItemStatus = async (orderId: string, itemIndex: number, itemStatus: 'pending' | 'preparing' | 'ready') => {
+    try {
+      const orderDoc = orders.find(o => o.id === orderId);
+      if (!orderDoc) return;
+
+      const updatedItems = orderDoc.items.map((item, idx) => {
+        if (idx === itemIndex) {
+          return { ...item, itemStatus };
+        }
+        return item;
+      });
+
+      // Synchronize overall orderStatus if applicable
+      let newOrderStatus = orderDoc.orderStatus;
+      const allReady = updatedItems.every(i => (i.itemStatus || 'pending') === 'ready');
+      const anyPreparing = updatedItems.some(i => (i.itemStatus || 'pending') === 'preparing' || (i.itemStatus || 'pending') === 'ready');
+
+      if (allReady && newOrderStatus !== 'completed' && newOrderStatus !== 'cancelled') {
+        newOrderStatus = 'ready';
+      } else if (anyPreparing && newOrderStatus === 'pending') {
+        newOrderStatus = 'preparing';
+      }
+
+      const orderRef = getShopDoc('orders', orderId);
+      const updatePayload: any = {
+        items: updatedItems,
+        orderStatus: newOrderStatus,
+        updatedAt: serverTimestamp()
+      };
+      if (newOrderStatus === 'completed') {
+        updatePayload.completedAt = serverTimestamp();
+      }
+
+      await updateDoc(orderRef, updatePayload);
+
+      // Optimistic update
+      setOrders(prev => prev.map(o => o.id === orderId ? {
+        ...o,
+        items: updatedItems,
+        orderStatus: newOrderStatus,
+        updatedAt: new Date()
+      } : o));
+
+      await writeAuditLog(
+        currentUser?.uid || 'staff',
+        currentUser?.name || 'Staff',
+        'order_item_status',
+        `${orderId}-item-${itemIndex}`,
+        orderDoc.items[itemIndex]?.itemStatus || 'pending',
+        itemStatus
+      );
+    } catch (e) {
+      console.error("Failed to update item status:", e);
+      setOrders(prev => prev.map(o => {
+        if (o.id !== orderId) return o;
+        const updatedItems = o.items.map((item, idx) => idx === itemIndex ? { ...item, itemStatus } : item);
+        return { ...o, items: updatedItems, updatedAt: new Date() };
+      }));
+    }
+  };
+
   const updatePaymentStatus = async (orderId: string, status: PaymentStatus, cashReceived?: number, change?: number) => {
     try {
       const orderRef = getShopDoc('orders', orderId);
@@ -1665,6 +1736,7 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       removeReward,
       placeOrder,
       updateOrderStatus,
+      updateOrderItemStatus,
       updatePaymentStatus,
       updateSettings,
       loadDemoData,

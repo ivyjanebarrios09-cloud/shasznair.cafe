@@ -7,7 +7,7 @@ export const RoleSwitcher: React.FC = () => {
   const { currentUser, activeWorkspace, switchWorkspace, logout, authLoading, settings } = useCoffeeApp();
   const [showAdminWarning, setShowAdminWarning] = useState(false);
 
-  const roles = [
+  const allRoles = [
     { name: 'Customer App', role: 'customer', icon: User },
     { name: 'POS Cashier', role: 'cashier', icon: Coffee },
     { name: 'Kitchen KDS', role: 'kitchen', icon: Terminal },
@@ -16,6 +16,10 @@ export const RoleSwitcher: React.FC = () => {
 
   const currentRole = currentUser?.role || 'customer';
   const isAdmin = currentRole === 'admin';
+
+  // Filter out Customer App for Admin accounts as admins are not allowed access to customer app
+  const roles = allRoles.filter((item) => !(isAdmin && item.role === 'customer'));
+
   const currentView = isAdmin ? (activeWorkspace || 'admin') : currentRole;
 
   const handleRoleClick = async (role: 'customer' | 'cashier' | 'kitchen' | 'admin') => {

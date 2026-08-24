@@ -31,7 +31,10 @@ const AppContent: React.FC = () => {
   }
 
   const isAdmin = currentUser.role === 'admin';
-  const activeRoleView = (isAdmin && activeWorkspace) ? activeWorkspace : currentUser.role;
+  // Ensure Admin accounts can never access or view the Customer App
+  const activeRoleView = (isAdmin && activeWorkspace && activeWorkspace !== 'customer') 
+    ? activeWorkspace 
+    : (isAdmin ? 'admin' : currentUser.role);
 
   // Determine which viewport to render
   const renderRoleViewport = () => {

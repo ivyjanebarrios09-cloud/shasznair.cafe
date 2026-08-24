@@ -78,6 +78,7 @@ export interface OrderItem {
   selectedSize: string;
   selectedAddOns: string[];
   notes: string;
+  itemStatus?: 'pending' | 'preparing' | 'ready';
 }
 
 export interface Order {
@@ -217,6 +218,10 @@ export interface SystemSettings {
   loyaltySettings: {
     pointsPerAmountSpent: number; // e.g. 1 point per 100 pesos
     amountRequired: number;
+  };
+  inventorySettings?: {
+    lowStockThreshold: number;
+    enableAlerts: boolean;
   };
   accountsConfig: {
     admin: StaffAccountConfig;

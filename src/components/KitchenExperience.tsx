@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useCoffeeApp } from '../contexts/CoffeeAppContext';
-import { Order, OrderStatus } from '../types';
+import { Order, OrderStatus, OrderItem } from '../types';
 import { InstallAppButton } from './InstallAppButton';
 import { Clock, Play, CheckCircle, Package, MapPin, Check, MessageSquare, AlertCircle, LogOut, Menu, Download, Table, LayoutGrid, CheckCircle2, User, Store, Smartphone } from 'lucide-react';
 
 export const KitchenExperience: React.FC = () => {
-  const { orders, updateOrderStatus, dataLoading, currentUser, logout, settings } = useCoffeeApp();
+  const { orders, updateOrderStatus, updateOrderItemStatus, dataLoading, currentUser, logout, settings } = useCoffeeApp();
   const [activeFilter, setActiveFilter] = useState<'all' | 'pay' | 'verify' | 'incoming' | 'active' | 'ready'>('all');
   const [queueMode, setQueueMode] = useState<'tabular' | 'grid'>('tabular');
 
@@ -23,6 +23,14 @@ export const KitchenExperience: React.FC = () => {
     }
   };
 
+  const handleItemStatusChange = async (orderId: string, itemIdx: number, newStatus: 'pending' | 'preparing' | 'ready') => {
+    try {
+      await updateOrderItemStatus(orderId, itemIdx, newStatus);
+    } catch (e) {
+      console.error("Failed to change item status:", e);
+    }
+  };
+
   const getElapsedTime = (createdAt: any) => {
     if (!createdAt) return '0m';
     const created = createdAt instanceof Date ? createdAt : new Date(createdAt);
@@ -32,6 +40,92 @@ export const KitchenExperience: React.FC = () => {
   };
 
   const isLight = settings?.branding?.theme === 'light';
+
+  // Render function for order items with individual status toggle buttons
+  const renderItemWithStatus = (ord: Order, it: OrderItem, idx: number) => {
+    const itemStatus = it.itemStatus || (ord.orderStatus === 'preparing' ? 'preparing' : ord.orderStatus === 'ready' ? 'ready' : 'pending');
+
+    return (
+      <div key={idx} className="bg-[#12131a]/80 p-2.5 rounded-xl border border-white/5 space-y-1.5 transition-all hover:border-white/10">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1">
+            <div className="text-xs font-semibold text-white/90 flex items-center justify-between">
+              <span>
+                <strong className="text-[#c5a059] font-mono mr-1">{it.quantity}x</strong> {it.name}
+              </span>
+              <span className="text-[10px] font-mono text-white/50 bg-white/5 px-1.5 py-0.5 rounded border border-white/5 ml-1">
+                {it.selectedSize}
+              </span>
+            </div>
+            {it.selectedAddOns && it.selectedAddOns.length > 0 && (
+              <p className="text-[10px] text-white/40 italic pl-1 mt-0.5">
+                + {it.selectedAddOns.join(', ')}
+              </p>
+            )}
+            {it.notes && (
+              <p className="text-[10px] text-amber-300/80 bg-amber-950/30 px-1.5 py-0.5 rounded border border-amber-800/30 mt-1 italic">
+                Note: {it.notes}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Item Status Toggle Buttons */}
+        <div className="flex items-center justify-between pt-1 border-t border-white/5 gap-1">
+          <span className="text-[9px] font-mono text-white/40 uppercase font-bold tracking-wider">
+            Item:
+          </span>
+          <div className="inline-flex rounded-lg bg-[#07080c] p-0.5 border border-white/10 gap-0.5">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleItemStatusChange(ord.id, idx, 'pending');
+              }}
+              className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase transition-all cursor-pointer ${
+                itemStatus === 'pending'
+                  ? 'bg-rose-950 text-rose-300 border border-rose-600/60 shadow-[0_0_8px_rgba(244,63,94,0.3)]'
+                  : 'text-white/40 hover:text-white/80 hover:bg-white/5'
+              }`}
+              title="Set item status to Pending"
+            >
+              Pending
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleItemStatusChange(ord.id, idx, 'preparing');
+              }}
+              className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase transition-all cursor-pointer ${
+                itemStatus === 'preparing'
+                  ? 'bg-amber-950 text-amber-300 border border-amber-600/60 shadow-[0_0_8px_rgba(245,158,11,0.3)]'
+                  : 'text-white/40 hover:text-white/80 hover:bg-white/5'
+              }`}
+              title="Set item status to Preparing"
+            >
+              Preparing
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleItemStatusChange(ord.id, idx, 'ready');
+              }}
+              className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase transition-all cursor-pointer ${
+                itemStatus === 'ready'
+                  ? 'bg-emerald-950 text-emerald-300 border border-emerald-600/60 shadow-[0_0_8px_rgba(16,185,129,0.3)]'
+                  : 'text-white/40 hover:text-white/80 hover:bg-white/5'
+              }`}
+              title="Set item status to Ready"
+            >
+              Ready
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div 
@@ -104,20 +198,14 @@ export const KitchenExperience: React.FC = () => {
         {/* STATUS FILTER PILLS BAR */}
         <div className="bg-[#0b0c10] border border-white/10 p-3 rounded-2xl flex flex-wrap gap-2 items-center shadow-md">
           <button 
-            onClick={() => setActiveFilter('pay')}
-            className={`px-3 py-1.5 rounded-xl border text-[11px] font-mono font-bold tracking-wider flex items-center gap-1.5 cursor-pointer transition-all ${activeFilter === 'pay' ? 'bg-rose-950/60 border-rose-500/50 text-rose-300 shadow-[0_0_10px_rgba(244,63,94,0.2)]' : 'bg-[#12131a] border-white/5 text-white/50 hover:text-white/80'}`}
+            onClick={() => setActiveFilter('all')}
+            className={`px-3 py-1.5 rounded-xl border text-[11px] font-mono font-bold tracking-wider flex items-center gap-1.5 cursor-pointer transition-all ${activeFilter === 'all' ? 'bg-[#c5a059]/20 border-[#c5a059]/50 text-[#c5a059] shadow-[0_0_10px_rgba(197,160,89,0.2)]' : 'bg-[#12131a] border-white/5 text-white/50 hover:text-white/80'}`}
           >
-            <div className="w-2 h-2 rounded-full bg-rose-500" /> PAY (0)
-          </button>
-          <button 
-            onClick={() => setActiveFilter('verify')}
-            className={`px-3 py-1.5 rounded-xl border text-[11px] font-mono font-bold tracking-wider flex items-center gap-1.5 cursor-pointer transition-all ${activeFilter === 'verify' ? 'bg-amber-950/60 border-amber-500/50 text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.2)]' : 'bg-[#12131a] border-white/5 text-white/50 hover:text-white/80'}`}
-          >
-            <div className="w-2 h-2 rounded-full bg-amber-500" /> VERIFY (0)
+            ALL QUEUE ({activeOrdersCount})
           </button>
           <button 
             onClick={() => setActiveFilter('incoming')}
-            className={`px-3 py-1.5 rounded-xl border text-[11px] font-mono font-bold tracking-wider flex items-center gap-1.5 cursor-pointer transition-all ${activeFilter === 'incoming' || activeFilter === 'all' ? 'bg-[#c5a059]/20 border-[#c5a059]/50 text-[#c5a059] shadow-[0_0_10px_rgba(197,160,89,0.2)]' : 'bg-[#12131a] border-white/5 text-white/50 hover:text-white/80'}`}
+            className={`px-3 py-1.5 rounded-xl border text-[11px] font-mono font-bold tracking-wider flex items-center gap-1.5 cursor-pointer transition-all ${activeFilter === 'incoming' ? 'bg-[#c5a059]/20 border-[#c5a059]/50 text-[#c5a059] shadow-[0_0_10px_rgba(197,160,89,0.2)]' : 'bg-[#12131a] border-white/5 text-white/50 hover:text-white/80'}`}
           >
             <div className="w-2 h-2 rounded-full bg-[#c5a059]" /> INCOMING ({newOrders.length})
           </button>
@@ -175,172 +263,290 @@ export const KitchenExperience: React.FC = () => {
           </div>
         ) : queueMode === 'grid' ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* NEW ORDERS */}
-            <div className="space-y-3">
-              <div className="bg-[#0b0c10] p-3 rounded-xl border border-white/10 flex justify-between items-center">
-                <span className="text-xs font-mono font-bold text-white/80 uppercase">Incoming ({newOrders.length})</span>
-              </div>
-              {newOrders.map(ord => (
-                <div key={ord.id} className="bg-[#0b0c10] border border-white/15 rounded-2xl p-4 space-y-3 shadow-lg">
-                  <div className="flex justify-between items-start text-xs border-b border-white/5 pb-2">
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <p className="font-mono font-bold text-white">#{ord.orderNumber.slice(-4)}</p>
-                        <span className={`inline-flex items-center gap-0.5 text-[8px] font-bold px-1 py-0.2 rounded ${
-                          ord.orderSource === 'pos' ? 'bg-blue-950/70 text-blue-300 border border-blue-800/40' : 'bg-purple-950/70 text-purple-300 border border-purple-800/40'
-                        }`}>
-                          {ord.orderSource === 'pos' ? <Store className="w-2 h-2" /> : <Smartphone className="w-2 h-2" />}
-                          {ord.orderSource === 'pos' ? 'POS' : 'APP'}
-                        </span>
-                      </div>
-                      <p className="text-xs font-bold text-[#c5a059] mt-0.5 flex items-center gap-1">
-                        <User className="w-3 h-3" /> {ord.customerName}
-                      </p>
-                      <p className="text-[10px] text-white/40 font-mono mt-0.5">{getElapsedTime(ord.createdAt)}</p>
-                    </div>
-                    <span className="bg-[#c5a059]/10 text-[#c5a059] border border-[#c5a059]/30 font-mono font-bold px-2 py-0.5 rounded text-[9px] uppercase">
-                      {ord.orderType.replace('_', ' ')}
-                    </span>
-                  </div>
-                  <div className="space-y-1">
-                    {ord.items.map((it, idx) => (
-                      <div key={idx} className="flex flex-col">
-                        <div className="text-xs flex justify-between text-white/90 font-medium">
-                          <span>{it.quantity}x {it.name}</span>
-                          <span className="text-[#c5a059] font-mono">{it.selectedSize}</span>
-                        </div>
-                        {it.selectedAddOns && it.selectedAddOns.length > 0 && (
-                          <span className="text-[10px] text-white/40 italic pl-3">+ {it.selectedAddOns.join(', ')}</span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  {ord.notes && (
-                    <p className="text-[10px] text-amber-300/80 bg-amber-950/30 p-1.5 rounded-lg border border-amber-800/30">
-                      Note: {ord.notes}
-                    </p>
-                  )}
-                  <button
-                    onClick={() => handleUpdateStatus(ord.id, 'preparing')}
-                    className="w-full bg-[#c5a059] hover:bg-[#b08c47] text-black font-mono font-bold py-2 rounded-xl text-xs uppercase tracking-wider flex justify-center items-center gap-1 cursor-pointer transition-all shadow"
-                  >
-                    <Play className="w-3.5 h-3.5 fill-black" /> Start Preparing
-                  </button>
+            {/* NEW / INCOMING ORDERS */}
+            {(activeFilter === 'all' || activeFilter === 'incoming') && (
+              <div className="space-y-3">
+                <div className="bg-[#0b0c10] p-3 rounded-xl border border-white/10 flex justify-between items-center">
+                  <span className="text-xs font-mono font-bold text-white/80 uppercase">Incoming ({newOrders.length})</span>
                 </div>
-              ))}
-            </div>
+                {newOrders.map(ord => (
+                  <div key={ord.id} className="bg-[#0b0c10] border border-white/15 rounded-2xl p-4 space-y-3 shadow-lg">
+                    <div className="flex justify-between items-start text-xs border-b border-white/5 pb-2">
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-mono font-bold text-white">#{ord.orderNumber.slice(-4)}</p>
+                          <span className={`inline-flex items-center gap-0.5 text-[8px] font-bold px-1 py-0.2 rounded ${
+                            ord.orderSource === 'pos' ? 'bg-blue-950/70 text-blue-300 border border-blue-800/40' : 'bg-purple-950/70 text-purple-300 border border-purple-800/40'
+                          }`}>
+                            {ord.orderSource === 'pos' ? <Store className="w-2 h-2" /> : <Smartphone className="w-2 h-2" />}
+                            {ord.orderSource === 'pos' ? 'POS' : 'APP'}
+                          </span>
+                        </div>
+                        <p className="text-xs font-bold text-[#c5a059] mt-0.5 flex items-center gap-1">
+                          <User className="w-3 h-3" /> {ord.customerName}
+                        </p>
+                        <p className="text-[10px] text-white/40 font-mono mt-0.5">{getElapsedTime(ord.createdAt)}</p>
+                      </div>
+                      <span className="bg-[#c5a059]/10 text-[#c5a059] border border-[#c5a059]/30 font-mono font-bold px-2 py-0.5 rounded text-[9px] uppercase">
+                        {ord.orderType.replace('_', ' ')}
+                      </span>
+                    </div>
 
-            {/* PREPARING */}
-            <div className="space-y-3">
-              <div className="bg-[#0b0c10] p-3 rounded-xl border border-white/10 flex justify-between items-center">
-                <span className="text-xs font-mono font-bold text-white/80 uppercase">Active ({preparingOrders.length})</span>
-              </div>
-              {preparingOrders.map(ord => (
-                <div key={ord.id} className="bg-[#0b0c10] border border-white/15 rounded-2xl p-4 space-y-3 shadow-lg">
-                  <div className="flex justify-between items-start text-xs border-b border-white/5 pb-2">
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <p className="font-mono font-bold text-white">#{ord.orderNumber.slice(-4)}</p>
-                        <span className={`inline-flex items-center gap-0.5 text-[8px] font-bold px-1 py-0.2 rounded ${
-                          ord.orderSource === 'pos' ? 'bg-blue-950/70 text-blue-300 border border-blue-800/40' : 'bg-purple-950/70 text-purple-300 border border-purple-800/40'
-                        }`}>
-                          {ord.orderSource === 'pos' ? <Store className="w-2 h-2" /> : <Smartphone className="w-2 h-2" />}
-                          {ord.orderSource === 'pos' ? 'POS' : 'APP'}
-                        </span>
-                      </div>
-                      <p className="text-xs font-bold text-[#c5a059] mt-0.5 flex items-center gap-1">
-                        <User className="w-3 h-3" /> {ord.customerName}
+                    {/* ITEMS LIST WITH ITEM STATUS TOGGLE */}
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-mono text-white/40 uppercase font-bold tracking-wider">
+                        Order Items & Status
                       </p>
-                      <p className="text-[10px] text-white/40 font-mono mt-0.5">{getElapsedTime(ord.createdAt)}</p>
+                      {ord.items.map((it, idx) => renderItemWithStatus(ord, it, idx))}
                     </div>
-                    <span className="bg-amber-500/10 text-amber-400 border border-amber-500/30 font-mono font-bold px-2 py-0.5 rounded text-[9px] uppercase">
-                      Preparing
-                    </span>
-                  </div>
-                  <div className="space-y-1">
-                    {ord.items.map((it, idx) => (
-                      <div key={idx} className="flex flex-col">
-                        <div className="text-xs flex justify-between text-white/90 font-medium">
-                          <span>{it.quantity}x {it.name}</span>
-                          <span className="text-amber-400 font-mono">{it.selectedSize}</span>
-                        </div>
-                        {it.selectedAddOns && it.selectedAddOns.length > 0 && (
-                          <span className="text-[10px] text-white/40 italic pl-3">+ {it.selectedAddOns.join(', ')}</span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  {ord.notes && (
-                    <p className="text-[10px] text-amber-300/80 bg-amber-950/30 p-1.5 rounded-lg border border-amber-800/30">
-                      Note: {ord.notes}
-                    </p>
-                  )}
-                  <button
-                    onClick={() => handleUpdateStatus(ord.id, 'ready')}
-                    className="w-full bg-amber-500 hover:bg-amber-600 text-black font-mono font-bold py-2 rounded-xl text-xs uppercase tracking-wider flex justify-center items-center gap-1 cursor-pointer transition-all shadow"
-                  >
-                    <CheckCircle className="w-3.5 h-3.5" /> Mark Ready
-                  </button>
-                </div>
-              ))}
-            </div>
 
-            {/* READY */}
-            <div className="space-y-3">
-              <div className="bg-[#0b0c10] p-3 rounded-xl border border-white/10 flex justify-between items-center">
-                <span className="text-xs font-mono font-bold text-white/80 uppercase">Ready ({readyOrders.length})</span>
-              </div>
-              {readyOrders.map(ord => (
-                <div key={ord.id} className="bg-[#0b0c10] border border-white/15 rounded-2xl p-4 space-y-3 shadow-lg">
-                  <div className="flex justify-between items-start text-xs border-b border-white/5 pb-2">
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <p className="font-mono font-bold text-white">#{ord.orderNumber.slice(-4)}</p>
-                        <span className={`inline-flex items-center gap-0.5 text-[8px] font-bold px-1 py-0.2 rounded ${
-                          ord.orderSource === 'pos' ? 'bg-blue-950/70 text-blue-300 border border-blue-800/40' : 'bg-purple-950/70 text-purple-300 border border-purple-800/40'
-                        }`}>
-                          {ord.orderSource === 'pos' ? <Store className="w-2 h-2" /> : <Smartphone className="w-2 h-2" />}
-                          {ord.orderSource === 'pos' ? 'POS' : 'APP'}
-                        </span>
-                      </div>
-                      <p className="text-xs font-bold text-[#c5a059] mt-0.5 flex items-center gap-1">
-                        <User className="w-3 h-3" /> {ord.customerName}
+                    {ord.notes && (
+                      <p className="text-[10px] text-amber-300/80 bg-amber-950/30 p-1.5 rounded-lg border border-amber-800/30">
+                        Note: {ord.notes}
                       </p>
-                      <p className="text-[10px] text-white/40 font-mono mt-0.5">{getElapsedTime(ord.createdAt)}</p>
-                    </div>
-                    <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-mono font-bold px-2 py-0.5 rounded text-[9px] uppercase">
-                      Ready
-                    </span>
-                  </div>
-                  <div className="space-y-1">
-                    {ord.items.map((it, idx) => (
-                      <div key={idx} className="flex flex-col">
-                        <div className="text-xs flex justify-between text-white/90 font-medium">
-                          <span>{it.quantity}x {it.name}</span>
-                          <span className="text-emerald-400 font-mono">{it.selectedSize}</span>
-                        </div>
-                        {it.selectedAddOns && it.selectedAddOns.length > 0 && (
-                          <span className="text-[10px] text-white/40 italic pl-3">+ {it.selectedAddOns.join(', ')}</span>
-                        )}
+                    )}
+
+                    {/* Order Level Status Toggle */}
+                    <div className="space-y-1.5 pt-1 border-t border-white/5">
+                      <p className="text-[9px] font-mono text-white/40 uppercase font-bold">Overall Order Status:</p>
+                      <div className="grid grid-cols-3 gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateStatus(ord.id, 'pending')}
+                          className={`py-1.5 rounded-lg text-[10px] font-mono font-bold uppercase transition-all cursor-pointer ${
+                            ord.orderStatus === 'pending'
+                              ? 'bg-rose-950 text-rose-300 border border-rose-500/60 shadow-[0_0_10px_rgba(244,63,94,0.3)]'
+                              : 'bg-[#12131a] text-white/50 border border-white/5 hover:text-white'
+                          }`}
+                        >
+                          Pending
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateStatus(ord.id, 'preparing')}
+                          className={`py-1.5 rounded-lg text-[10px] font-mono font-bold uppercase transition-all cursor-pointer ${
+                            ord.orderStatus === 'preparing'
+                              ? 'bg-amber-950 text-amber-300 border border-amber-500/60 shadow-[0_0_10px_rgba(245,158,11,0.3)]'
+                              : 'bg-[#12131a] text-white/50 border border-white/5 hover:text-white'
+                          }`}
+                        >
+                          Preparing
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateStatus(ord.id, 'ready')}
+                          className={`py-1.5 rounded-lg text-[10px] font-mono font-bold uppercase transition-all cursor-pointer ${
+                            ord.orderStatus === 'ready'
+                              ? 'bg-emerald-950 text-emerald-300 border border-emerald-500/60 shadow-[0_0_10px_rgba(16,185,129,0.3)]'
+                              : 'bg-[#12131a] text-white/50 border border-white/5 hover:text-white'
+                          }`}
+                        >
+                          Ready
+                        </button>
                       </div>
-                    ))}
+                      <button
+                        onClick={() => handleUpdateStatus(ord.id, 'preparing')}
+                        className="w-full bg-[#c5a059] hover:bg-[#b08c47] text-black font-mono font-bold py-2 rounded-xl text-xs uppercase tracking-wider flex justify-center items-center gap-1 cursor-pointer transition-all shadow mt-1"
+                      >
+                        <Play className="w-3.5 h-3.5 fill-black" /> Start Preparing Order
+                      </button>
+                    </div>
                   </div>
-                  <button
-                    onClick={() => handleUpdateStatus(ord.id, 'completed')}
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-mono font-bold py-2 rounded-xl text-xs uppercase tracking-wider flex justify-center items-center gap-1 cursor-pointer transition-all shadow"
-                  >
-                    <Check className="w-3.5 h-3.5" /> Complete Handover
-                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* ACTIVE / PREPARING ORDERS */}
+            {(activeFilter === 'all' || activeFilter === 'active') && (
+              <div className="space-y-3">
+                <div className="bg-[#0b0c10] p-3 rounded-xl border border-white/10 flex justify-between items-center">
+                  <span className="text-xs font-mono font-bold text-white/80 uppercase">Active ({preparingOrders.length})</span>
                 </div>
-              ))}
-            </div>
+                {preparingOrders.map(ord => (
+                  <div key={ord.id} className="bg-[#0b0c10] border border-white/15 rounded-2xl p-4 space-y-3 shadow-lg">
+                    <div className="flex justify-between items-start text-xs border-b border-white/5 pb-2">
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-mono font-bold text-white">#{ord.orderNumber.slice(-4)}</p>
+                          <span className={`inline-flex items-center gap-0.5 text-[8px] font-bold px-1 py-0.2 rounded ${
+                            ord.orderSource === 'pos' ? 'bg-blue-950/70 text-blue-300 border border-blue-800/40' : 'bg-purple-950/70 text-purple-300 border border-purple-800/40'
+                          }`}>
+                            {ord.orderSource === 'pos' ? <Store className="w-2 h-2" /> : <Smartphone className="w-2 h-2" />}
+                            {ord.orderSource === 'pos' ? 'POS' : 'APP'}
+                          </span>
+                        </div>
+                        <p className="text-xs font-bold text-[#c5a059] mt-0.5 flex items-center gap-1">
+                          <User className="w-3 h-3" /> {ord.customerName}
+                        </p>
+                        <p className="text-[10px] text-white/40 font-mono mt-0.5">{getElapsedTime(ord.createdAt)}</p>
+                      </div>
+                      <span className="bg-amber-500/10 text-amber-400 border border-amber-500/30 font-mono font-bold px-2 py-0.5 rounded text-[9px] uppercase">
+                        Preparing
+                      </span>
+                    </div>
+
+                    {/* ITEMS LIST WITH ITEM STATUS TOGGLE */}
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-mono text-white/40 uppercase font-bold tracking-wider">
+                        Order Items & Status
+                      </p>
+                      {ord.items.map((it, idx) => renderItemWithStatus(ord, it, idx))}
+                    </div>
+
+                    {ord.notes && (
+                      <p className="text-[10px] text-amber-300/80 bg-amber-950/30 p-1.5 rounded-lg border border-amber-800/30">
+                        Note: {ord.notes}
+                      </p>
+                    )}
+
+                    {/* Order Level Status Toggle */}
+                    <div className="space-y-1.5 pt-1 border-t border-white/5">
+                      <p className="text-[9px] font-mono text-white/40 uppercase font-bold">Overall Order Status:</p>
+                      <div className="grid grid-cols-3 gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateStatus(ord.id, 'pending')}
+                          className={`py-1.5 rounded-lg text-[10px] font-mono font-bold uppercase transition-all cursor-pointer ${
+                            ord.orderStatus === 'pending'
+                              ? 'bg-rose-950 text-rose-300 border border-rose-500/60 shadow-[0_0_10px_rgba(244,63,94,0.3)]'
+                              : 'bg-[#12131a] text-white/50 border border-white/5 hover:text-white'
+                          }`}
+                        >
+                          Pending
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateStatus(ord.id, 'preparing')}
+                          className={`py-1.5 rounded-lg text-[10px] font-mono font-bold uppercase transition-all cursor-pointer ${
+                            ord.orderStatus === 'preparing'
+                              ? 'bg-amber-950 text-amber-300 border border-amber-500/60 shadow-[0_0_10px_rgba(245,158,11,0.3)]'
+                              : 'bg-[#12131a] text-white/50 border border-white/5 hover:text-white'
+                          }`}
+                        >
+                          Preparing
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateStatus(ord.id, 'ready')}
+                          className={`py-1.5 rounded-lg text-[10px] font-mono font-bold uppercase transition-all cursor-pointer ${
+                            ord.orderStatus === 'ready'
+                              ? 'bg-emerald-950 text-emerald-300 border border-emerald-500/60 shadow-[0_0_10px_rgba(16,185,129,0.3)]'
+                              : 'bg-[#12131a] text-white/50 border border-white/5 hover:text-white'
+                          }`}
+                        >
+                          Ready
+                        </button>
+                      </div>
+                      <button
+                        onClick={() => handleUpdateStatus(ord.id, 'ready')}
+                        className="w-full bg-amber-500 hover:bg-amber-600 text-black font-mono font-bold py-2 rounded-xl text-xs uppercase tracking-wider flex justify-center items-center gap-1 cursor-pointer transition-all shadow mt-1"
+                      >
+                        <CheckCircle className="w-3.5 h-3.5" /> Mark Order Ready
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* READY ORDERS */}
+            {(activeFilter === 'all' || activeFilter === 'ready') && (
+              <div className="space-y-3">
+                <div className="bg-[#0b0c10] p-3 rounded-xl border border-white/10 flex justify-between items-center">
+                  <span className="text-xs font-mono font-bold text-white/80 uppercase">Ready ({readyOrders.length})</span>
+                </div>
+                {readyOrders.map(ord => (
+                  <div key={ord.id} className="bg-[#0b0c10] border border-white/15 rounded-2xl p-4 space-y-3 shadow-lg">
+                    <div className="flex justify-between items-start text-xs border-b border-white/5 pb-2">
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-mono font-bold text-white">#{ord.orderNumber.slice(-4)}</p>
+                          <span className={`inline-flex items-center gap-0.5 text-[8px] font-bold px-1 py-0.2 rounded ${
+                            ord.orderSource === 'pos' ? 'bg-blue-950/70 text-blue-300 border border-blue-800/40' : 'bg-purple-950/70 text-purple-300 border border-purple-800/40'
+                          }`}>
+                            {ord.orderSource === 'pos' ? <Store className="w-2 h-2" /> : <Smartphone className="w-2 h-2" />}
+                            {ord.orderSource === 'pos' ? 'POS' : 'APP'}
+                          </span>
+                        </div>
+                        <p className="text-xs font-bold text-[#c5a059] mt-0.5 flex items-center gap-1">
+                          <User className="w-3 h-3" /> {ord.customerName}
+                        </p>
+                        <p className="text-[10px] text-white/40 font-mono mt-0.5">{getElapsedTime(ord.createdAt)}</p>
+                      </div>
+                      <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-mono font-bold px-2 py-0.5 rounded text-[9px] uppercase">
+                        Ready
+                      </span>
+                    </div>
+
+                    {/* ITEMS LIST WITH ITEM STATUS TOGGLE */}
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-mono text-white/40 uppercase font-bold tracking-wider">
+                        Order Items & Status
+                      </p>
+                      {ord.items.map((it, idx) => renderItemWithStatus(ord, it, idx))}
+                    </div>
+
+                    {/* Order Level Status Toggle */}
+                    <div className="space-y-1.5 pt-1 border-t border-white/5">
+                      <p className="text-[9px] font-mono text-white/40 uppercase font-bold">Overall Order Status:</p>
+                      <div className="grid grid-cols-3 gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateStatus(ord.id, 'pending')}
+                          className={`py-1.5 rounded-lg text-[10px] font-mono font-bold uppercase transition-all cursor-pointer ${
+                            ord.orderStatus === 'pending'
+                              ? 'bg-rose-950 text-rose-300 border border-rose-500/60 shadow-[0_0_10px_rgba(244,63,94,0.3)]'
+                              : 'bg-[#12131a] text-white/50 border border-white/5 hover:text-white'
+                          }`}
+                        >
+                          Pending
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateStatus(ord.id, 'preparing')}
+                          className={`py-1.5 rounded-lg text-[10px] font-mono font-bold uppercase transition-all cursor-pointer ${
+                            ord.orderStatus === 'preparing'
+                              ? 'bg-amber-950 text-amber-300 border border-amber-500/60 shadow-[0_0_10px_rgba(245,158,11,0.3)]'
+                              : 'bg-[#12131a] text-white/50 border border-white/5 hover:text-white'
+                          }`}
+                        >
+                          Preparing
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateStatus(ord.id, 'ready')}
+                          className={`py-1.5 rounded-lg text-[10px] font-mono font-bold uppercase transition-all cursor-pointer ${
+                            ord.orderStatus === 'ready'
+                              ? 'bg-emerald-950 text-emerald-300 border border-emerald-500/60 shadow-[0_0_10px_rgba(16,185,129,0.3)]'
+                              : 'bg-[#12131a] text-white/50 border border-white/5 hover:text-white'
+                          }`}
+                        >
+                          Ready
+                        </button>
+                      </div>
+                      <button
+                        onClick={() => handleUpdateStatus(ord.id, 'completed')}
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-mono font-bold py-2 rounded-xl text-xs uppercase tracking-wider flex justify-center items-center gap-1 cursor-pointer transition-all shadow mt-1"
+                      >
+                        <Check className="w-3.5 h-3.5" /> Complete Handover
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         ) : (
           /* TABULAR ROW VIEW (RESPONSIVE FOR MOBILE & DESKTOP) */
           <div className="space-y-3">
             {/* Mobile / Card Stack View (< md) */}
             <div className="block md:hidden space-y-3">
-              {orders.filter(o => ['pending', 'preparing', 'ready'].includes(o.orderStatus)).map(ord => (
+              {orders.filter(o => {
+                if (activeFilter === 'incoming') return o.orderStatus === 'pending';
+                if (activeFilter === 'active') return o.orderStatus === 'preparing';
+                if (activeFilter === 'ready') return o.orderStatus === 'ready';
+                return ['pending', 'preparing', 'ready'].includes(o.orderStatus);
+              }).map(ord => (
                 <div key={ord.id} className="bg-[#0b0c10] border border-white/15 rounded-2xl p-4 space-y-3 shadow-lg font-mono">
                   <div className="flex justify-between items-start border-b border-white/5 pb-2.5">
                     <div className="space-y-1">
@@ -369,45 +575,52 @@ export const KitchenExperience: React.FC = () => {
                     <span className="uppercase font-bold text-[#c5a059]">{ord.orderType.replace('_', ' ')}</span>
                   </div>
 
-                  <div className="space-y-1.5 text-xs text-white/90 bg-[#12131a]/50 p-3 rounded-xl border border-white/5">
-                    {ord.items.map((it, i) => (
-                      <div key={i} className="flex flex-col border-b border-white/5 pb-1.5 last:border-0 last:pb-0">
-                        <div className="flex justify-between font-medium">
-                          <span>{it.quantity}x {it.name} <span className="text-white/40 text-[10px]">({it.selectedSize})</span></span>
-                        </div>
-                        {it.selectedAddOns && it.selectedAddOns.length > 0 && (
-                          <span className="text-[10px] text-white/40 italic pl-3">+ {it.selectedAddOns.join(', ')}</span>
-                        )}
-                      </div>
-                    ))}
+                  <div className="space-y-2 text-xs text-white/90 bg-[#12131a]/50 p-3 rounded-xl border border-white/5">
+                    <p className="text-[10px] font-mono text-white/40 uppercase font-bold tracking-wider">
+                      Order Items & Status:
+                    </p>
+                    {ord.items.map((it, idx) => renderItemWithStatus(ord, it, idx))}
                     {ord.notes && <p className="text-[10px] text-amber-300/90 bg-amber-950/30 p-1.5 rounded-lg border border-amber-800/30 mt-2">Note: {ord.notes}</p>}
                   </div>
 
-                  <div className="pt-1">
-                    {ord.orderStatus === 'pending' && (
+                  {/* Order Level Status Selector */}
+                  <div className="pt-1 space-y-1.5">
+                    <p className="text-[9px] font-mono text-white/40 uppercase font-bold">Overall Order Status:</p>
+                    <div className="grid grid-cols-3 gap-1">
                       <button
+                        type="button"
+                        onClick={() => handleUpdateStatus(ord.id, 'pending')}
+                        className={`py-2 rounded-xl text-xs font-mono font-bold uppercase cursor-pointer transition-all ${
+                          ord.orderStatus === 'pending'
+                            ? 'bg-rose-950 text-rose-300 border border-rose-500/60 shadow'
+                            : 'bg-[#12131a] text-white/50 border border-white/5'
+                        }`}
+                      >
+                        Pending
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => handleUpdateStatus(ord.id, 'preparing')}
-                        className="w-full bg-[#c5a059] hover:bg-[#b08c47] text-black font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider cursor-pointer shadow"
+                        className={`py-2 rounded-xl text-xs font-mono font-bold uppercase cursor-pointer transition-all ${
+                          ord.orderStatus === 'preparing'
+                            ? 'bg-amber-950 text-amber-300 border border-amber-500/60 shadow'
+                            : 'bg-[#12131a] text-white/50 border border-white/5'
+                        }`}
                       >
-                        Start Preparing
+                        Preparing
                       </button>
-                    )}
-                    {ord.orderStatus === 'preparing' && (
                       <button
+                        type="button"
                         onClick={() => handleUpdateStatus(ord.id, 'ready')}
-                        className="w-full bg-amber-500 hover:bg-amber-600 text-black font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider cursor-pointer shadow"
+                        className={`py-2 rounded-xl text-xs font-mono font-bold uppercase cursor-pointer transition-all ${
+                          ord.orderStatus === 'ready'
+                            ? 'bg-emerald-950 text-emerald-300 border border-emerald-500/60 shadow'
+                            : 'bg-[#12131a] text-white/50 border border-white/5'
+                        }`}
                       >
-                        Mark Ready
+                        Ready
                       </button>
-                    )}
-                    {ord.orderStatus === 'ready' && (
-                      <button
-                        onClick={() => handleUpdateStatus(ord.id, 'completed')}
-                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider cursor-pointer shadow"
-                      >
-                        Complete Handover
-                      </button>
-                    )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -423,14 +636,19 @@ export const KitchenExperience: React.FC = () => {
                       <th className="p-3">Origin</th>
                       <th className="p-3">Customer</th>
                       <th className="p-3">Type</th>
-                      <th className="p-3">Items</th>
+                      <th className="p-3 min-w-[320px]">Items & Status</th>
                       <th className="p-3">Time</th>
-                      <th className="p-3">Status</th>
-                      <th className="p-3 text-right">Action</th>
+                      <th className="p-3">Order Status</th>
+                      <th className="p-3 text-right">Quick Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
-                    {orders.filter(o => ['pending', 'preparing', 'ready'].includes(o.orderStatus)).map(ord => (
+                    {orders.filter(o => {
+                      if (activeFilter === 'incoming') return o.orderStatus === 'pending';
+                      if (activeFilter === 'active') return o.orderStatus === 'preparing';
+                      if (activeFilter === 'ready') return o.orderStatus === 'ready';
+                      return ['pending', 'preparing', 'ready'].includes(o.orderStatus);
+                    }).map(ord => (
                       <tr key={ord.id} className="hover:bg-white/[0.02] transition-colors">
                         <td className="p-3 font-bold text-white">#{ord.orderNumber.slice(-4)}</td>
                         <td className="p-3">
@@ -447,30 +665,45 @@ export const KitchenExperience: React.FC = () => {
                           </p>
                         </td>
                         <td className="p-3 uppercase text-white/80">{ord.orderType.replace('_', ' ')}</td>
-                        <td className="p-3 text-white/80">
-                          <div className="space-y-1">
-                            {ord.items.map((it, i) => (
-                              <div key={i} className="flex flex-col">
-                                <span>{it.quantity}x {it.name} <span className="text-white/40 font-normal">({it.selectedSize})</span></span>
-                                {it.selectedAddOns && it.selectedAddOns.length > 0 && (
-                                  <span className="text-[9px] text-white/40 italic pl-2">+ {it.selectedAddOns.join(', ')}</span>
-                                )}
-                              </div>
-                            ))}
+                        <td className="p-3 text-white/80 space-y-2">
+                          <div className="space-y-1.5">
+                            {ord.items.map((it, idx) => renderItemWithStatus(ord, it, idx))}
                           </div>
-                          {ord.notes && <p className="text-[10px] text-amber-300/80 mt-1 bg-amber-950/20 p-1 rounded">Note: {ord.notes}</p>}
+                          {ord.notes && <p className="text-[10px] text-amber-300/80 bg-amber-950/20 p-1.5 rounded border border-amber-800/20">Note: {ord.notes}</p>}
                         </td>
                         <td className="p-3 text-white/40">{getElapsedTime(ord.createdAt)}</td>
                         <td className="p-3">
-                          <span className={`px-2 py-0.5 rounded text-[9px] uppercase font-bold ${ord.orderStatus === 'pending' ? 'bg-rose-950/50 text-rose-300 border border-rose-800/40' : ord.orderStatus === 'preparing' ? 'bg-amber-950/50 text-amber-300 border border-amber-800/40' : 'bg-emerald-950/50 text-emerald-300 border border-emerald-800/40'}`}>
-                            {ord.orderStatus}
-                          </span>
+                          <div className="inline-flex flex-col gap-1">
+                            <span className={`px-2 py-0.5 rounded text-[9px] uppercase font-bold text-center ${ord.orderStatus === 'pending' ? 'bg-rose-950/50 text-rose-300 border border-rose-800/40' : ord.orderStatus === 'preparing' ? 'bg-amber-950/50 text-amber-300 border border-amber-800/40' : 'bg-emerald-950/50 text-emerald-300 border border-emerald-800/40'}`}>
+                              {ord.orderStatus}
+                            </span>
+                            <div className="flex gap-0.5 mt-1">
+                              <button
+                                onClick={() => handleUpdateStatus(ord.id, 'pending')}
+                                className={`px-1.5 py-0.5 rounded text-[8px] uppercase font-bold cursor-pointer ${ord.orderStatus === 'pending' ? 'bg-rose-900 text-rose-200' : 'bg-white/5 text-white/40 hover:text-white'}`}
+                              >
+                                Pend
+                              </button>
+                              <button
+                                onClick={() => handleUpdateStatus(ord.id, 'preparing')}
+                                className={`px-1.5 py-0.5 rounded text-[8px] uppercase font-bold cursor-pointer ${ord.orderStatus === 'preparing' ? 'bg-amber-900 text-amber-200' : 'bg-white/5 text-white/40 hover:text-white'}`}
+                              >
+                                Prep
+                              </button>
+                              <button
+                                onClick={() => handleUpdateStatus(ord.id, 'ready')}
+                                className={`px-1.5 py-0.5 rounded text-[8px] uppercase font-bold cursor-pointer ${ord.orderStatus === 'ready' ? 'bg-emerald-900 text-emerald-200' : 'bg-white/5 text-white/40 hover:text-white'}`}
+                              >
+                                Ready
+                              </button>
+                            </div>
+                          </div>
                         </td>
                         <td className="p-3 text-right">
                           {ord.orderStatus === 'pending' && (
                             <button
                               onClick={() => handleUpdateStatus(ord.id, 'preparing')}
-                              className="bg-[#c5a059] hover:bg-[#b08c47] text-black font-bold px-3 py-1 rounded text-[10px] uppercase cursor-pointer"
+                              className="bg-[#c5a059] hover:bg-[#b08c47] text-black font-bold px-3 py-1.5 rounded text-[10px] uppercase cursor-pointer"
                             >
                               Start
                             </button>
@@ -478,7 +711,7 @@ export const KitchenExperience: React.FC = () => {
                           {ord.orderStatus === 'preparing' && (
                             <button
                               onClick={() => handleUpdateStatus(ord.id, 'ready')}
-                              className="bg-amber-500 hover:bg-amber-600 text-black font-bold px-3 py-1 rounded text-[10px] uppercase cursor-pointer"
+                              className="bg-amber-500 hover:bg-amber-600 text-black font-bold px-3 py-1.5 rounded text-[10px] uppercase cursor-pointer"
                             >
                               Ready
                             </button>
@@ -486,7 +719,7 @@ export const KitchenExperience: React.FC = () => {
                           {ord.orderStatus === 'ready' && (
                             <button
                               onClick={() => handleUpdateStatus(ord.id, 'completed')}
-                              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1 rounded text-[10px] uppercase cursor-pointer"
+                              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded text-[10px] uppercase cursor-pointer"
                             >
                               Complete
                             </button>
@@ -521,5 +754,5 @@ export const KitchenExperience: React.FC = () => {
     </div>
   );
 };
-export default KitchenExperience;
 
+export default KitchenExperience;
