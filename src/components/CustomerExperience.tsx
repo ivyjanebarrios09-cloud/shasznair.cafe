@@ -547,113 +547,271 @@ export const CustomerExperience: React.FC = () => {
               )}
 
               {/* PRODUCT CARD LIST - SQUARE GRID */}
-              <div className="space-y-3 pb-12">
-                <div className="flex items-center justify-between px-1">
-                  <h2 className="text-xs font-bold text-[#c5a059] uppercase tracking-widest">
-                    {selectedCategory === 'all' ? 'All Delights' : categories.find(c => c.id === selectedCategory)?.name}
-                  </h2>
-                  <span className={`text-[10px] font-mono font-medium ${isLight ? 'text-stone-600' : 'text-white/40'}`}>
-                    {filteredProducts.length} {filteredProducts.length === 1 ? 'item' : 'items'}
-                  </span>
-                </div>
+              <div className="space-y-8 pb-12">
+                
+                {/* Loop Categories */}
+                {(() => {
+                  const activeCats = categories.filter(c => c.active !== false);
+                  
+                  // If a specific category is selected, just show that single category section
+                  const renderedCats = selectedCategory === 'all' 
+                    ? activeCats 
+                    : activeCats.filter(c => c.id === selectedCategory);
+                    
+                  // Gather products that don't match any active category
+                  const uncategorized = filteredProducts.filter(p => {
+                    return !activeCats.some(cat => {
+                      const pCat = (p.category || '').toLowerCase().trim();
+                      const cId = (cat.id || '').toLowerCase().trim();
+                      const cName = (cat.name || '').toLowerCase().trim();
+                      return pCat === cId || pCat === cName;
+                    });
+                  });
 
-                {filteredProducts.length === 0 ? (
-                  <div className={`rounded-2xl p-8 border text-center space-y-2 ${isLight ? 'bg-white border-stone-200 text-stone-700 shadow-sm' : 'bg-[#121212] border-white/10 text-white/50'}`}>
-                    <p className={`text-sm font-bold ${isLight ? 'text-stone-900' : 'text-white'}`}>No results found matching your selection.</p>
-                    <p className={`text-xs ${isLight ? 'text-stone-500' : 'text-white/30'}`}>Try adjusting your search filters.</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 gap-2.5 sm:gap-3.5">
-                    {filteredProducts.map(prod => {
-                      const isOutOfStock = prod.stockTracking && prod.stockQuantity === 0;
-                      const isLowStock = prod.stockTracking && prod.stockQuantity <= 10 && prod.stockQuantity > 0;
-                      const prodCat = categories.find(c => c.id === prod.category)?.name || prod.category;
+                  // We check if we have any matching products inside selected categories
+                  const totalMatchedCount = renderedCats.reduce((sum, cat) => {
+                    const countForCat = filteredProducts.filter(p => {
+                      const pCat = (p.category || '').toLowerCase().trim();
+                      const cId = (cat.id || '').toLowerCase().trim();
+                      const cName = (cat.name || '').toLowerCase().trim();
+                      return pCat === cId || pCat === cName;
+                    }).length;
+                    return sum + countForCat;
+                  }, 0);
 
-                      return (
-                        <motion.div
-                          key={prod.id}
-                          whileHover={{ y: -2 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={() => !isOutOfStock && handleOpenCustomize(prod)}
-                          className={`rounded-2xl border transition-all flex flex-col justify-between overflow-hidden relative group select-none cursor-pointer ${
-                            isLight 
-                              ? 'bg-white border-stone-200/90 shadow-sm hover:shadow-md hover:border-[#c5a059]' 
-                              : 'bg-[#121212] border-white/10 shadow-md hover:border-[#c5a059]/40'
-                          } ${
-                            isOutOfStock ? 'opacity-70 cursor-not-allowed border-rose-500/30' : ''
-                          }`}
-                        >
-                          {/* Square Thumbnail */}
-                          <div className={`w-full aspect-square relative overflow-hidden border-b ${isLight ? 'bg-stone-100 border-stone-200' : 'bg-[#080808] border-white/5'}`}>
-                            <img
-                              src={prod.image || 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&q=80&w=300'}
-                              alt={prod.name}
-                              referrerPolicy="no-referrer"
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                            />
+                  if (totalMatchedCount === 0 && uncategorized.length === 0) {
+                    return (
+                      <div className={`rounded-2xl p-8 border text-center space-y-2 ${isLight ? 'bg-white border-stone-200 text-stone-700 shadow-sm' : 'bg-[#121212] border-white/10 text-white/50'}`}>
+                        <p className={`text-sm font-bold ${isLight ? 'text-stone-900' : 'text-white'}`}>No results found matching your selection.</p>
+                        <p className={`text-xs ${isLight ? 'text-stone-500' : 'text-white/30'}`}>Try adjusting your search filters.</p>
+                      </div>
+                    );
+                  }
 
-                            {/* Floating Category Pill */}
-                            <div className="absolute top-1.5 left-1.5 max-w-[70%]">
-                              <span className="inline-block truncate px-1.5 py-0.5 rounded bg-black/75 backdrop-blur-md text-[8px] font-bold text-white/90 border border-white/10 uppercase tracking-tighter shadow-sm">
-                                {prodCat}
-                              </span>
-                            </div>
+                  return (
+                    <>
+                      {renderedCats.map(cat => {
+                        const catProducts = filteredProducts.filter(p => {
+                          const pCat = (p.category || '').toLowerCase().trim();
+                          const cId = (cat.id || '').toLowerCase().trim();
+                          const cName = (cat.name || '').toLowerCase().trim();
+                          return pCat === cId || pCat === cName;
+                        });
 
-                            {/* Status Overlay / Badge */}
-                            {isOutOfStock ? (
-                              <div className="absolute inset-0 bg-black/65 backdrop-blur-[1px] flex items-center justify-center">
-                                <span className="bg-rose-600 text-white font-extrabold text-[8px] px-2 py-0.5 rounded-full uppercase tracking-wider shadow">
-                                  Sold Out
-                                </span>
+                        if (catProducts.length === 0) {
+                          if (selectedCategory === cat.id) {
+                            return (
+                              <div key={cat.id} className={`rounded-2xl p-8 border text-center space-y-2 ${isLight ? 'bg-white border-stone-200 text-stone-700 shadow-sm' : 'bg-[#121212] border-white/10 text-white/50'}`}>
+                                <p className={`text-sm font-bold ${isLight ? 'text-stone-900' : 'text-white'}`}>No products found in "{cat.name}".</p>
                               </div>
-                            ) : isLowStock ? (
-                              <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded bg-amber-500 text-black font-extrabold text-[8px] uppercase tracking-wider shadow">
-                                {prod.stockQuantity} left
-                              </span>
-                            ) : null}
-                          </div>
+                            );
+                          }
+                          return null;
+                        }
 
-                          {/* Product Details & Actions */}
-                          <div className="p-2.5 flex-1 flex flex-col justify-between space-y-2">
-                            <div className="space-y-0.5">
-                              <h3 className={`font-bold text-xs truncate leading-tight ${isLight ? 'text-stone-900' : 'text-white'}`} title={prod.name}>
-                                {prod.name}
+                        return (
+                          <div key={cat.id} className="space-y-3">
+                            <div className="flex items-center justify-between border-b pb-1.5 px-1 border-stone-200/50 dark:border-white/5">
+                              <div className="flex items-center gap-1.5">
+                                <CategoryIcon iconId={cat.icon} categoryName={cat.name} className="w-3.5 h-3.5 text-[#c5a059]" />
+                                <h3 className={`text-xs font-black uppercase tracking-widest ${isLight ? 'text-stone-800' : 'text-white/90'}`}>
+                                  {cat.name}
+                                </h3>
+                              </div>
+                              <span className={`text-[9px] font-mono font-medium ${isLight ? 'text-stone-500' : 'text-white/40'}`}>
+                                {catProducts.length} {catProducts.length === 1 ? 'item' : 'items'}
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2.5 sm:gap-3.5">
+                              {catProducts.map(prod => {
+                                const isOutOfStock = prod.stockTracking && prod.stockQuantity === 0;
+                                const isLowStock = prod.stockTracking && prod.stockQuantity <= 10 && prod.stockQuantity > 0;
+                                const prodCat = categories.find(c => c.id === prod.category)?.name || prod.category;
+
+                                return (
+                                  <motion.div
+                                    key={prod.id}
+                                    whileHover={{ y: -2 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={() => !isOutOfStock && handleOpenCustomize(prod)}
+                                    className={`rounded-2xl border transition-all flex flex-col justify-between overflow-hidden relative group select-none cursor-pointer ${
+                                      isLight 
+                                        ? 'bg-white border-stone-200/90 shadow-sm hover:shadow-md hover:border-[#c5a059]' 
+                                        : 'bg-[#121212] border-white/10 shadow-md hover:border-[#c5a059]/40'
+                                    } ${
+                                      isOutOfStock ? 'opacity-70 cursor-not-allowed border-rose-500/30' : ''
+                                    }`}
+                                  >
+                                    {/* Square Thumbnail */}
+                                    <div className={`w-full aspect-square relative overflow-hidden border-b ${isLight ? 'bg-stone-100 border-stone-200' : 'bg-[#080808] border-white/5'}`}>
+                                      <img
+                                        src={prod.image || 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&q=80&w=300'}
+                                        alt={prod.name}
+                                        referrerPolicy="no-referrer"
+                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                      />
+
+                                      {/* Status Overlay / Badge */}
+                                      {isOutOfStock ? (
+                                        <div className="absolute inset-0 bg-black/65 backdrop-blur-[1px] flex items-center justify-center">
+                                          <span className="bg-rose-600 text-white font-extrabold text-[8px] px-2 py-0.5 rounded-full uppercase tracking-wider shadow">
+                                            Sold Out
+                                          </span>
+                                        </div>
+                                      ) : isLowStock ? (
+                                        <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded bg-amber-500 text-black font-extrabold text-[8px] uppercase tracking-wider shadow">
+                                          {prod.stockQuantity} left
+                                        </span>
+                                      ) : null}
+                                    </div>
+
+                                    {/* Product Details & Actions */}
+                                    <div className="p-2.5 flex-1 flex flex-col justify-between space-y-2">
+                                      <div className="space-y-0.5">
+                                        <h3 className={`font-bold text-xs truncate leading-tight ${isLight ? 'text-stone-900' : 'text-white'}`} title={prod.name}>
+                                          {prod.name}
+                                        </h3>
+                                        {prod.description && (
+                                          <p className={`text-[10px] line-clamp-1 leading-snug ${isLight ? 'text-stone-600' : 'text-white/50'}`}>
+                                            {prod.description}
+                                          </p>
+                                        )}
+                                      </div>
+
+                                      <div className={`flex items-center justify-between pt-1 border-t ${isLight ? 'border-stone-200' : 'border-white/5'}`}>
+                                        <span className="text-xs sm:text-sm font-extrabold text-[#c5a059]">
+                                          ₱{prod.price}
+                                        </span>
+
+                                        <button
+                                          type="button"
+                                          disabled={isOutOfStock}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (!isOutOfStock) handleOpenCustomize(prod);
+                                          }}
+                                          className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition-all flex items-center gap-1 shadow-sm cursor-pointer active:scale-95 ${
+                                            isOutOfStock 
+                                              ? isLight ? 'bg-stone-200 text-stone-400 cursor-not-allowed' : 'bg-white/5 text-white/30 cursor-not-allowed'
+                                              : 'bg-[#c5a059] text-black hover:bg-[#b08c47]'
+                                          }`}
+                                        >
+                                          <Plus size={11} className="stroke-[3]" />
+                                          <span>Add</span>
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </motion.div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {/* Render Uncategorized items if any and selectedCategory is all */}
+                      {selectedCategory === 'all' && uncategorized.length > 0 && (
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between border-b pb-1.5 px-1 border-stone-200/50 dark:border-white/5">
+                            <div className="flex items-center gap-1.5">
+                              <Sparkles className="w-3.5 h-3.5 text-[#c5a059]" />
+                              <h3 className={`text-xs font-black uppercase tracking-widest ${isLight ? 'text-stone-800' : 'text-white/90'}`}>
+                                Other Creations
                               </h3>
-                              {prod.description && (
-                                <p className={`text-[10px] line-clamp-1 leading-snug ${isLight ? 'text-stone-600' : 'text-white/50'}`}>
-                                  {prod.description}
-                                </p>
-                              )}
                             </div>
-
-                            <div className={`flex items-center justify-between pt-1 border-t ${isLight ? 'border-stone-200' : 'border-white/5'}`}>
-                              <span className="text-xs sm:text-sm font-extrabold text-[#c5a059]">
-                                ₱{prod.price}
-                              </span>
-
-                              <button
-                                type="button"
-                                disabled={isOutOfStock}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (!isOutOfStock) handleOpenCustomize(prod);
-                                }}
-                                className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition-all flex items-center gap-1 shadow-sm cursor-pointer active:scale-95 ${
-                                  isOutOfStock 
-                                    ? isLight ? 'bg-stone-200 text-stone-400 cursor-not-allowed' : 'bg-white/5 text-white/30 cursor-not-allowed'
-                                    : 'bg-[#c5a059] text-black hover:bg-[#b08c47]'
-                                }`}
-                              >
-                                <Plus size={11} className="stroke-[3]" />
-                                <span>Add</span>
-                              </button>
-                            </div>
+                            <span className={`text-[9px] font-mono font-medium ${isLight ? 'text-stone-500' : 'text-white/40'}`}>
+                              {uncategorized.length} {uncategorized.length === 1 ? 'item' : 'items'}
+                            </span>
                           </div>
-                        </motion.div>
-                      );
-                    })}
-                  </div>
-                )}
+
+                          <div className="grid grid-cols-2 gap-2.5 sm:gap-3.5">
+                            {uncategorized.map(prod => {
+                              const isOutOfStock = prod.stockTracking && prod.stockQuantity === 0;
+                              const isLowStock = prod.stockTracking && prod.stockQuantity <= 10 && prod.stockQuantity > 0;
+
+                              return (
+                                  <motion.div
+                                    key={prod.id}
+                                    whileHover={{ y: -2 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={() => !isOutOfStock && handleOpenCustomize(prod)}
+                                    className={`rounded-2xl border transition-all flex flex-col justify-between overflow-hidden relative group select-none cursor-pointer ${
+                                      isLight 
+                                        ? 'bg-white border-stone-200/90 shadow-sm hover:shadow-md hover:border-[#c5a059]' 
+                                        : 'bg-[#121212] border-white/10 shadow-md hover:border-[#c5a059]/40'
+                                    } ${
+                                      isOutOfStock ? 'opacity-70 cursor-not-allowed border-rose-500/30' : ''
+                                    }`}
+                                  >
+                                    {/* Square Thumbnail */}
+                                    <div className={`w-full aspect-square relative overflow-hidden border-b ${isLight ? 'bg-stone-100 border-stone-200' : 'bg-[#080808] border-white/5'}`}>
+                                      <img
+                                        src={prod.image || 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&q=80&w=300'}
+                                        alt={prod.name}
+                                        referrerPolicy="no-referrer"
+                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                      />
+
+                                      {/* Status Overlay / Badge */}
+                                      {isOutOfStock ? (
+                                        <div className="absolute inset-0 bg-black/65 backdrop-blur-[1px] flex items-center justify-center">
+                                          <span className="bg-rose-600 text-white font-extrabold text-[8px] px-2 py-0.5 rounded-full uppercase tracking-wider shadow">
+                                            Sold Out
+                                          </span>
+                                        </div>
+                                      ) : isLowStock ? (
+                                        <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded bg-amber-500 text-black font-extrabold text-[8px] uppercase tracking-wider shadow">
+                                          {prod.stockQuantity} left
+                                        </span>
+                                      ) : null}
+                                    </div>
+
+                                    {/* Product Details & Actions */}
+                                    <div className="p-2.5 flex-1 flex flex-col justify-between space-y-2">
+                                      <div className="space-y-0.5">
+                                        <h3 className={`font-bold text-xs truncate leading-tight ${isLight ? 'text-stone-900' : 'text-white'}`} title={prod.name}>
+                                          {prod.name}
+                                        </h3>
+                                        {prod.description && (
+                                          <p className={`text-[10px] line-clamp-1 leading-snug ${isLight ? 'text-stone-600' : 'text-white/50'}`}>
+                                            {prod.description}
+                                          </p>
+                                        )}
+                                      </div>
+
+                                      <div className={`flex items-center justify-between pt-1 border-t ${isLight ? 'border-stone-200' : 'border-white/5'}`}>
+                                        <span className="text-xs sm:text-sm font-extrabold text-[#c5a059]">
+                                          ₱{prod.price}
+                                        </span>
+
+                                        <button
+                                          type="button"
+                                          disabled={isOutOfStock}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (!isOutOfStock) handleOpenCustomize(prod);
+                                          }}
+                                          className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition-all flex items-center gap-1 shadow-sm cursor-pointer active:scale-95 ${
+                                            isOutOfStock 
+                                              ? isLight ? 'bg-stone-200 text-stone-400 cursor-not-allowed' : 'bg-white/5 text-white/30 cursor-not-allowed'
+                                              : 'bg-[#c5a059] text-black hover:bg-[#b08c47]'
+                                          }`}
+                                        >
+                                          <Plus size={11} className="stroke-[3]" />
+                                          <span>Add</span>
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </motion.div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             </motion.div>
           )}

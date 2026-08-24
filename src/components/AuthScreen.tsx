@@ -524,9 +524,12 @@ export const AuthScreen: React.FC = () => {
         {/* CATEGORIES & PRODUCT CARDS LIST */}
         <div className="space-y-12">
           {activeCategories.map(cat => {
-            const catProducts = filteredProducts.filter(
-              p => p.category === cat.id || p.category === cat.name
-            );
+            const catProducts = filteredProducts.filter(p => {
+              const pCat = (p.category || '').toLowerCase().trim();
+              const cId = (cat.id || '').toLowerCase().trim();
+              const cName = (cat.name || '').toLowerCase().trim();
+              return pCat === cId || pCat === cName;
+            });
 
             if (catProducts.length === 0) {
               if (activeCategoryFilter === cat.id) {
@@ -563,20 +566,20 @@ export const AuthScreen: React.FC = () => {
                 </div>
 
                 {/* Product Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                   {catProducts.map(product => (
                     <div 
                       key={product.id}
-                      className={`rounded-2xl p-4 border transition-all duration-200 flex flex-col justify-between group ${
+                      className={`rounded-xl p-2.5 sm:p-3 border transition-all duration-200 flex flex-col justify-between group ${
                         isLight 
                           ? 'bg-white border-stone-200 shadow-sm hover:border-[#c5a059] hover:shadow-md' 
                           : 'bg-[#12100e] border-white/5 hover:border-[#c5a059]/40 shadow-md'
                       }`}
                     >
-                      <div className="space-y-3">
+                      <div className="space-y-2">
                         
                         {/* Image & Price Header */}
-                        <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-stone-900 border border-white/5">
+                        <div className="relative aspect-square w-full rounded-lg overflow-hidden bg-stone-900 border border-white/5">
                           {product.image ? (
                             <img 
                               src={product.image} 
@@ -586,19 +589,19 @@ export const AuthScreen: React.FC = () => {
                             />
                           ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center text-stone-700 space-y-1">
-                              <Coffee className="w-8 h-8" />
-                              <span className="text-[10px]">Fresh Coffee</span>
+                              <Coffee className="w-6 h-6" />
+                              <span className="text-[9px]">Coffee</span>
                             </div>
                           )}
 
                           {/* Price Tag Overlay */}
-                          <div className="absolute bottom-2.5 right-2.5 bg-black/85 backdrop-blur-md text-[#c5a059] font-serif font-black text-sm px-2.5 py-1 rounded-lg border border-[#c5a059]/30 shadow-lg font-mono">
+                          <div className="absolute bottom-2 right-2 bg-black/85 backdrop-blur-md text-[#c5a059] font-serif font-black text-xs px-2 py-0.5 rounded-md border border-[#c5a059]/30 shadow-lg font-mono">
                             ₱{product.price}
                           </div>
 
                           {/* Out of Stock Overlay */}
                           {!product.available && (
-                            <div className="absolute inset-0 bg-black/80 flex items-center justify-center text-xs font-bold text-rose-400 uppercase tracking-wider">
+                            <div className="absolute inset-0 bg-black/80 flex items-center justify-center text-[10px] font-bold text-rose-400 uppercase tracking-wider">
                               Sold Out
                             </div>
                           )}
@@ -606,22 +609,22 @@ export const AuthScreen: React.FC = () => {
 
                         {/* Title & Description */}
                         <div>
-                          <h4 className={`text-sm sm:text-base font-bold transition-colors ${
+                          <h4 className={`text-xs sm:text-sm font-bold transition-colors truncate ${
                             isLight ? 'text-stone-900 group-hover:text-[#9c782d]' : 'text-white group-hover:text-[#c5a059]'
                           }`}>
                             {product.name}
                           </h4>
-                          <p className="text-xs text-stone-400 line-clamp-2 mt-1 leading-relaxed">
-                            {product.description || 'Crafted with premium selected beans and artisanal barista techniques.'}
+                          <p className="text-[10px] text-stone-400 line-clamp-1 mt-0.5 leading-snug">
+                            {product.description || 'Artisanal craft brew.'}
                           </p>
                         </div>
 
                         {/* Sizes Pill list */}
                         {product.sizes && product.sizes.length > 0 && (
-                          <div className="flex flex-wrap gap-1 pt-1">
+                          <div className="flex flex-wrap gap-0.5 pt-0.5">
                             {product.sizes.map((s, idx) => (
-                              <span key={idx} className="text-[9px] font-semibold bg-white/5 text-stone-400 px-2 py-0.5 rounded-md border border-white/5">
-                                {s.name} {s.priceAdjustment > 0 && `(+₱${s.priceAdjustment})`}
+                              <span key={idx} className="text-[8px] font-semibold bg-white/5 text-stone-400 px-1 py-0.5 rounded border border-white/5 truncate max-w-full">
+                                {s.name}
                               </span>
                             ))}
                           </div>
@@ -630,17 +633,17 @@ export const AuthScreen: React.FC = () => {
                       </div>
 
                       {/* Bottom Action Footer */}
-                      <div className="pt-4 border-t border-white/5 mt-4 flex items-center justify-between gap-2">
-                        <div>
+                      <div className="pt-2.5 border-t border-white/5 mt-2.5 flex items-center justify-between gap-1.5">
+                        <div className="truncate">
                           {product.stockTracking ? (
-                            <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                              <span>{product.stockQuantity} In Stock</span>
+                            <span className="text-[9px] text-emerald-400 font-semibold flex items-center gap-0.5">
+                              <span className="w-1 h-1 rounded-full bg-emerald-500" />
+                              <span className="truncate">{product.stockQuantity} Left</span>
                             </span>
                           ) : (
-                            <span className="text-[10px] text-stone-400 font-semibold flex items-center gap-1">
-                              <Sparkles className="w-3 h-3 text-[#c5a059]" />
-                              <span>Freshly Prepared</span>
+                            <span className="text-[9px] text-stone-400 font-semibold flex items-center gap-0.5">
+                              <Sparkles className="w-2.5 h-2.5 text-[#c5a059]" />
+                              <span className="truncate">Fresh</span>
                             </span>
                           )}
                         </div>
@@ -648,13 +651,13 @@ export const AuthScreen: React.FC = () => {
                         <button
                           disabled={!product.available}
                           onClick={() => handleOpenCustomize(product)}
-                          className={`text-xs font-bold px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+                          className={`text-[10px] font-bold px-2 py-1 rounded-lg flex items-center gap-1 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
                             isLight 
                               ? 'bg-stone-900 text-white hover:bg-stone-800 shadow-sm' 
                               : 'bg-[#c5a059] text-black hover:bg-[#b08c47] font-extrabold shadow-md'
                           }`}
                         >
-                          <Plus className="w-3.5 h-3.5" />
+                          <Plus className="w-3 h-3 stroke-[2.5]" />
                           <span>Order</span>
                         </button>
                       </div>
@@ -687,20 +690,20 @@ export const AuthScreen: React.FC = () => {
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                 {uncategorizedProducts
                   .filter(p => (p.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || (p.description || '').toLowerCase().includes(searchQuery.toLowerCase()))
                   .map(product => (
                     <div 
                       key={product.id}
-                      className={`rounded-2xl p-4 border transition-all duration-200 flex flex-col justify-between group ${
+                      className={`rounded-xl p-2.5 sm:p-3 border transition-all duration-200 flex flex-col justify-between group ${
                         isLight 
                           ? 'bg-white border-stone-200 shadow-sm hover:border-[#c5a059] hover:shadow-md' 
                           : 'bg-[#12100e] border-white/5 hover:border-[#c5a059]/40 shadow-md'
                       }`}
                     >
-                      <div className="space-y-3">
-                        <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-stone-900 border border-white/5">
+                      <div className="space-y-2">
+                        <div className="relative aspect-square w-full rounded-lg overflow-hidden bg-stone-900 border border-white/5">
                           {product.image ? (
                             <img 
                               src={product.image} 
@@ -710,55 +713,55 @@ export const AuthScreen: React.FC = () => {
                             />
                           ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center text-stone-700 space-y-1">
-                              <Coffee className="w-8 h-8" />
-                              <span className="text-[10px]">Fresh Item</span>
+                              <Coffee className="w-6 h-6" />
+                              <span className="text-[9px]">Item</span>
                             </div>
                           )}
 
-                          <div className="absolute bottom-2.5 right-2.5 bg-black/85 backdrop-blur-md text-[#c5a059] font-serif font-black text-sm px-2.5 py-1 rounded-lg border border-[#c5a059]/30 shadow-lg font-mono">
+                          <div className="absolute bottom-2 right-2 bg-black/85 backdrop-blur-md text-[#c5a059] font-serif font-black text-xs px-2 py-0.5 rounded-md border border-[#c5a059]/30 shadow-lg font-mono">
                             ₱{product.price}
                           </div>
 
                           {!product.available && (
-                            <div className="absolute inset-0 bg-black/80 flex items-center justify-center text-xs font-bold text-rose-400 uppercase tracking-wider">
+                            <div className="absolute inset-0 bg-black/80 flex items-center justify-center text-[10px] font-bold text-rose-400 uppercase tracking-wider">
                               Sold Out
                             </div>
                           )}
                         </div>
 
                         <div>
-                          <h4 className={`text-sm sm:text-base font-bold transition-colors ${
+                          <h4 className={`text-xs sm:text-sm font-bold transition-colors truncate ${
                             isLight ? 'text-stone-900 group-hover:text-[#9c782d]' : 'text-white group-hover:text-[#c5a059]'
                           }`}>
                             {product.name}
                           </h4>
-                          <p className="text-xs text-stone-400 line-clamp-2 mt-1 leading-relaxed">
-                            {product.description || 'Crafted with premium selected ingredients.'}
+                          <p className="text-[10px] text-stone-400 line-clamp-1 mt-0.5 leading-snug">
+                            {product.description || 'Artisanal creation.'}
                           </p>
                         </div>
 
                         {product.sizes && product.sizes.length > 0 && (
-                          <div className="flex flex-wrap gap-1 pt-1">
+                          <div className="flex flex-wrap gap-0.5 pt-0.5">
                             {product.sizes.map((s, idx) => (
-                              <span key={idx} className="text-[9px] font-semibold bg-white/5 text-stone-400 px-2 py-0.5 rounded-md border border-white/5">
-                                {s.name} {s.priceAdjustment > 0 && `(+₱${s.priceAdjustment})`}
+                              <span key={idx} className="text-[8px] font-semibold bg-white/5 text-stone-400 px-1 py-0.5 rounded border border-white/5 truncate max-w-full">
+                                {s.name}
                               </span>
                             ))}
                           </div>
                         )}
                       </div>
 
-                      <div className="pt-4 border-t border-white/5 mt-4 flex items-center justify-between gap-2">
-                        <div>
+                      <div className="pt-2.5 border-t border-white/5 mt-2.5 flex items-center justify-between gap-1.5">
+                        <div className="truncate">
                           {product.stockTracking ? (
-                            <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                              <span>{product.stockQuantity} In Stock</span>
+                            <span className="text-[9px] text-emerald-400 font-semibold flex items-center gap-0.5">
+                              <span className="w-1 h-1 rounded-full bg-emerald-500" />
+                              <span className="truncate">{product.stockQuantity} Left</span>
                             </span>
                           ) : (
-                            <span className="text-[10px] text-stone-400 font-semibold flex items-center gap-1">
-                              <Sparkles className="w-3 h-3 text-[#c5a059]" />
-                              <span>Freshly Prepared</span>
+                            <span className="text-[9px] text-stone-400 font-semibold flex items-center gap-0.5">
+                              <Sparkles className="w-2.5 h-2.5 text-[#c5a059]" />
+                              <span className="truncate font-semibold">Fresh</span>
                             </span>
                           )}
                         </div>
@@ -766,13 +769,13 @@ export const AuthScreen: React.FC = () => {
                         <button
                           disabled={!product.available}
                           onClick={() => handleOpenCustomize(product)}
-                          className={`text-xs font-bold px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+                          className={`text-[10px] font-bold px-2 py-1 rounded-lg flex items-center gap-1 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
                             isLight 
                               ? 'bg-stone-900 text-white hover:bg-stone-800 shadow-sm' 
                               : 'bg-[#c5a059] text-black hover:bg-[#b08c47] font-extrabold shadow-md'
                           }`}
                         >
-                          <Plus className="w-3.5 h-3.5" />
+                          <Plus className="w-3 h-3 stroke-[2.5]" />
                           <span>Order</span>
                         </button>
                       </div>
