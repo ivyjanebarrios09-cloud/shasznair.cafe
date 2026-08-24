@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ResponsiveContainer, AreaChart, Area, BarChart as RechartsBarChart, Bar, XAxis, YAxis, Tooltip as ReTooltip, CartesianGrid } from 'recharts';
 import { useCoffeeApp } from '../contexts/CoffeeAppContext';
-import { Product, Category, Voucher, UserProfile, Order, SystemSettings } from '../types';
+import { Product, Category, Voucher, UserProfile, Order, SystemSettings, SizeOption, AddOnOption } from '../types';
 import { 
   BarChart, TrendingUp, Banknote, Calendar, Users, 
   ShoppingBag, Clipboard, Award, Shield, FileText, 
@@ -111,7 +111,20 @@ export const AdminExperience: React.FC = () => {
   const [showProductModal, setShowProductModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
-  const [prodForm, setProdForm] = useState({
+  const [prodForm, setProdForm] = useState<{
+    name: string;
+    category: string;
+    description: string;
+    price: number;
+    cost: number;
+    image: string;
+    imageKey?: string;
+    stockTracking: boolean;
+    stockQuantity: number;
+    minStock: number;
+    sizes: SizeOption[];
+    addOns: AddOnOption[];
+  }>({
     name: '',
     category: categories[0]?.id || '',
     description: '',
@@ -120,7 +133,17 @@ export const AdminExperience: React.FC = () => {
     image: '',
     stockTracking: true,
     stockQuantity: 100,
-    minStock: 10
+    minStock: 10,
+    sizes: [
+      { name: 'Small', priceAdjustment: 0 },
+      { name: 'Medium', priceAdjustment: 15 },
+      { name: 'Large', priceAdjustment: 30 }
+    ],
+    addOns: [
+      { name: 'Extra Shot', price: 25 },
+      { name: 'Vanilla Syrup', price: 15 },
+      { name: 'Caramel Syrup', price: 15 }
+    ]
   });
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, formType: 'product' | 'settings' = 'product') => {
@@ -410,16 +433,8 @@ export const AdminExperience: React.FC = () => {
       stockQuantity: Number(prodForm.stockQuantity),
       minStock: Number(prodForm.minStock),
       available: prodForm.stockQuantity > 0,
-      sizes: [
-        { name: 'Small', priceAdjustment: 0 },
-        { name: 'Medium', priceAdjustment: 15 },
-        { name: 'Large', priceAdjustment: 30 }
-      ],
-      addOns: [
-        { name: 'Extra Shot', price: 25 },
-        { name: 'Vanilla Syrup', price: 15 },
-        { name: 'Caramel Syrup', price: 15 }
-      ]
+      sizes: prodForm.sizes,
+      addOns: prodForm.addOns
     };
 
     try {
@@ -452,7 +467,17 @@ export const AdminExperience: React.FC = () => {
       image: prod.image,
       stockTracking: prod.stockTracking,
       stockQuantity: prod.stockQuantity,
-      minStock: prod.minStock
+      minStock: prod.minStock,
+      sizes: prod.sizes || [
+        { name: 'Small', priceAdjustment: 0 },
+        { name: 'Medium', priceAdjustment: 15 },
+        { name: 'Large', priceAdjustment: 30 }
+      ],
+      addOns: prod.addOns || [
+        { name: 'Extra Shot', price: 25 },
+        { name: 'Vanilla Syrup', price: 15 },
+        { name: 'Caramel Syrup', price: 15 }
+      ]
     });
     setModalError(null);
     setModalSuccess(null);
@@ -1062,7 +1087,17 @@ export const AdminExperience: React.FC = () => {
                       image: '',
                       stockTracking: true,
                       stockQuantity: 100,
-                      minStock: lowStockThreshold
+                      minStock: lowStockThreshold,
+                      sizes: [
+                        { name: 'Small', priceAdjustment: 0 },
+                        { name: 'Medium', priceAdjustment: 15 },
+                        { name: 'Large', priceAdjustment: 30 }
+                      ],
+                      addOns: [
+                        { name: 'Extra Shot', price: 25 },
+                        { name: 'Vanilla Syrup', price: 15 },
+                        { name: 'Caramel Syrup', price: 15 }
+                      ]
                     });
                     setModalError(null);
                     setModalSuccess(null);
@@ -2681,7 +2716,7 @@ export const AdminExperience: React.FC = () => {
       {/* 3. PRODUCT CRUD SYSTEM MODAL */}
       {showProductModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <form onSubmit={handleProductSubmit} className={`${isLight ? 'bg-white border-stone-200 text-stone-900 shadow-2xl' : 'bg-[#121212] border-white/10 text-white shadow-2xl'} w-full max-w-md rounded-2xl border p-5 space-y-4 animate-zoom-in text-xs`}>
+          <form onSubmit={handleProductSubmit} className={`${isLight ? 'bg-white border-stone-200 text-stone-900 shadow-2xl' : 'bg-[#121212] border-white/10 text-white shadow-2xl'} w-full max-w-md rounded-2xl border p-5 space-y-4 animate-zoom-in text-xs max-h-[95vh] overflow-y-auto scrollbar-none`}>
             <div className={`flex justify-between items-center border-b ${isLight ? 'border-stone-200' : 'border-white/5'} pb-2`}>
               <h3 className={`font-bold ${isLight ? 'text-stone-900' : 'text-white'} text-sm`}>
                 {editingProduct ? `Edit Beverage: ${editingProduct.name}` : 'Create Beverage Record'}
@@ -2808,6 +2843,132 @@ export const AdminExperience: React.FC = () => {
                     onChange={(e) => setProdForm({ ...prodForm, minStock: Number(e.target.value) })}
                     className={`w-full p-2.5 rounded-xl ${isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-[#080808] border-white/10 text-white'} border outline-none focus:border-[#c5a059]/50 transition-colors`}
                   />
+                </div>
+              </div>
+
+              {/* SIZES MANAGEMENT */}
+              <div className="space-y-2 border-t border-stone-200/55 pt-3">
+                <div className="flex justify-between items-center">
+                  <label className="text-[10px] font-extrabold uppercase text-[#c5a059] tracking-wider block">Size Options & Custom Pricing</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProdForm(prev => ({
+                        ...prev,
+                        sizes: [...(prev.sizes || []), { name: '', priceAdjustment: 0 }]
+                      }));
+                    }}
+                    className="text-[10px] text-amber-500 hover:underline font-bold flex items-center gap-1 cursor-pointer"
+                  >
+                    <Plus className="w-3 h-3" /> Add Size
+                  </button>
+                </div>
+                <div className="space-y-1.5 max-h-40 overflow-y-auto scrollbar-none">
+                  {(prodForm.sizes || []).map((sz, idx) => (
+                    <div key={idx} className="flex gap-2 items-center">
+                      <input
+                        type="text"
+                        placeholder="Size name (e.g. Medium)"
+                        required
+                        value={sz.name}
+                        onChange={(e) => {
+                          const updated = [...(prodForm.sizes || [])];
+                          updated[idx].name = e.target.value;
+                          setProdForm(prev => ({ ...prev, sizes: updated }));
+                        }}
+                        className={`w-3/5 p-2 rounded-xl ${isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-[#080808] border-white/10 text-white'} border outline-none text-xs`}
+                      />
+                      <input
+                        type="number"
+                        placeholder="+₱ adjustment"
+                        required
+                        value={sz.priceAdjustment}
+                        onChange={(e) => {
+                          const updated = [...(prodForm.sizes || [])];
+                          updated[idx].priceAdjustment = Number(e.target.value);
+                          setProdForm(prev => ({ ...prev, sizes: updated }));
+                        }}
+                        className={`w-1/4 p-2 rounded-xl ${isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-[#080808] border-white/10 text-white'} border outline-none text-xs text-center`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = (prodForm.sizes || []).filter((_, i) => i !== idx);
+                          setProdForm(prev => ({ ...prev, sizes: updated }));
+                        }}
+                        className="p-1.5 hover:text-rose-500 cursor-pointer text-stone-400"
+                        title="Remove Size"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                  {(!prodForm.sizes || prodForm.sizes.length === 0) && (
+                    <p className="text-[10px] text-stone-400 italic">No sizes configured. Default regular price will be used.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* ADD-ONS MANAGEMENT */}
+              <div className="space-y-2 border-t border-stone-200/55 pt-3">
+                <div className="flex justify-between items-center">
+                  <label className="text-[10px] font-extrabold uppercase text-[#c5a059] tracking-wider block">Customizable Add-ons</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProdForm(prev => ({
+                        ...prev,
+                        addOns: [...(prev.addOns || []), { name: '', price: 0 }]
+                      }));
+                    }}
+                    className="text-[10px] text-amber-500 hover:underline font-bold flex items-center gap-1 cursor-pointer"
+                  >
+                    <Plus className="w-3 h-3" /> Add Add-on
+                  </button>
+                </div>
+                <div className="space-y-1.5 max-h-40 overflow-y-auto scrollbar-none">
+                  {(prodForm.addOns || []).map((ad, idx) => (
+                    <div key={idx} className="flex gap-2 items-center">
+                      <input
+                        type="text"
+                        placeholder="Add-on (e.g. Extra Shot)"
+                        required
+                        value={ad.name}
+                        onChange={(e) => {
+                          const updated = [...(prodForm.addOns || [])];
+                          updated[idx].name = e.target.value;
+                          setProdForm(prev => ({ ...prev, addOns: updated }));
+                        }}
+                        className={`w-3/5 p-2 rounded-xl ${isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-[#080808] border-white/10 text-white'} border outline-none text-xs`}
+                      />
+                      <input
+                        type="number"
+                        placeholder="Price ₱"
+                        required
+                        value={ad.price}
+                        onChange={(e) => {
+                          const updated = [...(prodForm.addOns || [])];
+                          updated[idx].price = Number(e.target.value);
+                          setProdForm(prev => ({ ...prev, addOns: updated }));
+                        }}
+                        className={`w-1/4 p-2 rounded-xl ${isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-[#080808] border-white/10 text-white'} border outline-none text-xs text-center`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = (prodForm.addOns || []).filter((_, i) => i !== idx);
+                          setProdForm(prev => ({ ...prev, addOns: updated }));
+                        }}
+                        className="p-1.5 hover:text-rose-500 cursor-pointer text-stone-400"
+                        title="Remove Add-on"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                  {(!prodForm.addOns || prodForm.addOns.length === 0) && (
+                    <p className="text-[10px] text-stone-400 italic">No customizable add-ons configured.</p>
+                  )}
                 </div>
               </div>
             </div>

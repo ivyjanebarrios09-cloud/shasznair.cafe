@@ -69,6 +69,7 @@ export const PosExperience: React.FC = () => {
   const [activeView, setActiveView] = useState<'menu' | 'register' | 'transactions'>('menu');
   const [txStatusFilter, setTxStatusFilter] = useState<'all' | 'pending' | 'preparing' | 'ready' | 'completed' | 'unpaid'>('all');
   const [showPosBestSellers, setShowPosBestSellers] = useState(true);
+  const [viewReceiptUrl, setViewReceiptUrl] = useState<string | null>(null);
 
   // Dynamic Best Sellers calculation for POS from real orders
   const posBestSellers = useMemo(() => {
@@ -1256,6 +1257,19 @@ export const PosExperience: React.FC = () => {
                               <span>• Cashier: {ord.cashierName}</span>
                             )}
                           </div>
+                          {ord.receiptUrl && (
+                            <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+                              <span className="inline-flex items-center gap-0.5 text-[8px] font-mono font-bold px-1.5 py-0.5 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded">
+                                Receipt Uploaded
+                              </span>
+                              <button
+                                onClick={() => setViewReceiptUrl(ord.receiptUrl)}
+                                className="bg-[#c5a059]/10 hover:bg-[#c5a059]/20 border border-[#c5a059]/30 text-[#c5a059] font-extrabold text-[9px] px-1.5 py-0.5 rounded cursor-pointer transition-colors"
+                              >
+                                Check
+                              </button>
+                            </div>
+                          )}
                         </td>
                         <td className="p-3.5 text-[10px]">
                           <div className="space-y-1 max-h-16 overflow-y-auto">
@@ -1300,11 +1314,19 @@ export const PosExperience: React.FC = () => {
                           </span>
                         </td>
                         <td className="p-3.5 text-right">
-                          <div className="flex gap-1.5 justify-end">
-                            {ord.paymentStatus === 'unpaid' && (
+                          <div className="flex gap-1.5 justify-end items-center">
+                            {ord.receiptUrl && ord.paymentStatus !== 'paid' && (
+                              <button
+                                onClick={() => setViewReceiptUrl(ord.receiptUrl)}
+                                className="bg-amber-500 hover:bg-amber-600 text-black font-extrabold px-2.5 py-1 rounded-lg text-[10px] transition-colors cursor-pointer shrink-0"
+                              >
+                                Check Receipt
+                              </button>
+                            )}
+                            {ord.paymentStatus !== 'paid' && (
                               <button
                                 onClick={() => updatePaymentStatus(ord.id, 'paid')}
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] transition-colors cursor-pointer"
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] transition-colors cursor-pointer shrink-0"
                               >
                                 Mark Paid
                               </button>
@@ -1312,7 +1334,7 @@ export const PosExperience: React.FC = () => {
                             {ord.orderStatus === 'ready' && (
                               <button
                                 onClick={() => updateOrderStatus(ord.id, 'completed')}
-                                className="bg-[#c5a059] hover:bg-[#b08c47] text-black font-bold px-2.5 py-1 rounded-lg text-[10px] transition-colors cursor-pointer"
+                                className="bg-[#c5a059] hover:bg-[#b08c47] text-black font-bold px-2.5 py-1 rounded-lg text-[10px] transition-colors cursor-pointer shrink-0"
                               >
                                 Fulfill Order
                               </button>
@@ -1832,6 +1854,68 @@ export const PosExperience: React.FC = () => {
                 ₱{customizeProduct.price + (selectedSize?.priceAdjustment || 0) + selectedAddOns.reduce((sum, ad) => sum + ad.price, 0)}
               </span>
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* RECEIPT VIEWER LIGHTBOX MODAL */}
+      {viewReceiptUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs animate-fade-in">
+          <div className={`relative max-w-lg w-full rounded-2xl overflow-hidden p-6 shadow-2xl flex flex-col items-center gap-4 ${isLight ? 'bg-white text-stone-900' : 'bg-stone-950 text-white border border-white/10'}`}>
+            <button 
+              onClick={() => setViewReceiptUrl(null)}
+              className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-stone-500/20 text-stone-400 hover:text-white transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h3 className="text-sm font-bold uppercase tracking-wider font-mono text-[#c5a059]">Payment Receipt Proof</h3>
+            
+            <div className="w-full h-[60vh] rounded-xl overflow-hidden bg-black/20 border border-stone-200/10 flex items-center justify-center">
+              <img 
+                src={viewReceiptUrl} 
+                alt="Receipt Detail" 
+                className="max-w-full max-h-full object-contain"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+            
+            {/* Find the order for this receipt so we can offer verifying payment */}
+            {(() => {
+              const matchedOrder = orders.find(o => o.receiptUrl === viewReceiptUrl);
+              return (
+                <div className="flex gap-3 w-full font-mono text-xs mt-2">
+                  {matchedOrder && matchedOrder.paymentStatus !== 'paid' && (
+                    <button
+                      onClick={async () => {
+                        try {
+                          await updatePaymentStatus(matchedOrder.id, 'paid');
+                          setViewReceiptUrl(null);
+                        } catch (err: any) {
+                          alert("Failed to mark order as paid: " + err.message);
+                        }
+                      }}
+                      className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-2.5 rounded-xl uppercase tracking-wider flex justify-center items-center gap-1.5 cursor-pointer shadow transition-all"
+                    >
+                      Verify & Mark Paid
+                    </button>
+                  )}
+                  <a 
+                    href={viewReceiptUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex-1 bg-stone-700 hover:bg-stone-600 text-white font-extrabold py-2.5 rounded-xl uppercase tracking-wider flex justify-center items-center gap-1.5 cursor-pointer shadow transition-all text-center"
+                  >
+                    Open in New Tab
+                  </a>
+                  <button 
+                    onClick={() => setViewReceiptUrl(null)}
+                    className={`flex-1 font-bold py-2.5 rounded-xl uppercase tracking-wider transition-all cursor-pointer ${isLight ? 'bg-stone-200 hover:bg-stone-300 text-stone-800' : 'bg-stone-900 hover:bg-stone-800 text-stone-300'}`}
+                  >
+                    Close
+                  </button>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}

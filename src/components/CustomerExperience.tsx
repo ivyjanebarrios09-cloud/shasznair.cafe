@@ -1620,19 +1620,18 @@ export const CustomerExperience: React.FC = () => {
                   {/* Dynamic QR Code Display for selected payment method */}
                   {(() => {
                     const selectedMethod = (settings.paymentMethods || []).find(m => m.id === paymentMethod);
-                    if (selectedMethod && (selectedMethod.qrCodeUrl || selectedMethod.accountNumber)) {
+                    const isEWallet = selectedMethod?.type === 'qr' || selectedMethod?.type === 'ewallet' || selectedMethod?.id === 'gcash' || selectedMethod?.id === 'ewallet' || paymentMethod === 'gcash' || paymentMethod === 'ewallet';
+                    if (selectedMethod && isEWallet) {
+                      const accountNumber = selectedMethod.accountNumber || "0917 123 4567";
+                      const qrUrl = selectedMethod.qrCodeUrl || `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=GCash-Transfer-${accountNumber.replace(/\s+/g, '')}`;
                       return (
                         <div className="mt-3 p-4 bg-amber-50/40 border border-stone-200 rounded-xl flex flex-col items-center text-center space-y-3 animate-fade-in">
                           <p className="text-xs font-extrabold text-stone-800">Scan or Transfer to pay via {selectedMethod.name}</p>
-                          {selectedMethod.accountNumber && (
-                            <div className="bg-amber-950/10 text-amber-950 font-mono font-bold text-xs py-1.5 px-3 rounded-lg border border-amber-900/10 flex items-center gap-1.5">
-                              <span>No./Account:</span>
-                              <span className="text-amber-900 tracking-wider select-all">{selectedMethod.accountNumber}</span>
-                            </div>
-                          )}
-                          {selectedMethod.qrCodeUrl && (
-                            <img src={selectedMethod.qrCodeUrl} alt={`${selectedMethod.name} QR Code`} className="w-40 h-40 object-contain rounded-lg border border-stone-150 bg-white p-1 shadow-xs" />
-                          )}
+                          <div className="bg-amber-950/10 text-amber-950 font-mono font-bold text-xs py-1.5 px-3 rounded-lg border border-amber-900/10 flex items-center gap-1.5">
+                            <span>No./Account:</span>
+                            <span className="text-amber-900 tracking-wider select-all">{accountNumber}</span>
+                          </div>
+                          <img src={qrUrl} alt={`${selectedMethod.name} QR Code`} className="w-40 h-40 object-contain rounded-lg border border-stone-150 bg-white p-1 shadow-xs" />
                           <p className="text-[10px] text-stone-500 leading-relaxed font-medium">Please send the exact amount and upload your payment proof/receipt image below for verification.</p>
                           
                           {/* Receipt Upload Input at Checkout */}

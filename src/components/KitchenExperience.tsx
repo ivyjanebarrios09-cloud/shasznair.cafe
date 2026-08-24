@@ -2,12 +2,35 @@ import React, { useState } from 'react';
 import { useCoffeeApp } from '../contexts/CoffeeAppContext';
 import { Order, OrderStatus, OrderItem } from '../types';
 import { InstallAppButton } from './InstallAppButton';
-import { Clock, Play, CheckCircle, Package, MapPin, Check, MessageSquare, AlertCircle, LogOut, Menu, Download, Table, LayoutGrid, CheckCircle2, User, Store, Smartphone } from 'lucide-react';
+import { Clock, Play, CheckCircle, Package, MapPin, Check, MessageSquare, AlertCircle, LogOut, Menu, Download, Table, LayoutGrid, CheckCircle2, User, Store, Smartphone, ReceiptText, X } from 'lucide-react';
 
 export const KitchenExperience: React.FC = () => {
   const { orders, updateOrderStatus, updateOrderItemStatus, dataLoading, currentUser, logout, settings } = useCoffeeApp();
   const [activeFilter, setActiveFilter] = useState<'all' | 'pay' | 'verify' | 'incoming' | 'active' | 'ready'>('all');
   const [queueMode, setQueueMode] = useState<'tabular' | 'grid'>('tabular');
+  const [viewReceiptUrl, setViewReceiptUrl] = useState<string | null>(null);
+
+  const isLight = settings?.branding?.theme === 'light';
+
+  const renderReceiptPreview = (ord: Order) => {
+    if (!ord.receiptUrl) return null;
+    return (
+      <div className={`mt-2.5 p-2 rounded-xl border flex items-center justify-between gap-2.5 ${
+        isLight ? 'bg-amber-50/40 border-amber-200 text-stone-800' : 'bg-amber-950/15 border-amber-800/30 text-white/90'
+      }`}>
+        <div className="flex items-center gap-1.5 min-w-0">
+          <ReceiptText className="w-4 h-4 text-[#c5a059] shrink-0" />
+          <span className="text-[10px] font-bold truncate">E-Wallet Receipt</span>
+        </div>
+        <button
+          onClick={() => setViewReceiptUrl(ord.receiptUrl || null)}
+          className="bg-[#c5a059] hover:bg-[#b08c47] text-black font-extrabold text-[9px] px-2 py-1 rounded-lg transition-all cursor-pointer shadow-sm shrink-0"
+        >
+          Check Receipt
+        </button>
+      </div>
+    );
+  };
 
   // Filter orders by active kitchen stages
   const newOrders = orders.filter(o => o.orderStatus === 'pending');
@@ -38,8 +61,6 @@ export const KitchenExperience: React.FC = () => {
     const diffMins = Math.floor(diffMs / 60000);
     return `${diffMins}m ago`;
   };
-
-  const isLight = settings?.branding?.theme === 'light';
 
   // Render function for order items with clean, high-visibility layout
   const renderItemWithStatus = (ord: Order, it: OrderItem, idx: number) => {
@@ -373,6 +394,8 @@ export const KitchenExperience: React.FC = () => {
                       </p>
                     )}
 
+                    {renderReceiptPreview(ord)}
+
                     {/* Primary Action Button */}
                     <div className={`pt-2 border-t ${isLight ? 'border-stone-200' : 'border-white/5'}`}>
                       <button
@@ -440,6 +463,8 @@ export const KitchenExperience: React.FC = () => {
                         Note: {ord.notes}
                       </p>
                     )}
+
+                    {renderReceiptPreview(ord)}
 
                     {/* Action Controls */}
                     <div className={`pt-2 border-t ${isLight ? 'border-stone-200' : 'border-white/5'} flex gap-2`}>
@@ -511,6 +536,8 @@ export const KitchenExperience: React.FC = () => {
                       </p>
                       {ord.items.map((it, idx) => renderItemWithStatus(ord, it, idx))}
                     </div>
+
+                    {renderReceiptPreview(ord)}
 
                     {/* Action Controls */}
                     <div className={`pt-2 border-t ${isLight ? 'border-stone-200' : 'border-white/5'} flex gap-2`}>
@@ -588,6 +615,7 @@ export const KitchenExperience: React.FC = () => {
                     </p>
                     {ord.items.map((it, idx) => renderItemWithStatus(ord, it, idx))}
                     {ord.notes && <p className={`text-[10px] p-1.5 rounded-lg border mt-2 ${isLight ? 'text-amber-900 bg-amber-100/90 border-amber-300 font-medium' : 'text-amber-300/90 bg-amber-950/30 border-amber-800/30'}`}>Note: {ord.notes}</p>}
+                    {renderReceiptPreview(ord)}
                   </div>
 
                   {/* Order Level Action Button */}
@@ -687,6 +715,7 @@ export const KitchenExperience: React.FC = () => {
                             {ord.items.map((it, idx) => renderItemWithStatus(ord, it, idx))}
                           </div>
                           {ord.notes && <p className={`text-[10px] p-1.5 rounded border ${isLight ? 'text-amber-900 bg-amber-100/90 border-amber-300 font-medium' : 'text-amber-300/80 bg-amber-950/20 border-amber-800/20'}`}>Note: {ord.notes}</p>}
+                          {renderReceiptPreview(ord)}
                         </td>
                         <td className={`p-3 ${isLight ? 'text-stone-600 font-semibold' : 'text-white/40'}`}>{getElapsedTime(ord.createdAt)}</td>
                         <td className="p-3">
@@ -776,6 +805,45 @@ export const KitchenExperience: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* RECEIPT VIEWER LIGHTBOX MODAL */}
+      {viewReceiptUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs animate-fade-in">
+          <div className={`relative max-w-lg w-full rounded-2xl overflow-hidden p-6 shadow-2xl flex flex-col items-center gap-4 ${isLight ? 'bg-white text-stone-900' : 'bg-stone-950 text-white border border-white/10'}`}>
+            <button 
+              onClick={() => setViewReceiptUrl(null)}
+              className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-stone-500/20 text-stone-400 hover:text-white transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h3 className="text-sm font-bold uppercase tracking-wider font-mono text-[#c5a059]">Payment Receipt Proof</h3>
+            <div className="w-full h-[60vh] rounded-xl overflow-hidden bg-black/20 border border-stone-200/10 flex items-center justify-center">
+              <img 
+                src={viewReceiptUrl} 
+                alt="Receipt Detail" 
+                className="max-w-full max-h-full object-contain"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+            <div className="flex gap-3 w-full font-mono text-xs mt-2">
+              <a 
+                href={viewReceiptUrl} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex-1 bg-[#c5a059] hover:bg-[#b08c47] text-black font-extrabold py-2.5 rounded-xl uppercase tracking-wider flex justify-center items-center gap-1.5 cursor-pointer shadow transition-all text-center"
+              >
+                Open in New Tab
+              </a>
+              <button 
+                onClick={() => setViewReceiptUrl(null)}
+                className={`flex-1 font-bold py-2.5 rounded-xl uppercase tracking-wider transition-all cursor-pointer ${isLight ? 'bg-stone-200 hover:bg-stone-300 text-stone-800' : 'bg-stone-900 hover:bg-stone-800 text-stone-300'}`}
+              >
+                Close Viewer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { motion } from 'motion/react';
 import { useCoffeeApp } from '../contexts/CoffeeAppContext';
 import { DEMO_CATEGORIES, DEMO_PRODUCTS } from '../firebase/demoData';
 import { Product, CartItem, OrderType, PaymentMethod, Order } from '../types';
@@ -78,6 +79,8 @@ export const AuthScreen: React.FC = () => {
   const [tableNo, setTableNo] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [orderNotes, setOrderNotes] = useState('');
+  const [checkoutReceiptUrl, setCheckoutReceiptUrl] = useState<string>('');
+  const [uploadingReceipt, setUploadingReceipt] = useState(false);
 
   const [orderSubmitting, setOrderSubmitting] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
@@ -219,7 +222,10 @@ export const AuthScreen: React.FC = () => {
         guestCart,
         null, // Walk-in customers do NOT have vouchers
         customerName.trim(),
-        'web_app'
+        'web_app',
+        undefined, // cashReceived
+        undefined, // change
+        checkoutReceiptUrl || undefined // receiptUrl
       );
 
       setConfirmedOrder(order);
@@ -294,8 +300,8 @@ export const AuthScreen: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
           
           {/* Brand Logo & Title */}
-          <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl overflow-hidden bg-white border border-[#c5a059]/40 shadow-md flex items-center justify-center shrink-0">
+          <div className="flex items-center gap-3 sm:gap-3.5 justify-start">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl overflow-hidden bg-white border border-[#c5a059]/40 shadow-md flex items-center justify-center shrink-0">
               {logoUrl ? (
                 <img 
                   src={logoUrl} 
@@ -309,54 +315,55 @@ export const AuthScreen: React.FC = () => {
                 </div>
               )}
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className={`text-lg sm:text-xl font-serif font-extrabold tracking-wide ${isLight ? 'text-stone-900' : 'text-white'}`}>
+            <div className="text-left">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <h1 className={`text-base sm:text-lg md:text-xl font-serif font-extrabold tracking-wide ${isLight ? 'text-stone-900' : 'text-white'}`}>
                   {shopName}
                 </h1>
-                <span className={`hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[8px] sm:text-[10px] font-bold border ${
                   isOpen 
                     ? isLight ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-emerald-950/80 text-emerald-300 border-emerald-600/40'
                     : isLight ? 'bg-rose-100 text-rose-800 border-rose-300' : 'bg-rose-950/80 text-rose-300 border-rose-600/40'
                 }`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${isOpen ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
-                  <span>{isOpen ? 'Open for Orders' : 'Store Closed'}</span>
+                  <span className={`w-1 sm:w-1.5 sm:h-1.5 h-1 rounded-full ${isOpen ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
+                  <span className="hidden xs:inline">{isOpen ? 'Open' : 'Closed'}</span>
                 </span>
               </div>
-              <p className={`text-[10px] ${isLight ? 'text-[#9c782d]' : 'text-[#c5a059]'} uppercase tracking-widest font-semibold`}>
+              <p className={`text-[9px] sm:text-[10px] ${isLight ? 'text-[#9c782d]' : 'text-[#c5a059]'} uppercase tracking-wider sm:tracking-widest font-semibold`}>
                 {shopDesc}
               </p>
             </div>
           </div>
 
           {/* Action Header Buttons: Cart Tray + Sign In/Register */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center justify-end gap-2.5 sm:gap-3">
             
-            {/* View Order Tray / Cart Button */}
-            <button
+            {/* View Order Tray / Cart Button - Animated SVG Icon */}
+            <motion.button
               id="view-cart-btn"
               onClick={() => setIsCartOpen(true)}
-              className={`relative px-3.5 sm:px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer border ${
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.92 }}
+              className={`relative p-2.5 sm:p-3 rounded-xl flex items-center justify-center transition-all cursor-pointer border ${
                 cartTotalItems > 0
                   ? 'bg-[#c5a059] text-black border-[#c5a059] shadow-md hover:bg-[#b08c47]'
                   : isLight 
                     ? 'bg-stone-100 text-stone-700 border-stone-300 hover:bg-stone-200' 
-                    : 'bg-stone-900 text-stone-300 border-white/10 hover:border-white/20'
+                    : 'bg-[#120f0c] text-stone-300 border-white/10 hover:border-white/20'
               }`}
+              title="View Order Tray"
             >
-              <ShoppingBag className="w-4 h-4 shrink-0" />
-              <span className="hidden sm:inline">Order Tray</span>
+              <ShoppingBag className="w-5 h-5 shrink-0" />
               {cartTotalItems > 0 && (
-                <span className="bg-black text-[#c5a059] font-black text-[10px] px-1.5 py-0.5 rounded-full">
+                <motion.span 
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="absolute -top-1.5 -right-1.5 bg-black text-[#c5a059] border border-[#c5a059]/30 font-black text-[9px] w-5 h-5 rounded-full flex items-center justify-center shadow-lg"
+                >
                   {cartTotalItems}
-                </span>
+                </motion.span>
               )}
-              {cartTotalItems > 0 && (
-                <span className="font-mono text-xs font-black">
-                  ₱{cartSubtotal}
-                </span>
-              )}
-            </button>
+            </motion.button>
 
             {/* Member Sign In / Sign Up Button */}
             <button
@@ -366,15 +373,15 @@ export const AuthScreen: React.FC = () => {
                 setAuthError(null);
                 setAuthSuccessMsg(null);
               }}
-              className={`px-3.5 sm:px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer border ${
+              className={`px-3.5 sm:px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer border shrink-0 ${
                 isLight 
                   ? 'bg-stone-900 text-white border-stone-800 hover:bg-stone-800 shadow-sm' 
                   : 'bg-white/10 text-white border-white/15 hover:bg-white/15'
               }`}
             >
               <User className="w-4 h-4 text-[#c5a059]" />
-              <span className="hidden md:inline">Member Portal</span>
-              <span className="md:hidden">Sign In</span>
+              <span className="hidden sm:inline">Member Portal</span>
+              <span className="sm:hidden">Sign In</span>
             </button>
 
           </div>
@@ -392,10 +399,6 @@ export const AuthScreen: React.FC = () => {
               <Sparkles className="w-3.5 h-3.5" />
               <span>Walk-in Orders Welcome • No Account Required</span>
             </div>
-
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-serif font-black text-white leading-tight">
-              Order Fresh Artisan Brews & Pastries <span className="text-[#c5a059]">Instantly</span>
-            </h2>
 
             <p className="text-xs sm:text-sm text-stone-300 leading-relaxed">
               Place your walk-in order directly from our full interactive menu below. Just provide your name so our kitchen and barista team can notify you when it's freshly prepared.
@@ -1227,6 +1230,76 @@ export const AuthScreen: React.FC = () => {
                 </div>
               </div>
 
+              {/* Dynamic QR Code Display & Upload Receipt button for GCash / E-Wallet */}
+              {paymentMethod === 'gcash' && (
+                <div className="p-4 rounded-2xl bg-stone-950 border border-white/10 flex flex-col items-center text-center space-y-3 animate-fade-in">
+                  <p className="text-xs font-bold text-white">Scan or Transfer to pay via GCash / E-Wallet</p>
+                  
+                  {(() => {
+                    const qrMethod = (settings?.paymentMethods || []).find(m => m.type === 'qr' || m.id === 'gcash');
+                    const accountNumber = qrMethod?.accountNumber || "0917 123 4567";
+                    const qrUrl = qrMethod?.qrCodeUrl || `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=GCash-Transfer-${accountNumber.replace(/\s+/g, '')}`;
+                    return (
+                      <>
+                        <div className="bg-stone-900 text-[#c5a059] font-mono font-bold text-xs py-1.5 px-3 rounded-lg border border-white/5 flex items-center gap-1.5">
+                          <span>No./Account:</span>
+                          <span className="text-white tracking-wider select-all">{accountNumber}</span>
+                        </div>
+                        
+                        <img 
+                          src={qrUrl} 
+                          alt="GCash QR Code" 
+                          className="w-40 h-40 object-contain rounded-lg border border-white/10 bg-white p-1.5 shadow-sm" 
+                        />
+                      </>
+                    );
+                  })()}
+                  
+                  <p className="text-[10px] text-stone-400 leading-relaxed font-medium">
+                    Please transfer the exact order amount and upload your payment proof/receipt screenshot below.
+                  </p>
+                  
+                  {/* Receipt Upload Input at Checkout */}
+                  <div className="w-full pt-2 border-t border-white/5 text-left">
+                    <label className="text-[10px] font-extrabold uppercase text-stone-300 tracking-wider block mb-1.5">
+                      Upload Payment Receipt
+                    </label>
+                    <div className="flex items-center gap-2">
+                      {checkoutReceiptUrl && (
+                        <img src={checkoutReceiptUrl} alt="Receipt Preview" className="w-10 h-10 rounded-lg object-cover border border-white/10 bg-stone-900" />
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          setUploadingReceipt(true);
+                          try {
+                            const res = await fetch('/api/upload-url', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ filename: file.name, contentType: file.type })
+                            });
+                            if (!res.ok) throw new Error(await res.text());
+                            const { signedUrl, publicUrl } = await res.json();
+                            await fetch(signedUrl, { method: 'PUT', headers: { 'Content-Type': file.type }, body: file });
+                            
+                            setCheckoutReceiptUrl(publicUrl);
+                          } catch (err: any) {
+                            alert("Failed to upload receipt: " + err.message);
+                          } finally {
+                            setUploadingReceipt(false);
+                          }
+                        }}
+                        className="w-full text-xs text-stone-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-[10px] file:font-bold file:bg-[#c5a059]/10 file:text-[#c5a059] hover:file:bg-[#c5a059]/20"
+                      />
+                    </div>
+                    {uploadingReceipt && <p className="text-[9px] text-[#c5a059] animate-pulse mt-1 font-semibold">Uploading proof of payment...</p>}
+                  </div>
+                </div>
+              )}
+
               {/* SPECIAL ORDER NOTES */}
               <div className="space-y-1">
                 <label className="text-[10px] font-extrabold uppercase text-stone-400 tracking-wider">
@@ -1631,6 +1704,25 @@ export const AuthScreen: React.FC = () => {
           &copy; {new Date().getFullYear()} {shopName}. All Rights Reserved.
         </div>
       </footer>
+
+      {/* MOBILE FLOATING ORDER TRAY BAR */}
+      {cartTotalItems > 0 && (
+        <div className="fixed bottom-4 left-4 right-4 z-40 sm:hidden">
+          <button
+            onClick={() => setIsCartOpen(true)}
+            className="w-full bg-[#c5a059] text-black font-black text-xs py-3.5 rounded-2xl flex items-center justify-between px-5 shadow-2xl border border-[#c5a059]/40 animate-bounce-subtle cursor-pointer hover:bg-[#b08c47] transition-all"
+          >
+            <div className="flex items-center gap-2">
+              <ShoppingBag className="w-4 h-4 shrink-0" />
+              <span>View Order Tray</span>
+              <span className="bg-black text-[#c5a059] text-[9px] px-1.5 py-0.5 rounded-full font-bold">
+                {cartTotalItems}
+              </span>
+            </div>
+            <span className="font-mono font-black text-xs">₱{cartSubtotal}</span>
+          </button>
+        </div>
+      )}
 
     </div>
   );
