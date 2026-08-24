@@ -69,12 +69,6 @@ app.get("/api/diagnose-r2", async (req, res) => {
   }
 });
 
-// Dedicated APK download endpoint for Android devices
-app.get("/download-apk", (req, res) => {
-  res.setHeader("Content-Type", "application/vnd.android.package-archive");
-  res.setHeader("Content-Disposition", 'attachment; filename="Shasznair_Cafe_App.apk"');
-  res.sendFile(path.join(process.cwd(), "public", "Shasznair_Cafe_App.apk"));
-});
 
 // API route to get a presigned URL for Cloudflare R2
 app.post("/api/upload-url", async (req, res) => {
