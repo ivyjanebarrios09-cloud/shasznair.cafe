@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Smartphone, X, CheckCircle2, Share, PlusSquare, Monitor, AppWindow } from 'lucide-react';
+import { Smartphone, X, CheckCircle2, Share, PlusSquare, Monitor, AppWindow, ExternalLink } from 'lucide-react';
 
 export const InstallAppButton: React.FC<{ className?: string }> = ({ className = "" }) => {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -9,8 +9,12 @@ export const InstallAppButton: React.FC<{ className?: string }> = ({ className =
   const [activeDeviceTab, setActiveDeviceTab] = useState<'ios' | 'android' | 'desktop'>('android');
 
   const [showAutoBanner, setShowAutoBanner] = useState(false);
+  const [isIframe, setIsIframe] = useState(false);
 
   useEffect(() => {
+    const inFrame = window.self !== window.top;
+    setIsIframe(inFrame);
+
     const userAgent = window.navigator.userAgent.toLowerCase();
     const iosDevice = /iphone|ipad|ipod/.test(userAgent);
     const androidDevice = /android/.test(userAgent);
@@ -25,7 +29,6 @@ export const InstallAppButton: React.FC<{ className?: string }> = ({ className =
     // Auto-show install prompt / banner on load if not installed
     const hasDismissed = sessionStorage.getItem('pwa_banner_dismissed');
     if (!inStandalone && !hasDismissed) {
-      // Auto open popup after short delay for immediate visibility on Android
       const timer = setTimeout(() => {
         setShowAutoBanner(true);
       }, 800);
@@ -35,7 +38,6 @@ export const InstallAppButton: React.FC<{ className?: string }> = ({ className =
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      // Automatically prompt or show popup immediately on Android when ready
       if (!inStandalone && !hasDismissed) {
         setShowInstallModal(true);
       }
@@ -55,10 +57,14 @@ export const InstallAppButton: React.FC<{ className?: string }> = ({ className =
         if (outcome === 'accepted') {
           setDeferredPrompt(null);
           setIsStandalone(true);
+          setShowInstallModal(false);
         }
       } catch {
         setShowInstallModal(true);
       }
+    } else if (isIframe) {
+      // In embedded preview iframe, browser blocks PWA prompts. Open in top-level window
+      window.open(window.location.href, '_blank');
     } else {
       setShowInstallModal(true);
     }
@@ -181,13 +187,25 @@ export const InstallAppButton: React.FC<{ className?: string }> = ({ className =
               </div>
             )}
 
+            {isIframe && (
+              <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-[11px] text-amber-300 flex items-center justify-between gap-2">
+                <span>PWA install prompts require a top-level window.</span>
+                <button
+                  onClick={() => window.open(window.location.href, '_blank')}
+                  className="px-2.5 py-1 rounded-lg bg-amber-500 text-black font-extrabold text-[10px] hover:bg-amber-400 transition-all cursor-pointer flex items-center gap-1 flex-shrink-0"
+                >
+                  <ExternalLink className="w-3 h-3" /> Open App Tab
+                </button>
+              </div>
+            )}
+
             <div className="pt-2 flex gap-2">
               <button
                 onClick={handleInstallClick}
                 className="flex-1 bg-[#c5a059] hover:bg-[#b08c47] text-black text-xs font-extrabold py-2.5 px-4 rounded-xl transition-all cursor-pointer shadow-md flex items-center justify-center gap-2"
               >
-                <Smartphone className="w-4 h-4" />
-                <span>Install App Now</span>
+                {isIframe ? <ExternalLink className="w-4 h-4" /> : <Smartphone className="w-4 h-4" />}
+                <span>{isIframe ? 'Open App in New Tab to Install' : 'Install App Now'}</span>
               </button>
               <button
                 onClick={() => setShowInstallModal(false)}
