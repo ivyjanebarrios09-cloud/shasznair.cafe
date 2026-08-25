@@ -1726,14 +1726,17 @@ export const CustomerExperience: React.FC = () => {
                   {/* VOUCHER PROMO INPUT */}
                   <div className="space-y-1.5">
                     <div className="flex gap-2">
-                      <input
-                        type="text"
-                        placeholder="Enter Promo Code (e.g. WELCOME10)"
+                      <select
                         value={voucherCodeInput}
                         onChange={(e) => setVoucherCodeInput(e.target.value)}
                         disabled={!!appliedVoucher}
-                        className="flex-1 text-xs bg-white border border-stone-200 outline-none py-2 px-3 rounded-xl uppercase font-mono placeholder:normal-case focus:border-amber-800 disabled:bg-stone-100 disabled:text-stone-400"
-                      />
+                        className="flex-1 text-xs bg-white border border-stone-200 outline-none py-2 px-3 rounded-xl uppercase font-mono focus:border-amber-800 disabled:bg-stone-100 disabled:text-stone-400"
+                      >
+                        <option value="">Select a voucher</option>
+                        {vouchers.filter(v => v.active).map(v => (
+                          <option key={v.id} value={v.code}>{v.name} ({v.code})</option>
+                        ))}
+                      </select>
                       {appliedVoucher ? (
                         <button
                           onClick={removeVoucher}
