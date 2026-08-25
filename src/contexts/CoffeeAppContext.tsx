@@ -923,6 +923,35 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         }
       } else {
         localStorage.removeItem('simulated_user');
+        const savedCustomUser = localStorage.getItem('custom_firestore_user');
+        if (savedCustomUser) {
+          try {
+            const parsed = JSON.parse(savedCustomUser);
+            try {
+              const userDocRef = getShopDoc('users', parsed.uid);
+              const latestDoc = await getDoc(userDocRef);
+              if (latestDoc.exists() && latestDoc.data().status !== 'suspended') {
+                const latestData = latestDoc.data();
+                const createdAt = latestData.createdAt?.toDate?.() || (latestData.createdAt ? new Date(latestData.createdAt) : new Date());
+                const profile = { uid: latestDoc.id, ...latestData, createdAt } as UserProfile;
+                setCurrentUser(profile);
+                setActiveWorkspace(profile.role || 'customer');
+                localStorage.setItem('custom_firestore_user', JSON.stringify(profile));
+                setAuthLoading(false);
+                return;
+              } else {
+                localStorage.removeItem('custom_firestore_user');
+              }
+            } catch (e) {
+              setCurrentUser(parsed);
+              setActiveWorkspace(parsed.role || 'customer');
+              setAuthLoading(false);
+              return;
+            }
+          } catch (e) {
+            localStorage.removeItem('custom_firestore_user');
+          }
+        }
         setCurrentUser(null);
         setActiveWorkspace(null);
       }
@@ -968,7 +997,56 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setAuthLoading(true);
     try {
       localStorage.removeItem('simulated_user');
-      await signInWithEmailAndPassword(auth, email, password);
+      localStorage.removeItem('custom_firestore_user');
+      
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+      } catch (authErr: any) {
+        console.log("Firebase Auth failed, trying Firestore user fallback...", authErr);
+        
+        // Try searching users collection
+        const usersCol = getShopCol('users');
+        const q = query(usersCol, where('email', '==', email.trim()));
+        const snap = await getDocs(q);
+        
+        let foundUser: any = null;
+        snap.forEach(doc => {
+          const d = doc.data();
+          if (d.password === password) {
+            foundUser = { uid: doc.id, ...d };
+          }
+        });
+
+        if (!foundUser) {
+          const qLower = query(usersCol, where('email', '==', email.trim().toLowerCase()));
+          const snapLower = await getDocs(qLower);
+          snapLower.forEach(doc => {
+            const d = doc.data();
+            if (d.password === password) {
+              foundUser = { uid: doc.id, ...d };
+            }
+          });
+        }
+        
+        if (foundUser) {
+          if (foundUser.status === 'suspended') {
+            throw new Error("This account is currently suspended. Please contact the administrator.");
+          }
+          const createdAt = foundUser.createdAt?.toDate?.() || (foundUser.createdAt ? new Date(foundUser.createdAt) : new Date());
+          const profile: UserProfile = {
+            ...foundUser,
+            createdAt,
+            role: foundUser.role || 'customer'
+          };
+          localStorage.setItem('custom_firestore_user', JSON.stringify(profile));
+          setCurrentUser(profile);
+          setActiveWorkspace(profile.role);
+          setAuthLoading(false);
+          return;
+        }
+        
+        throw authErr;
+      }
     } catch (e) {
       setAuthLoading(false);
       throw e;
@@ -1019,6 +1097,7 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setAuthLoading(true);
     try {
       localStorage.removeItem('simulated_user');
+      localStorage.removeItem('custom_firestore_user');
       await signOut(auth);
       setCurrentUser(null);
       setActiveWorkspace(null);

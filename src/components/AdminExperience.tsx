@@ -73,12 +73,14 @@ export const AdminExperience: React.FC = () => {
     name: string;
     email: string;
     phone: string;
+    password?: string;
     role: 'admin' | 'cashier' | 'kitchen';
     status: 'active' | 'suspended';
   }>({
     name: '',
     email: '',
     phone: '',
+    password: '',
     role: 'cashier',
     status: 'active'
   });
@@ -3636,6 +3638,17 @@ export const AdminExperience: React.FC = () => {
                 />
               </div>
 
+              <div className="space-y-1">
+                <label className="text-[10px] font-extrabold uppercase text-[#c5a059]">Account Password (for Staff Login)</label>
+                <input
+                  type="text"
+                  placeholder="Enter login password"
+                  value={editingStaffUser.password || ''}
+                  onChange={(e) => setEditingStaffUser({ ...editingStaffUser, password: e.target.value })}
+                  className={`w-full p-2.5 rounded-xl ${isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-[#080808] border-white/10 text-white'} border outline-none focus:border-[#c5a059]`}
+                />
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-[10px] font-extrabold uppercase text-[#c5a059]">Assigned Staff Role</label>
@@ -3684,6 +3697,7 @@ export const AdminExperience: React.FC = () => {
                         phoneNumber: editingStaffUser.phoneNumber || editingStaffUser.phone,
                         phone: editingStaffUser.phoneNumber || editingStaffUser.phone,
                         role: editingStaffUser.role,
+                        password: editingStaffUser.password || '',
                         status: editingStaffUser.status || 'active'
                       });
 
@@ -3803,6 +3817,17 @@ export const AdminExperience: React.FC = () => {
                 />
               </div>
 
+              <div className="space-y-1">
+                <label className="text-[10px] font-extrabold uppercase text-[#c5a059]">Account Password (for Staff Login)</label>
+                <input
+                  type="text"
+                  placeholder="Enter login password"
+                  value={newStaffForm.password || ''}
+                  onChange={(e) => setNewStaffForm({ ...newStaffForm, password: e.target.value })}
+                  className={`w-full p-2.5 rounded-xl ${isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-[#080808] border-white/10 text-white'} border outline-none focus:border-[#c5a059]`}
+                />
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-[10px] font-extrabold uppercase text-[#c5a059]">Assigned Staff Role</label>
@@ -3848,7 +3873,7 @@ export const AdminExperience: React.FC = () => {
                   }
                   try {
                     const customUid = `terminal_${newStaffForm.role}_${Date.now().toString().slice(-4)}`;
-                    await updateDocument('users', customUid, {
+                    await addDocument('users', {
                       uid: customUid,
                       name: newStaffForm.name,
                       displayName: newStaffForm.name,
@@ -3856,15 +3881,16 @@ export const AdminExperience: React.FC = () => {
                       phone: newStaffForm.phone,
                       phoneNumber: newStaffForm.phone,
                       role: newStaffForm.role,
+                      password: newStaffForm.password || '',
                       status: newStaffForm.status || 'active',
                       isEmailVerified: true,
                       loyaltyPoints: 0,
                       lifetimePoints: 0,
                       lifetimeSpending: 0,
                       orderCount: 0
-                    });
+                    }, customUid);
                     setShowAddStaffModal(false);
-                    setNewStaffForm({ name: '', email: '', phone: '', role: 'cashier', status: 'active' });
+                    setNewStaffForm({ name: '', email: '', phone: '', password: '', role: 'cashier', status: 'active' });
                     setSettingsSuccessMsg("Created new staff user directly in Firebase Users collection!");
                     setTimeout(() => setSettingsSuccessMsg(null), 4000);
                   } catch (err: any) {

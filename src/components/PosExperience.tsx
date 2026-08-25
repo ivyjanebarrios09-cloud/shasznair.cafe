@@ -1124,8 +1124,18 @@ export const PosExperience: React.FC = () => {
                             )}
                           </span>
                         </div>
-                        <p className={`text-xs font-bold mt-1 flex items-center gap-1 ${isLight ? 'text-stone-900' : 'text-white'}`}>
-                          <User className="w-3 h-3 text-[#c5a059]" /> {ord.customerName}
+                        <p className={`text-xs font-bold mt-1 flex items-center gap-1 flex-wrap ${isLight ? 'text-stone-900' : 'text-white'}`}>
+                          <span className="flex items-center gap-1">
+                            <User className="w-3 h-3 text-[#c5a059]" /> {ord.customerName}
+                          </span>
+                          <span className={`inline-flex items-center gap-1 text-[9px] font-extrabold px-1.5 py-0.5 rounded ${
+                            ord.customerId && ord.customerId !== 'guest'
+                              ? isLight ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-amber-950/70 text-amber-300 border border-amber-800/40'
+                              : isLight ? 'bg-stone-100 text-stone-600 border border-stone-200' : 'bg-white/5 text-white/40 border border-white/10'
+                          }`}>
+                            {ord.customerId && ord.customerId !== 'guest' ? <UserCheck className="w-2.5 h-2.5 text-[#c5a059]" /> : <User className="w-2.5 h-2.5" />}
+                            {ord.customerId && ord.customerId !== 'guest' ? 'Member Account' : 'Guest'}
+                          </span>
                         </p>
                         {ord.cashierName && (
                           <p className={`text-[10px] ${isLight ? 'text-stone-500' : 'text-white/40'}`}>Cashier: {ord.cashierName}</p>
@@ -1265,8 +1275,18 @@ export const PosExperience: React.FC = () => {
                           </span>
                         </td>
                         <td className="p-3.5">
-                          <p className={`font-bold flex items-center gap-1 ${isLight ? 'text-stone-900' : 'text-white'}`}>
-                            <User className="w-3 h-3 text-[#c5a059]" /> {ord.customerName}
+                          <p className={`font-bold flex items-center gap-1.5 flex-wrap ${isLight ? 'text-stone-900' : 'text-white'}`}>
+                            <span className="flex items-center gap-1">
+                              <User className="w-3 h-3 text-[#c5a059]" /> {ord.customerName}
+                            </span>
+                            <span className={`inline-flex items-center gap-1 text-[9px] font-extrabold px-1.5 py-0.5 rounded ${
+                              ord.customerId && ord.customerId !== 'guest'
+                                ? isLight ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-amber-950/70 text-amber-300 border border-amber-800/40'
+                                : isLight ? 'bg-stone-100 text-stone-600 border border-stone-200' : 'bg-white/5 text-white/40 border border-white/10'
+                            }`}>
+                              {ord.customerId && ord.customerId !== 'guest' ? <UserCheck className="w-2.5 h-2.5 text-[#c5a059]" /> : <User className="w-2.5 h-2.5" />}
+                              {ord.customerId && ord.customerId !== 'guest' ? 'Member' : 'Guest'}
+                            </span>
                           </p>
                           <div className={`flex items-center gap-2 mt-0.5 text-[10px] ${isLight ? 'text-stone-500' : 'text-white/40'}`}>
                             <span className="uppercase">{getPaymentMethodDisplayName(ord.paymentMethod, settings.paymentMethods)}</span>

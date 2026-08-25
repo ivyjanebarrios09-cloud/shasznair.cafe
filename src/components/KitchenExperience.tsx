@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useCoffeeApp } from '../contexts/CoffeeAppContext';
 import { Order, OrderStatus, OrderItem } from '../types';
 import { InstallAppButton } from './InstallAppButton';
-import { Clock, Play, CheckCircle, Package, MapPin, Check, MessageSquare, AlertCircle, LogOut, Menu, Download, Table, LayoutGrid, CheckCircle2, User, Store, Smartphone, ReceiptText, X } from 'lucide-react';
+import { Clock, Play, CheckCircle, Package, MapPin, Check, MessageSquare, AlertCircle, LogOut, Menu, Download, Table, LayoutGrid, CheckCircle2, User, UserCheck, Store, Smartphone, ReceiptText, X } from 'lucide-react';
 
 export const KitchenExperience: React.FC = () => {
   const { orders, updateOrderStatus, updateOrderItemStatus, dataLoading, currentUser, logout, settings } = useCoffeeApp();
@@ -28,6 +28,25 @@ export const KitchenExperience: React.FC = () => {
         >
           Check Receipt
         </button>
+      </div>
+    );
+  };
+
+  const renderCustomerBadge = (ord: Order) => {
+    const isMember = ord.customerId && ord.customerId !== 'guest';
+    return (
+      <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+        <span className="text-xs font-bold text-[#c5a059] flex items-center gap-1">
+          <User className={`w-3 h-3 ${isLight ? 'text-stone-400' : 'text-white/40'}`} /> {ord.customerName}
+        </span>
+        <span className={`inline-flex items-center gap-1 text-[9px] font-extrabold px-1.5 py-0.5 rounded ${
+          isMember 
+            ? isLight ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-amber-950/70 text-amber-300 border border-amber-800/40'
+            : isLight ? 'bg-stone-100 text-stone-600 border border-stone-200' : 'bg-white/5 text-white/40 border border-white/10'
+        }`} title={isMember ? 'Registered Member Account' : 'Guest / Walk-in'}>
+          {isMember ? <UserCheck className="w-2.5 h-2.5 text-[#c5a059]" /> : <User className="w-2.5 h-2.5" />}
+          {isMember ? 'Member' : 'Guest'}
+        </span>
       </div>
     );
   };
@@ -362,9 +381,7 @@ export const KitchenExperience: React.FC = () => {
                             {ord.orderSource === 'pos' ? 'POS' : 'APP'}
                           </span>
                         </div>
-                        <p className="text-xs font-bold text-[#c5a059] mt-0.5 flex items-center gap-1">
-                          <User className={`w-3 h-3 ${isLight ? 'text-stone-400' : 'text-white/40'}`} /> {ord.customerName}
-                        </p>
+                        {renderCustomerBadge(ord)}
                         <p className={`text-[10px] font-mono mt-0.5 ${isLight ? 'text-stone-500 font-semibold' : 'text-white/40'}`}>{getElapsedTime(ord.createdAt)}</p>
                       </div>
                       <div className="flex flex-col items-end gap-1">
@@ -432,9 +449,7 @@ export const KitchenExperience: React.FC = () => {
                             {ord.orderSource === 'pos' ? 'POS' : 'APP'}
                           </span>
                         </div>
-                        <p className="text-xs font-bold text-[#c5a059] mt-0.5 flex items-center gap-1">
-                          <User className={`w-3 h-3 ${isLight ? 'text-stone-400' : 'text-white/40'}`} /> {ord.customerName}
-                        </p>
+                        {renderCustomerBadge(ord)}
                         <p className={`text-[10px] font-mono mt-0.5 ${isLight ? 'text-stone-500 font-semibold' : 'text-white/40'}`}>{getElapsedTime(ord.createdAt)}</p>
                       </div>
                       <div className="flex flex-col items-end gap-1">
@@ -511,9 +526,7 @@ export const KitchenExperience: React.FC = () => {
                             {ord.orderSource === 'pos' ? 'POS' : 'APP'}
                           </span>
                         </div>
-                        <p className="text-xs font-bold text-[#c5a059] mt-0.5 flex items-center gap-1">
-                          <User className={`w-3 h-3 ${isLight ? 'text-stone-400' : 'text-white/40'}`} /> {ord.customerName}
-                        </p>
+                        {renderCustomerBadge(ord)}
                         <p className={`text-[10px] font-mono mt-0.5 ${isLight ? 'text-stone-500 font-semibold' : 'text-white/40'}`}>{getElapsedTime(ord.createdAt)}</p>
                       </div>
                       <div className="flex flex-col items-end gap-1">
@@ -588,9 +601,7 @@ export const KitchenExperience: React.FC = () => {
                           {ord.orderSource === 'pos' ? 'POS' : 'APP'}
                         </span>
                       </div>
-                      <p className="text-xs font-bold text-[#c5a059] flex items-center gap-1">
-                        <User className={`w-3 h-3 ${isLight ? 'text-stone-400' : 'text-white/40'}`} /> {ord.customerName}
-                      </p>
+                      {renderCustomerBadge(ord)}
                     </div>
                     <div className="text-right space-y-1">
                       <span className={`px-2 py-0.5 rounded text-[9px] uppercase font-bold inline-block ${
@@ -706,9 +717,7 @@ export const KitchenExperience: React.FC = () => {
                           </span>
                         </td>
                         <td className="p-3">
-                          <p className="font-bold text-[#c5a059] flex items-center gap-1">
-                            <User className={`w-3 h-3 ${isLight ? 'text-stone-400' : 'text-white/40'}`} /> {ord.customerName}
-                          </p>
+                          {renderCustomerBadge(ord)}
                         </td>
                         <td className={`p-3 uppercase ${isLight ? 'text-stone-700 font-semibold' : 'text-white/80'}`}>{ord.orderType.replace('_', ' ')}</td>
                         <td className={`p-3 space-y-2 ${isLight ? 'text-stone-900' : 'text-white/80'}`}>
