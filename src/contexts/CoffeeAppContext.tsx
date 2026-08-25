@@ -731,7 +731,11 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (isStaff) {
       unsubUsers = onSnapshot(getShopCol('users'), (snap) => {
         const list: UserProfile[] = [];
-        snap.forEach(doc => list.push({ uid: doc.id, ...doc.data() } as UserProfile));
+        snap.forEach(doc => {
+          const data = doc.data();
+          const createdAt = data.createdAt?.toDate?.() || (data.createdAt ? new Date(data.createdAt) : new Date());
+          list.push({ uid: doc.id, ...data, createdAt } as UserProfile);
+        });
         setUsersList(list);
       }, (err) => {
         console.warn("Users snapshot failed:", err);
@@ -852,7 +856,8 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
               }
             }
 
-            const profile = { uid: uDoc.id, ...userData, role };
+            const createdAt = userData.createdAt?.toDate?.() || (userData.createdAt ? new Date(userData.createdAt) : new Date());
+            const profile = { uid: uDoc.id, ...userData, createdAt, role };
             setCurrentUser(profile);
             setActiveWorkspace(role);
           } else {

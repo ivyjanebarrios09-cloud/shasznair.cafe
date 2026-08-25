@@ -12,6 +12,49 @@ interface ImageUploadProps {
 export const ImageUpload: React.FC<ImageUploadProps> = ({ onUploadSuccess, onUploadStart, onUploadError, label = "Upload Image", folder = "uploads" }) => {
   const [isUploading, setIsUploading] = useState(false);
 
+  const compressAndConvertToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          const MAX_WIDTH = 800;
+          const MAX_HEIGHT = 800;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height = Math.round((height * MAX_WIDTH) / width);
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width = Math.round((width * MAX_HEIGHT) / height);
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve(event.target?.result as string);
+            return;
+          }
+          ctx.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
+          resolve(dataUrl);
+        };
+        img.onerror = (err) => reject(err);
+      };
+      reader.onerror = (err) => reject(err);
+    });
+  };
+
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -28,7 +71,6 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onUploadSuccess, onUpl
           body: JSON.stringify({ filename: file.name, contentType: file.type, folder }),
         });
       } catch (fetchError: any) {
-        // This catches "Failed to fetch" (e.g. CORS, offline, or Vercel routing issues)
         throw new Error("Network error or API unavailable: " + fetchError.message);
       }
 
@@ -38,7 +80,6 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onUploadSuccess, onUpl
           const errorData = await response.json();
           errorMessage = errorData.error || errorMessage;
         } catch (parseError) {
-          // If the server returns HTML (e.g., a 404 page on static hosting like Vercel), json() parsing will fail
           errorMessage = `Server API unavailable (${response.status})`;
         }
         throw new Error(`Upload API issue: ${errorMessage}`);
@@ -57,21 +98,17 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onUploadSuccess, onUpl
 
       onUploadSuccess(publicUrl, imageKey);
     } catch (error: any) {
-      console.warn("Upload failed or unavailable, falling back to local base64. Reason:", error.message);
+      console.warn("Upload service unavailable, compressing and falling back to secure base64:", error.message);
       
-      // Fallback to Base64
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => {
-        const base64Url = reader.result as string;
-        onUploadSuccess(base64Url, `fallback-${Date.now()}`);
-        setIsUploading(false);
-        if (onUploadError) onUploadError("Fallback to base64");
-        alert("IMAGE UPLOAD NOTICE: The image upload server is not available or configured on this environment. The image is being used as a local data URL for this session. It will be saved directly to the database, which is fine for small images (under 1MB).");
-      };
-      
-      // We return here so we don't trigger setIsUploading(false) in finally before the reader finishes
-      return; 
+      try {
+        const compressedBase64 = await compressAndConvertToBase64(file);
+        onUploadSuccess(compressedBase64, `fallback-${Date.now()}`);
+        if (onUploadError) onUploadError("Fallback to compressed base64");
+      } catch (compErr: any) {
+        console.error("Compression failed:", compErr);
+        if (onUploadError) onUploadError(compErr.message);
+        alert("Failed to process image: " + compErr.message);
+      }
     } finally {
       setIsUploading(false);
     }
@@ -90,7 +127,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onUploadSuccess, onUpl
         {isUploading ? (
           <div className="flex items-center gap-2">
             <Loader2 className="w-4 h-4 text-white animate-spin" />
-            <span className="text-xs text-white">Uploading image...</span>
+            <span className="text-xs text-white">Compressing & Uploading...</span>
           </div>
         ) : (
           <div className="flex items-center gap-2 text-white/50 hover:text-white/80">
@@ -103,3 +140,4 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onUploadSuccess, onUpl
     </div>
   );
 };
+
