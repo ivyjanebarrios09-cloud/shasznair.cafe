@@ -3714,6 +3714,7 @@ export const AdminExperience: React.FC = () => {
                               email: editingStaffUser.email || prev.accountsConfig[key].email,
                               mobile: editingStaffUser.phoneNumber || editingStaffUser.phone || prev.accountsConfig[key].mobile,
                               role: editingStaffUser.role,
+                              password: editingStaffUser.password || '',
                               enabled: true // Editing re-enables it if it was disabled
                             }
                           }

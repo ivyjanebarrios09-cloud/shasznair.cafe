@@ -333,6 +333,7 @@ const syncStaffAccountsToFirestore = async (accountsConfig?: SystemSettings['acc
     const email = acc.email || entry.defaultEmail;
     const name = acc.name || entry.defaultName;
     const phone = acc.mobile || entry.defaultPhone;
+    const password = acc.password || '';
 
     // 1. Sync User Profile document in `users` collection in Firestore
     const userDocRef = doc(db, 'users', uid);
@@ -344,6 +345,7 @@ const syncStaffAccountsToFirestore = async (accountsConfig?: SystemSettings['acc
       phone,
       phoneNumber: phone,
       role: entry.role,
+      password,
       status: 'active',
       isEmailVerified: acc.isEmailVerified ?? true,
       updatedAt: serverTimestamp(),
@@ -448,9 +450,9 @@ const DEFAULT_SETTINGS: SystemSettings = {
     enableAlerts: true
   },
   accountsConfig: {
-    admin: { role: 'admin', name: 'Master Administrator', mobile: '+63 917 111 2222', email: 'admin@shasznaircafe.com', isEmailVerified: true, enabled: true },
-    pos: { role: 'cashier', name: 'POS Register Terminal 1', mobile: '+63 917 333 4444', email: 'pos@shasznaircafe.com', isEmailVerified: true, enabled: true },
-    kds: { role: 'kitchen', name: 'Kitchen Display Station (KDS)', mobile: '+63 917 555 6666', email: 'kds@shasznaircafe.com', isEmailVerified: true, enabled: true }
+    admin: { role: 'admin', name: 'Master Administrator', mobile: '+63 917 111 2222', email: 'admin@shasznaircafe.com', isEmailVerified: true, enabled: true, password: 'admin123' },
+    pos: { role: 'cashier', name: 'POS Register Terminal 1', mobile: '+63 917 333 4444', email: 'pos@shasznaircafe.com', isEmailVerified: true, enabled: true, password: 'pos123' },
+    kds: { role: 'kitchen', name: 'Kitchen Display Station (KDS)', mobile: '+63 917 555 6666', email: 'kds@shasznaircafe.com', isEmailVerified: true, enabled: true, password: 'kds123' }
   }
 };
 
