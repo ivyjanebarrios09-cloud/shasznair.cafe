@@ -196,6 +196,12 @@ export interface StaffAccountConfig {
   password?: string;
 }
 
+export interface CumulativeExpense {
+  id: string;
+  label: string;
+  amount: number;
+}
+
 export interface SystemSettings {
   storeStatus: {
     isOpen: boolean;
@@ -235,6 +241,7 @@ export interface SystemSettings {
     enableAlerts: boolean;
   };
   totalExpenses?: number;
+  cumulativeExpenses?: CumulativeExpense[];
   accountsConfig: {
     admin: StaffAccountConfig;
     pos: StaffAccountConfig;

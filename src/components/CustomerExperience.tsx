@@ -44,6 +44,8 @@ export const CustomerExperience: React.FC = () => {
   // Navigation Tabs: 'menu' | 'orders' | 'profile'
   const [activeTab, setActiveTab] = useState<'menu' | 'orders' | 'profile'>('menu');
   
+  const [isHistoryExpanded, setIsHistoryExpanded] = useState(false);
+  
   // Modals & Slideovers
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -1090,24 +1092,32 @@ export const CustomerExperience: React.FC = () => {
 
                 {/* POINTS HISTORY */}
                 <div className="space-y-2">
-                  <h4 className={`text-xs font-bold ${isLight ? 'text-stone-900' : 'text-white'}`}>Points History</h4>
-                  <div className={`rounded-xl border ${isLight ? 'bg-white border-stone-200' : 'bg-[#121212] border-white/10'}`}>
-                    {loyaltyTransactions.length === 0 ? (
-                      <p className="p-4 text-center text-xs text-stone-500">No points history yet.</p>
-                    ) : (
-                      loyaltyTransactions.map((tx) => (
-                        <div key={tx.id} className={`p-3 border-b last:border-0 ${isLight ? 'border-stone-100' : 'border-white/5'} flex justify-between`}>
-                          <div>
-                            <p className={`text-xs font-bold ${isLight ? 'text-stone-900' : 'text-white'}`}>{tx.description}</p>
-                            <p className="text-[10px] text-stone-400">{new Date(tx.createdAt).toLocaleDateString()}</p>
+                  <button 
+                    onClick={() => setIsHistoryExpanded(!isHistoryExpanded)}
+                    className="flex items-center justify-between w-full"
+                  >
+                    <h4 className={`text-xs font-bold ${isLight ? 'text-stone-900' : 'text-white'}`}>Points History</h4>
+                    {isHistoryExpanded ? <ChevronUp size={16} className={isLight ? 'text-stone-900' : 'text-white'} /> : <ChevronDown size={16} className={isLight ? 'text-stone-900' : 'text-white'} />}
+                  </button>
+                  {isHistoryExpanded && (
+                    <div className={`rounded-xl border ${isLight ? 'bg-white border-stone-200' : 'bg-[#121212] border-white/10'}`}>
+                      {loyaltyTransactions.length === 0 ? (
+                        <p className="p-4 text-center text-xs text-stone-500">No points history yet.</p>
+                      ) : (
+                        loyaltyTransactions.map((tx) => (
+                          <div key={tx.id} className={`p-3 border-b last:border-0 ${isLight ? 'border-stone-100' : 'border-white/5'} flex justify-between`}>
+                            <div>
+                              <p className={`text-xs font-bold ${isLight ? 'text-stone-900' : 'text-white'}`}>{tx.description}</p>
+                              <p className="text-[10px] text-stone-400">{new Date(tx.createdAt).toLocaleDateString()}</p>
+                            </div>
+                            <span className={`text-xs font-bold ${tx.pointsChanged > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                              {tx.pointsChanged > 0 ? '+' : ''}{tx.pointsChanged}
+                            </span>
                           </div>
-                          <span className={`text-xs font-bold ${tx.pointsChanged > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                            {tx.pointsChanged > 0 ? '+' : ''}{tx.pointsChanged}
-                          </span>
-                        </div>
-                      ))
-                    )}
-                  </div>
+                        ))
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* PERSONAL INFO DETAILS */}

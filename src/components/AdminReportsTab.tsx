@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { motion } from 'motion/react';
-import { Order, Product, Category, SystemSettings } from '../types';
+import { Order, Product, Category, SystemSettings, CumulativeExpense } from '../types';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -251,21 +251,21 @@ export const AdminReportsTab: React.FC<AdminReportsTabProps> = ({
     return { totalLunchCount: totalCount, totalLunchOrders: lunchOrders };
   }, [filteredReportOrders, products]);
 
-  const [expenseFormVal, setExpenseFormVal] = React.useState<number | null>(null);
+  const [cumulativeExpensesVal, setCumulativeExpensesVal] = React.useState<CumulativeExpense[]>([]);
   const [expenseSaving, setExpenseSaving] = React.useState(false);
   const [expenseSuccessMsg, setExpenseSuccessMsg] = React.useState<string | null>(null);
 
   // Sync expense form value
   React.useEffect(() => {
-    if (expenseFormVal === null && settings?.totalExpenses !== undefined) {
-      setExpenseFormVal(settings.totalExpenses);
+    if (cumulativeExpensesVal.length === 0 && settings?.cumulativeExpenses) {
+      setCumulativeExpensesVal(settings.cumulativeExpenses);
     }
-  }, [settings?.totalExpenses, expenseFormVal]);
+  }, [settings?.cumulativeExpenses]);
 
   // 4. FINANCIAL EXPENSES & PROFIT ANALYSIS
   const financialAnalysis = useMemo(() => {
     const grossRevenue = reportNetSales;
-    const totalExpenses = settings?.totalExpenses || 0;
+    const totalExpenses = (settings?.cumulativeExpenses || []).reduce((sum, exp) => sum + exp.amount, 0);
     const netProfit = grossRevenue - totalExpenses;
     const avgProfitPerOrder = reportOrdersCount > 0 ? Math.round(netProfit / reportOrdersCount) : 0;
 
@@ -274,7 +274,7 @@ export const AdminReportsTab: React.FC<AdminReportsTabProps> = ({
       netProfit,
       avgProfitPerOrder
     };
-  }, [reportNetSales, settings?.totalExpenses, reportOrdersCount]);
+  }, [reportNetSales, settings?.cumulativeExpenses, reportOrdersCount]);
 
   // 5. ANIMATED REVENUE & ORDER VOLUME TREND DATA
   const revenueTrendData = useMemo(() => {
@@ -681,26 +681,51 @@ export const AdminReportsTab: React.FC<AdminReportsTabProps> = ({
           <div className={`p-3.5 rounded-xl border space-y-2 ${
             isLight ? 'bg-stone-50 border-stone-300' : 'bg-[#080808] border-white/5'
           }`}>
-            <p className={`text-[10px] uppercase font-extrabold tracking-wider ${isLight ? 'text-stone-700' : 'text-white/40'}`}>Total Cumulative Expenses</p>
-            <div className="flex items-center gap-1">
-              <span className={`text-lg font-extrabold font-mono ${isLight ? 'text-rose-700' : 'text-rose-400'}`}>₱</span>
-              <input
-                type="number"
-                min={0}
-                value={expenseFormVal ?? 0}
-                onChange={(e) => setExpenseFormVal(Number(e.target.value) >= 0 ? Number(e.target.value) : 0)}
-                className={`w-full bg-transparent border-b ${isLight ? 'border-stone-300 text-rose-700 focus:border-rose-500' : 'border-white/20 text-rose-400 focus:border-rose-400'} outline-none font-extrabold font-mono text-lg transition-colors`}
-              />
+            <p className={`text-[10px] uppercase font-extrabold tracking-wider ${isLight ? 'text-stone-700' : 'text-white/40'}`}>Cumulative Expenses</p>
+            <div className="space-y-2">
+              {(cumulativeExpensesVal || []).map((exp, index) => (
+                <div key={exp.id} className="flex items-center gap-1">
+                  <input
+                    type="text"
+                    value={exp.label}
+                    onChange={(e) => {
+                      const newExpenses = [...cumulativeExpensesVal];
+                      newExpenses[index] = { ...newExpenses[index], label: e.target.value };
+                      setCumulativeExpensesVal(newExpenses);
+                    }}
+                    className={`w-full bg-transparent border-b ${isLight ? 'border-stone-300 text-stone-900 focus:border-rose-500' : 'border-white/20 text-white focus:border-rose-400'} outline-none font-bold font-mono text-xs`}
+                  />
+                  <input
+                    type="number"
+                    min={0}
+                    value={exp.amount}
+                    onChange={(e) => {
+                      const newExpenses = [...cumulativeExpensesVal];
+                      newExpenses[index] = { ...newExpenses[index], amount: Number(e.target.value) };
+                      setCumulativeExpensesVal(newExpenses);
+                    }}
+                    className={`w-16 bg-transparent border-b ${isLight ? 'border-stone-300 text-rose-700 focus:border-rose-500' : 'border-white/20 text-rose-400 focus:border-rose-400'} outline-none font-extrabold font-mono text-sm`}
+                  />
+                  <button onClick={() => {
+                      const newExpenses = cumulativeExpensesVal.filter((_, i) => i !== index);
+                      setCumulativeExpensesVal(newExpenses);
+                  }} className="text-rose-500 text-xs">x</button>
+                </div>
+              ))}
+              <button onClick={() => {
+                const newExpenses = [...cumulativeExpensesVal, { id: Date.now().toString(), label: 'Expense', amount: 0 }];
+                setCumulativeExpensesVal(newExpenses);
+              }} className="text-[10px] font-bold text-emerald-600">+ Add Expense</button>
             </div>
             
-            {expenseFormVal !== settings?.totalExpenses && (
+            {JSON.stringify(cumulativeExpensesVal) !== JSON.stringify(settings?.cumulativeExpenses || []) && (
               <button
                 disabled={expenseSaving}
                 onClick={async () => {
                   if (!updateSettings || !settings) return;
                   setExpenseSaving(true);
                   try {
-                    await updateSettings({ ...settings, totalExpenses: expenseFormVal ?? 0 });
+                    await updateSettings({ ...settings, cumulativeExpenses: cumulativeExpensesVal });
                     setExpenseSuccessMsg('Saved');
                     setTimeout(() => setExpenseSuccessMsg(null), 2000);
                   } catch (e) {
