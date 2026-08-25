@@ -14,14 +14,21 @@ const AppContent: React.FC = () => {
   const { currentUser, authLoading, dbStatus, activeWorkspace, settings } = useCoffeeApp();
   const isLight = settings?.branding?.theme === 'light';
 
-  // If not logged in, present the sign in / log in screen directly
-  if (!currentUser && !authLoading) {
-    return <AuthScreen />;
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#050505] text-[#f2f2f2] flex flex-col items-center justify-center space-y-4">
+        <div className="w-10 h-10 border-4 border-[#c5a059] border-t-transparent rounded-full animate-spin" />
+        <div className="text-center space-y-1">
+          <p className="text-sm font-bold font-serif tracking-wide text-white">Syncing Brew & Bloom Registers...</p>
+          <p className="text-[10px] text-white/40">Loading Cloud Firestore connection</p>
+        </div>
+      </div>
+    );
   }
 
-  // If still loading, we might want to show a minimal placeholder or nothing
-  if (authLoading && !currentUser) {
-    return <AuthScreen />; // Show AuthScreen even while loading
+  // If not logged in, present the sign in / log in screen directly
+  if (!currentUser) {
+    return <AuthScreen />;
   }
 
   const isAdmin = currentUser.role === 'admin';
