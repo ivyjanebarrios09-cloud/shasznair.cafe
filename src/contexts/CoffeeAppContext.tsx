@@ -690,6 +690,21 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     };
   }, []);
 
+  // 1.5 Sync Current User Profile (Realtime for Everyone)
+  useEffect(() => {
+    if (!currentUser?.uid) return;
+
+    const unsub = onSnapshot(getShopDoc('users', currentUser.uid), (snap) => {
+      if (snap.exists()) {
+        const userData = snap.data() as UserProfile;
+        const createdAt = userData.createdAt?.toDate?.() || (userData.createdAt ? new Date(userData.createdAt) : new Date());
+        setCurrentUser(prev => prev ? ({ ...prev, ...userData, createdAt }) : null);
+      }
+    });
+
+    return () => unsub();
+  }, [currentUser?.uid]);
+
   // 2. User/Role-Specific Real-Time Firebase Listeners (Orders, Users, Audits, Inventory)
   useEffect(() => {
     if (authLoading || !currentUser) {
