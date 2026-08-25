@@ -1290,6 +1290,7 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       : (cashReceived !== undefined ? Math.max(0, cashReceived - total) : undefined);
 
     const selectedMethod = (settings.paymentMethods || []).find(m => m.id === paymentMethod);
+    const resolvedPaymentMethod = selectedMethod ? selectedMethod.name.toUpperCase() : (paymentMethod.startsWith('METHOD-') ? 'GCASH' : paymentMethod.toUpperCase());
     const isCashType = selectedMethod?.type === 'cash' || paymentMethod === 'cash';
 
     let initialPaymentStatus: PaymentStatus = 'unpaid';
@@ -1318,8 +1319,9 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       orderType,
       tableNo: orderType === 'table' ? tableNo : '',
       paymentStatus: initialPaymentStatus,
-      paymentMethod,
+      paymentMethod: resolvedPaymentMethod,
       orderStatus: 'pending',
+
       notes,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),

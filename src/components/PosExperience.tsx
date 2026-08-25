@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useCoffeeApp } from '../contexts/CoffeeAppContext';
-import { Product, CartItem, OrderType, PaymentMethod, UserProfile, Order } from '../types';
+import { Product, CartItem, OrderType, PaymentMethod, UserProfile, Order, getPaymentMethodDisplayName } from '../types';
 import { InstallAppButton } from './InstallAppButton';
 import { CategoryIcon } from '../utils/categoryIcons';
 import { 
@@ -1153,7 +1153,7 @@ export const PosExperience: React.FC = () => {
                     <div className="flex justify-between items-center text-xs">
                       <div className={`text-[11px] space-y-0.5 ${isLight ? 'text-stone-600' : 'text-white/60'}`}>
                         <p>Type: <strong className={`capitalize ${isLight ? 'text-stone-900' : 'text-white'}`}>{ord.orderType.replace('_', ' ')}</strong></p>
-                        <p>Payment: <strong className={`uppercase ${isLight ? 'text-stone-900' : 'text-white'}`}>{ord.paymentMethod}</strong></p>
+                        <p>Payment: <strong className={`uppercase ${isLight ? 'text-stone-900' : 'text-white'}`}>{getPaymentMethodDisplayName(ord.paymentMethod, settings.paymentMethods)}</strong></p>
                         <div className="pt-1 max-h-16 overflow-y-auto">
                           {ord.items.map((it, i) => (
                             <div key={i} className="flex flex-col">
@@ -1269,7 +1269,7 @@ export const PosExperience: React.FC = () => {
                             <User className="w-3 h-3 text-[#c5a059]" /> {ord.customerName}
                           </p>
                           <div className={`flex items-center gap-2 mt-0.5 text-[10px] ${isLight ? 'text-stone-500' : 'text-white/40'}`}>
-                            <span className="uppercase">{ord.paymentMethod}</span>
+                            <span className="uppercase">{getPaymentMethodDisplayName(ord.paymentMethod, settings.paymentMethods)}</span>
                             {ord.cashierName && (
                               <span>• Cashier: {ord.cashierName}</span>
                             )}
@@ -1722,7 +1722,7 @@ export const PosExperience: React.FC = () => {
                 {printedReceipt.cashierName && (
                   <p><strong className={isLight ? 'text-stone-900' : 'text-white'}>Cashier:</strong> {printedReceipt.cashierName}</p>
                 )}
-                <p><strong className={isLight ? 'text-stone-900' : 'text-white'}>Channel:</strong> {printedReceipt.paymentMethod.toUpperCase()}</p>
+                <p><strong className={isLight ? 'text-stone-900' : 'text-white'}>Channel:</strong> {getPaymentMethodDisplayName(printedReceipt.paymentMethod, settings.paymentMethods)}</p>
                 <p><strong className={isLight ? 'text-stone-900' : 'text-white'}>Time:</strong> {new Date().toLocaleTimeString()}</p>
               </div>
 

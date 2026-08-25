@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ImageUpload } from './ImageUpload';
 import { useCoffeeApp } from '../contexts/CoffeeAppContext';
-import { Product, CartItem, OrderType, PaymentMethod, OrderStatus } from '../types';
+import { Product, CartItem, OrderType, PaymentMethod, OrderStatus, getPaymentMethodDisplayName } from '../types';
 import { getQRCodeUrl } from '../utils/qr';
 import { InstallAppButton } from './InstallAppButton';
 import { CategoryIcon } from '../utils/categoryIcons';
@@ -2028,7 +2028,7 @@ export const CustomerExperience: React.FC = () => {
                   <p><strong className="text-stone-900">Fulfillment:</strong> {selectedOrderDetails.orderType.toUpperCase()}</p>
                   {selectedOrderDetails.tableNo && <p><strong className="text-stone-900">Table No:</strong> {selectedOrderDetails.tableNo}</p>}
                   <p><strong className="text-stone-900">Customer:</strong> {selectedOrderDetails.customerName}</p>
-                  <p><strong className="text-stone-900">Payment:</strong> {selectedOrderDetails.paymentMethod.toUpperCase()} ({selectedOrderDetails.paymentStatus.toUpperCase()})</p>
+                  <p><strong className="text-stone-900">Payment:</strong> {getPaymentMethodDisplayName(selectedOrderDetails.paymentMethod, settings.paymentMethods)} ({selectedOrderDetails.paymentStatus.toUpperCase()})</p>
                   <p><strong className="text-stone-900">Date:</strong> {selectedOrderDetails.createdAt instanceof Date ? selectedOrderDetails.createdAt.toLocaleString() : 'Just now'}</p>
                 </div>
 
@@ -2074,7 +2074,7 @@ export const CustomerExperience: React.FC = () => {
               {/* QR payment details and receipt upload block inside details modal */}
               {selectedOrderDetails && (selectedOrderDetails.paymentStatus === 'unpaid' || selectedOrderDetails.paymentStatus === 'pending') && (
                 (() => {
-                  const selectedMethod = (settings.paymentMethods || []).find(m => m.id === selectedOrderDetails.paymentMethod);
+                  const selectedMethod = (settings.paymentMethods || []).find(m => m.id === selectedOrderDetails.paymentMethod || m.name.toLowerCase() === selectedOrderDetails.paymentMethod.toLowerCase());
                   if (selectedMethod && (selectedMethod.type === 'qr' || selectedMethod.type === 'other')) {
                     return (
                       <div className="bg-amber-50/50 border border-stone-200 p-3.5 rounded-xl space-y-2.5 text-center text-xs">

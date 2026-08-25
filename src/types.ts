@@ -241,3 +241,15 @@ export interface SystemSettings {
     kds: StaffAccountConfig;
   };
 }
+
+export function getPaymentMethodDisplayName(methodVal: string, paymentMethods?: PaymentMethodConfig[]): string {
+  if (!methodVal) return 'CASH';
+  const found = (paymentMethods || []).find(m => m.id === methodVal || m.name.toLowerCase() === methodVal.toLowerCase());
+  if (found) return found.name.toUpperCase();
+  if (methodVal.toLowerCase() === 'cash') return 'CASH';
+  if (methodVal.toLowerCase() === 'gcash') return 'GCASH';
+  if (methodVal.toLowerCase() === 'card' || methodVal.toLowerCase() === 'credit_card') return 'CARD';
+  if (methodVal.startsWith('METHOD-')) return 'GCASH';
+  return methodVal.toUpperCase();
+}
+
