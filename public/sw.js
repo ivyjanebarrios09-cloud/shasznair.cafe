@@ -45,10 +45,19 @@ self.addEventListener('fetch', (event) => {
             const responseToCache = networkResponse.clone();
             caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseToCache));
           }
-        }).catch(() => {});
+        }).catch(() => {
+          // Silent fail for background refresh
+        });
         return cachedResponse;
       }
-      return fetch(event.request);
+      return fetch(event.request).catch((err) => {
+        console.warn('[SW] Fetch failed:', err);
+        // Fallback for document requests to index.html for SPA support
+        if (event.request.mode === 'navigate') {
+          return caches.match('/index.html');
+        }
+        throw err;
+      });
     })
   );
 });

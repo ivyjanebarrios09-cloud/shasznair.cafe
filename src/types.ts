@@ -17,6 +17,7 @@ export interface UserProfile {
   lifetimePoints: number;
   lifetimeSpending: number;
   orderCount: number;
+  usedVoucherIds?: string[];
 }
 
 export interface Category {
@@ -114,7 +115,7 @@ export interface Voucher {
   code: string;
   name: string;
   description: string;
-  discountType: 'percentage' | 'fixed';
+  discountType: 'percentage' | 'fixed' | 'free_item';
   discountValue: number;
   minPurchase: number;
   maxDiscount: number;
@@ -122,6 +123,11 @@ export interface Voucher {
   active: boolean;
   usageLimit: number;
   usageCount: number;
+  claimableViaPoints?: boolean;
+  pointCost?: number;
+  freeItemName?: string;
+  usageType?: 'unlimited' | 'once_per_customer' | 'single_use';
+  occasionName?: string;
 }
 
 export interface Reward {

@@ -25,7 +25,21 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onUploadSuccess, label
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to get signed URL');
+        const errorMessage = errorData.error || 'Failed to get signed URL';
+        
+        if (errorMessage.includes("R2 credentials missing")) {
+          // Fallback to Base64 for the current session to allow the user to see the image in the UI
+          console.warn("R2 not configured. Falling back to local data URL for preview.");
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => {
+            const base64Url = reader.result as string;
+            onUploadSuccess(base64Url, `fallback-${Date.now()}`);
+            alert("IMAGE UPLOAD NOTICE: Cloudflare R2 is not configured in your .env file. The image is being used as a local data URL for this session. It may be too large to save to the database if it exceeds 1MB.");
+          };
+          return;
+        }
+        throw new Error(errorMessage);
       }
       const { signedUrl, publicUrl, imageKey } = await response.json();
 

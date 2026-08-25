@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { ImageUpload } from './ImageUpload';
 import { useCoffeeApp } from '../contexts/CoffeeAppContext';
 import { Product, CartItem, OrderType, PaymentMethod, OrderStatus } from '../types';
 import { getQRCodeUrl } from '../utils/qr';
@@ -12,7 +13,7 @@ import {
   AlertCircle, ChevronRight, HelpCircle, Store, Smartphone,
   Flame, ChevronDown, ChevronUp, Coffee, ReceiptText, Sparkles,
   Banknote, CreditCard, Tag, CheckCircle2, UtensilsCrossed,
-  Printer, ShieldCheck, Camera, Save, Upload, UserCheck, Layers
+  Printer, ShieldCheck, Camera, Save, Upload, UserCheck, Layers, Ticket
 } from 'lucide-react';
 
 export const CustomerExperience: React.FC = () => {
@@ -20,6 +21,7 @@ export const CustomerExperience: React.FC = () => {
     categories,
     products,
     vouchers,
+    userVouchers,
     orders,
     currentUser,
     cart,
@@ -30,6 +32,7 @@ export const CustomerExperience: React.FC = () => {
     appliedVoucher,
     applyVoucher,
     removeVoucher,
+    claimVoucher,
     placeOrder,
     settings,
     logout,
@@ -100,6 +103,7 @@ export const CustomerExperience: React.FC = () => {
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [profileSuccessMsg, setProfileSuccessMsg] = useState<string | null>(null);
   const [profileErrorMsg, setProfileErrorMsg] = useState<string | null>(null);
+  const [isClaiming, setIsClaiming] = useState<string | null>(null);
 
   const handleOpenEditProfile = () => {
     setEditName(currentUser?.name || currentUser?.displayName || '');
@@ -179,6 +183,13 @@ export const CustomerExperience: React.FC = () => {
       cartDiscount = Math.round((cartSubtotal * appliedVoucher.discountValue) / 100);
       if (appliedVoucher.maxDiscount > 0) {
         cartDiscount = Math.min(cartDiscount, appliedVoucher.maxDiscount);
+      }
+    } else if (appliedVoucher.discountType === 'free_item') {
+      const freeItem = cart.find(item => item.product.name.toLowerCase() === appliedVoucher.freeItemName?.toLowerCase());
+      if (freeItem) {
+        // Discount the price of one instance of the product (base price + size adjustment + addons)
+        const itemUnitPrice = freeItem.product.price + (freeItem.selectedSize?.priceAdjustment || 0) + freeItem.selectedAddOns.reduce((acc, a) => acc + a.price, 0);
+        cartDiscount = itemUnitPrice;
       }
     } else {
       cartDiscount = appliedVoucher.discountValue;
@@ -1126,6 +1137,113 @@ export const CustomerExperience: React.FC = () => {
                 </motion.button>
               </div>
 
+              {/* LOYALTY REWARDS / VOUCHERS CLAIM SECTION */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 px-1">
+                  <Gift className="w-4 h-4 text-[#c5a059]" />
+                  <h3 className={`font-serif font-bold text-sm ${isLight ? 'text-stone-900' : 'text-white'}`}>Available Loyalty Rewards</h3>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3">
+                  {vouchers.filter(v => v.active && v.claimableViaPoints).length === 0 ? (
+                    <div className={`p-8 text-center rounded-2xl border border-dashed ${isLight ? 'bg-stone-50 border-stone-200' : 'bg-white/5 border-white/10'}`}>
+                      <p className={`text-xs ${isLight ? 'text-stone-400' : 'text-white/30'}`}>No point-based rewards available at the moment.</p>
+                    </div>
+                  ) : (
+                    vouchers.filter(v => v.active && v.claimableViaPoints).map(v => {
+                      const canAfford = (currentUser?.loyaltyPoints || 0) >= (v.pointCost || 0);
+                      return (
+                        <div key={v.id} className={`p-4 rounded-2xl border flex items-center justify-between gap-4 ${isLight ? 'bg-white border-stone-200 shadow-sm' : 'bg-[#121212] border-white/10 shadow-md'}`}>
+                          <div className="flex-1 space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono text-[10px] font-bold bg-[#c5a059]/10 text-[#c5a059] px-2 py-0.5 rounded border border-[#c5a059]/20">
+                                {v.code}
+                              </span>
+                              <h4 className={`text-xs font-bold ${isLight ? 'text-stone-900' : 'text-white'}`}>{v.name}</h4>
+                            </div>
+                            <p className={`text-[10px] ${isLight ? 'text-stone-500' : 'text-white/40'}`}>{v.description}</p>
+                            <div className="flex items-center gap-2 mt-2">
+                              <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded ${
+                                v.discountType === 'free_item' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-[#c5a059]/10 text-[#c5a059]'
+                              }`}>
+                                {v.discountType === 'free_item' ? `Free ${v.freeItemName}` : v.discountType === 'percentage' ? `${v.discountValue}% OFF` : `₱${v.discountValue} OFF`}
+                              </span>
+                              <span className="text-[10px] font-bold text-stone-400">• {v.pointCost} points</span>
+                            </div>
+                          </div>
+
+                          <button
+                            disabled={!canAfford || isClaiming === v.id}
+                            onClick={async () => {
+                              if (window.confirm(`Confirm redemption: Spend ${v.pointCost} points for "${v.name}"?`)) {
+                                setIsClaiming(v.id);
+                                try {
+                                  await claimVoucher(v.id);
+                                  alert("Success! Your reward has been added to your account.");
+                                } catch (err: any) {
+                                  alert(err.message || "Failed to claim voucher.");
+                                } finally {
+                                  setIsClaiming(null);
+                                }
+                              }
+                            }}
+                            className={`px-4 py-2 rounded-xl text-[10px] font-bold transition-all cursor-pointer ${
+                              canAfford 
+                                ? 'bg-amber-900 hover:bg-amber-950 text-white shadow-sm active:scale-95' 
+                                : 'bg-stone-200 text-stone-400 cursor-not-allowed'
+                            }`}
+                          >
+                            {isClaiming === v.id ? 'Claiming...' : canAfford ? 'Claim Reward' : 'Not Enough Points'}
+                          </button>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
+              {/* MY CLAIMED VOUCHERS */}
+              {userVouchers.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 px-1">
+                    <Ticket className="w-4 h-4 text-emerald-600" />
+                    <h3 className={`font-serif font-bold text-sm ${isLight ? 'text-stone-900' : 'text-white'}`}>My Claimed Vouchers</h3>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 gap-3">
+                    {userVouchers.map(uv => (
+                      <div key={uv.id} className={`p-4 rounded-2xl border relative overflow-hidden ${isLight ? 'bg-white border-stone-200' : 'bg-[#121212] border-white/10'}`}>
+                        <div className="absolute top-0 right-0 p-2 opacity-5">
+                          <Ticket className="w-12 h-12 -rotate-12" />
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-start">
+                            <h4 className={`text-xs font-bold ${isLight ? 'text-stone-900' : 'text-white'}`}>{uv.name}</h4>
+                            <span className="text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-600 px-2 py-0.5 rounded border border-emerald-500/20">
+                              {uv.instanceCode}
+                            </span>
+                          </div>
+                          <p className={`text-[10px] ${isLight ? 'text-stone-500' : 'text-white/40'}`}>{uv.description}</p>
+                          <div className="pt-2 border-t border-stone-100 flex justify-between items-center">
+                            <span className="text-[9px] text-stone-400 italic">Valid until {uv.expirationDate}</span>
+                            <button
+                              onClick={() => {
+                                setVoucherCodeInput(uv.instanceCode);
+                                setIsCartOpen(true);
+                                setActiveTab('menu');
+                              }}
+                              className="text-[#c5a059] text-[10px] font-bold hover:underline cursor-pointer"
+                            >
+                              Use in Cart
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* EDIT PROFILE MODAL */}
               <AnimatePresence>
                 {isEditingProfile && (
@@ -1614,7 +1732,11 @@ export const CustomerExperience: React.FC = () => {
                     {appliedVoucher && (
                       <div className="bg-emerald-50 text-emerald-800 border border-emerald-200 p-2 rounded-lg flex justify-between items-center text-xs">
                         <span className="font-bold font-mono">Promo {appliedVoucher.code} Activated!</span>
-                        <span>-{appliedVoucher.discountType === 'percentage' ? `${appliedVoucher.discountValue}%` : `₱${appliedVoucher.discountValue}`}</span>
+                        <span className="font-bold">
+                          {appliedVoucher.discountType === 'free_item' 
+                            ? `FREE ${appliedVoucher.freeItemName?.toUpperCase()}` 
+                            : `-${appliedVoucher.discountType === 'percentage' ? `${appliedVoucher.discountValue}%` : `₱${appliedVoucher.discountValue}`}`}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -1799,32 +1921,13 @@ export const CustomerExperience: React.FC = () => {
                               {checkoutReceiptUrl && (
                                 <img src={checkoutReceiptUrl} alt="Receipt Preview" className="w-10 h-10 rounded-lg object-cover border border-stone-300 bg-white" />
                               )}
-                              <input
-                                type="file"
-                                accept="image/*"
-                                onChange={async (e) => {
-                                  const file = e.target.files?.[0];
-                                  if (!file) return;
-                                  setUploadingReceipt(true);
-                                  try {
-                                    const res = await fetch('/api/upload-url', {
-                                      method: 'POST',
-                                      headers: { 'Content-Type': 'application/json' },
-                                      body: JSON.stringify({ filename: file.name, contentType: file.type })
-                                    });
-                                    if (!res.ok) throw new Error(await res.text());
-                                    const { signedUrl, publicUrl } = await res.json();
-                                    await fetch(signedUrl, { method: 'PUT', headers: { 'Content-Type': file.type }, body: file });
-                                    
-                                    setCheckoutReceiptUrl(publicUrl);
-                                  } catch (err: any) {
-                                    alert("Failed to upload receipt: " + err.message);
-                                  } finally {
-                                    setUploadingReceipt(false);
-                                  }
-                                }}
-                                className="w-full text-xs text-stone-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-[10px] file:font-bold file:bg-amber-900/10 file:text-amber-900 hover:file:bg-amber-900/20"
-                              />
+                              <div className="flex-1">
+                                <ImageUpload
+                                  label="Select Receipt"
+                                  folder="receipts"
+                                  onUploadSuccess={(url) => setCheckoutReceiptUrl(url)}
+                                />
+                              </div>
                             </div>
                             {uploadingReceipt && <p className="text-[9px] text-amber-800 animate-pulse mt-1 font-semibold">Uploading proof of payment...</p>}
                           </div>
@@ -2002,42 +2105,31 @@ export const CustomerExperience: React.FC = () => {
                             </div>
                           )}
                           <div className="flex items-center gap-2">
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={async (e) => {
-                                const file = e.target.files?.[0];
-                                if (!file) return;
-                                try {
-                                  const res = await fetch('/api/upload-url', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ filename: file.name, contentType: file.type })
-                                  });
-                                  if (!res.ok) throw new Error(await res.text());
-                                  const { signedUrl, publicUrl } = await res.json();
-                                  await fetch(signedUrl, { method: 'PUT', headers: { 'Content-Type': file.type }, body: file });
-                                  
-                                  // Update Firestore!
-                                  await updateDocument('orders', selectedOrderDetails.id, { 
-                                    receiptUrl: publicUrl, 
-                                    paymentStatus: 'pending' // Move to pending verification status
-                                  });
-                                  
-                                  // Update local state for immediate modal feedback
-                                  setSelectedOrderDetails((prev: any) => ({
-                                    ...prev,
-                                    receiptUrl: publicUrl,
-                                    paymentStatus: 'pending'
-                                  }));
-                                  
-                                  alert("Receipt successfully uploaded! POS cashier will verify your payment.");
-                                } catch (err: any) {
-                                  alert("Failed to upload receipt: " + err.message);
-                                }
-                              }}
-                              className="w-full text-xs text-stone-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-[10px] file:font-bold file:bg-amber-900/10 file:text-amber-900 hover:file:bg-amber-900/20"
-                            />
+                            <div className="flex-1">
+                              <ImageUpload
+                                label="Select Receipt"
+                                folder="receipts"
+                                onUploadSuccess={async (url) => {
+                                  try {
+                                    // Update Firestore!
+                                    await updateDocument('orders', selectedOrderDetails.id, { 
+                                      receiptUrl: url, 
+                                      paymentStatus: 'pending' // Move to pending verification status
+                                    });
+                                    
+                                    // Update local state for immediate modal feedback
+                                    setSelectedOrderDetails((prev: any) => ({
+                                      ...prev,
+                                      receiptUrl: url,
+                                      paymentStatus: 'pending'
+                                    }));
+                                    alert("Receipt successfully uploaded! POS cashier will verify your payment.");
+                                  } catch (err: any) {
+                                    alert("Failed to update order with receipt: " + err.message);
+                                  }
+                                }}
+                              />
+                            </div>
                           </div>
                         </div>
                       </div>

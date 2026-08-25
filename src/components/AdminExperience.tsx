@@ -9,7 +9,7 @@ import {
   Coffee, Tag, Settings, Plus, Edit2, Trash2, Check, 
   X, AlertTriangle, Download, ArrowRight, RotateCcw,
   Sparkles, ShieldCheck, Store, Smartphone, User,
-  Palette, Building2, Phone, Mail, Clock, Save, RefreshCw, Layers, Menu
+  Palette, Building2, Phone, Mail, Clock, Save, RefreshCw, Layers, Menu, Power
 } from 'lucide-react';
 import { ImageUpload } from './ImageUpload';
 import { CategoryIcon, FOOD_ICON_OPTIONS } from '../utils/categoryIcons';
@@ -146,65 +146,6 @@ export const AdminExperience: React.FC = () => {
     ]
   });
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, formType: 'product' | 'settings' = 'product') => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      setIsUploadingImage(true);
-      setModalError(null);
-
-      // 1. Get presigned URL
-      const res = await fetch('/api/upload-url', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          filename: file.name,
-          contentType: file.type,
-        })
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || 'Failed to get upload URL. Is R2 configured?');
-      }
-
-      const { signedUrl, publicUrl } = await res.json();
-
-      // 2. Upload to R2 directly
-      const uploadRes = await fetch(signedUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': file.type },
-        body: file,
-      });
-
-      if (!uploadRes.ok) {
-        throw new Error('Failed to upload image to storage bucket');
-      }
-
-      // 3. Update form state
-      if (formType === 'product') {
-        setProdForm((prev) => ({ ...prev, image: publicUrl }));
-      } else if (formType === 'settings') {
-        setSettingsForm((prev) => ({
-          ...prev,
-          branding: {
-            ...prev.branding,
-            logoUrl: publicUrl
-          }
-        }));
-      }
-      setModalSuccess("Image uploaded successfully!");
-      setTimeout(() => setModalSuccess(null), 3000);
-      
-    } catch (err: any) {
-      console.error(err);
-      setModalError(err.message || 'Error uploading image');
-    } finally {
-      setIsUploadingImage(false);
-    }
-  };
-
   // Form states - Categories
   const [showCatModal, setShowCatModal] = useState(false);
   const [editingCat, setEditingCat] = useState<Category | null>(null);
@@ -224,13 +165,18 @@ export const AdminExperience: React.FC = () => {
     code: '',
     name: '',
     description: '',
-    discountType: 'percentage' as 'percentage' | 'fixed',
+    discountType: 'percentage' as 'percentage' | 'fixed' | 'free_item',
     discountValue: 10,
     minPurchase: 100,
     maxDiscount: 50,
     expirationDate: '2027-12-31',
     active: true,
-    usageLimit: 1000
+    usageLimit: 1000,
+    claimableViaPoints: false,
+    pointCost: 0,
+    freeItemName: '',
+    usageType: 'unlimited' as 'unlimited' | 'once_per_customer' | 'single_use',
+    occasionName: ''
   });
 
   // Form states - Points adjustment
@@ -528,11 +474,14 @@ export const AdminExperience: React.FC = () => {
     setModalSuccess(null);
     const payload = {
       ...vForm,
-      discountValue: Number(vForm.discountValue),
+      discountValue: vForm.discountType === 'free_item' ? 0 : Number(vForm.discountValue),
       minPurchase: Number(vForm.minPurchase),
-      maxDiscount: Number(vForm.maxDiscount),
+      maxDiscount: vForm.discountType === 'free_item' ? 0 : Number(vForm.maxDiscount),
       usageLimit: Number(vForm.usageLimit),
-      code: vForm.code.toUpperCase().trim()
+      pointCost: vForm.claimableViaPoints ? Number(vForm.pointCost) : 0,
+      code: vForm.code.toUpperCase().trim(),
+      usageType: vForm.usageType,
+      occasionName: vForm.occasionName
     };
     try {
       if (editingVoucher) {
@@ -565,7 +514,12 @@ export const AdminExperience: React.FC = () => {
       maxDiscount: v.maxDiscount,
       expirationDate: v.expirationDate,
       active: v.active,
-      usageLimit: v.usageLimit
+      usageLimit: v.usageLimit,
+      claimableViaPoints: v.claimableViaPoints || false,
+      pointCost: v.pointCost || 0,
+      freeItemName: v.freeItemName || '',
+      usageType: v.usageType || 'unlimited',
+      occasionName: v.occasionName || ''
     });
     setModalError(null);
     setModalSuccess(null);
@@ -1352,7 +1306,11 @@ export const AdminExperience: React.FC = () => {
                             <Edit2 className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => deleteProduct(prod.id)}
+                            onClick={() => {
+                              if (window.confirm(`Are you sure you want to delete "${prod.name}"?`)) {
+                                deleteProduct(prod.id).catch(err => setModalError(err.message));
+                              }
+                            }}
                             className={`p-1 ${isLight ? 'text-stone-400 hover:text-rose-500' : 'text-white/40 hover:text-rose-400'} cursor-pointer`}
                           >
                             <Trash2 className="w-4 h-4" />
@@ -1512,7 +1470,12 @@ export const AdminExperience: React.FC = () => {
                     maxDiscount: 100,
                     expirationDate: '2027-12-31',
                     active: true,
-                    usageLimit: 500
+                    usageLimit: 500,
+                    claimableViaPoints: false,
+                    pointCost: 500,
+                    freeItemName: '',
+                    usageType: 'unlimited',
+                    occasionName: ''
                   });
                   setModalError(null);
                   setModalSuccess(null);
@@ -1535,7 +1498,7 @@ export const AdminExperience: React.FC = () => {
                         <span className={`text-sm font-bold ${isLight ? 'text-stone-900' : 'text-white'} tracking-widest uppercase`}>{v.code}</span>
                       </div>
                       <p className={`text-[10px] font-bold ${isLight ? 'text-stone-500' : 'text-white/40'} uppercase tracking-widest`}>
-                        {v.discountType === 'percentage' ? `${v.discountValue}% OFF` : `₱${v.discountValue} OFF`}
+                        {v.discountType === 'free_item' ? `FREE ${v.freeItemName}` : v.discountType === 'percentage' ? `${v.discountValue}% OFF` : `₱${v.discountValue} OFF`}
                         {v.minPurchase > 0 && ` • Min. ₱${v.minPurchase}`}
                       </p>
                     </div>
@@ -1546,6 +1509,12 @@ export const AdminExperience: React.FC = () => {
                   <div className={`flex justify-between items-center text-[10px] ${isLight ? 'text-stone-500 border-stone-200' : 'text-white/40 border-white/5'} font-mono pt-3 border-t`}>
                     <span>Expires: {v.expirationDate}</span>
                     <div className="flex gap-2">
+                      <button 
+                        onClick={() => updateVoucher(v.id, { active: !v.active })}
+                        className={`p-2 ${v.active ? 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20' : 'bg-stone-500/10 text-stone-500 hover:bg-stone-500/20'} rounded-lg transition-colors`}
+                      >
+                        <Power size={14} />
+                      </button>
                       <button 
                         onClick={() => handleEditVoucherClick(v)}
                         className={`p-2 ${isLight ? 'bg-stone-100 hover:bg-stone-200 text-stone-700' : 'bg-white/5 hover:bg-white/10 text-white/70'} rounded-lg transition-colors`}
@@ -1590,7 +1559,18 @@ export const AdminExperience: React.FC = () => {
                     </div>
 
                     <div className={`text-[10px] ${isLight ? 'text-stone-600' : 'text-white/40'} font-semibold space-y-0.5`}>
-                      <p>Discount: {v.discountType === 'percentage' ? `${v.discountValue}% (Max ₱${v.maxDiscount})` : `₱${v.discountValue}`}</p>
+                      {v.discountType === 'free_item' ? (
+                        <p className="text-emerald-500 font-bold italic">Reward: Free {v.freeItemName}</p>
+                      ) : (
+                        <p>Discount: {v.discountType === 'percentage' ? `${v.discountValue}% (Max ₱${v.maxDiscount})` : `₱${v.discountValue}`}</p>
+                      )}
+                      {v.claimableViaPoints && (
+                        <p className="text-[#c5a059] font-extrabold uppercase">Claimable: {v.pointCost} pts</p>
+                      )}
+                      {v.occasionName && (
+                        <p className="text-amber-600 font-bold">Event: {v.occasionName}</p>
+                      )}
+                      <p>Usage Mode: {v.usageType === 'once_per_customer' ? 'Once Per User' : v.usageType === 'single_use' ? 'Single Global Use' : 'Unlimited Usage'}</p>
                       <p>Requires Min Purchase: ₱{v.minPurchase}</p>
                       <p>Usage: {v.usageCount} used / Limit {v.usageLimit}</p>
                       <p>Expires: {v.expirationDate}</p>
@@ -1598,6 +1578,13 @@ export const AdminExperience: React.FC = () => {
                   </div>
 
                   <div className="flex gap-1">
+                    <button
+                      onClick={() => updateVoucher(v.id, { active: !v.active })}
+                      title={v.active ? "Disable Voucher" : "Enable Voucher"}
+                      className={`p-1 ${v.active ? 'text-emerald-500 hover:text-emerald-600' : 'text-stone-400 hover:text-stone-500'} cursor-pointer transition-colors`}
+                    >
+                      <Power className="w-4.5 h-4.5" />
+                    </button>
                     <button
                       onClick={() => handleEditVoucherClick(v)}
                       className={`p-1 ${isLight ? 'text-stone-400 hover:text-[#c5a059]' : 'text-white/40 hover:text-[#c5a059]'} cursor-pointer transition-colors`}
@@ -2549,6 +2536,21 @@ export const AdminExperience: React.FC = () => {
                                     }
 
                                     setSettingsSuccessMsg(`Staff account "${staffName}" removed successfully.`);
+                                    
+                                    // Automatically save settings if it was a terminal account to ensure it stays removed after refresh
+                                    if (staffUser.uid === 'terminal_admin' || staffUser.uid === 'terminal_pos' || staffUser.uid === 'terminal_kds') {
+                                      const key = staffUser.uid.split('_')[1] as 'admin' | 'pos' | 'kds';
+                                      const updatedSettings = {
+                                        ...settingsForm,
+                                        accountsConfig: {
+                                          ...settingsForm.accountsConfig,
+                                          [key]: { ...settingsForm.accountsConfig[key], enabled: false }
+                                        }
+                                      };
+                                      await updateSettings(updatedSettings);
+                                      setSettingsSuccessMsg(`Terminal "${key}" disabled and removed from Firestore permanently.`);
+                                    }
+
                                     setTimeout(() => setSettingsSuccessMsg(null), 3500);
                                   } catch (e: any) {
                                     alert("Error removing staff account: " + (e.message || e));
@@ -2681,30 +2683,15 @@ export const AdminExperience: React.FC = () => {
                               {method.qrCodeUrl && (
                                 <img src={method.qrCodeUrl} alt="QR Preview" className={`w-12 h-12 rounded-lg object-contain ${isLight ? 'bg-stone-100 border-stone-300' : 'bg-white/5 border-white/10'} border`} />
                               )}
-                              <input
-                                type="file"
-                                accept="image/*"
-                                onChange={async (e) => {
-                                  const file = e.target.files?.[0];
-                                  if (!file) return;
-                                  try {
-                                    const res = await fetch('/api/upload-url', {
-                                      method: 'POST',
-                                      headers: { 'Content-Type': 'application/json' },
-                                      body: JSON.stringify({ filename: file.name, contentType: file.type })
-                                    });
-                                    if (!res.ok) throw new Error(await res.text());
-                                    const { signedUrl, publicUrl } = await res.json();
-                                    await fetch(signedUrl, { method: 'PUT', headers: { 'Content-Type': file.type }, body: file });
-                                    
-                                    const updated = [...settingsForm.paymentMethods];
-                                    updated[index].qrCodeUrl = publicUrl;
-                                    setSettingsForm({ ...settingsForm, paymentMethods: updated });
-                                  } catch (err: any) {
-                                    alert("Failed to upload QR: " + err.message);
-                                  }
+                              <ImageUpload
+                                label="Upload QR"
+                                folder="payments"
+                                onUploadSuccess={(url, key) => {
+                                  const updated = [...settingsForm.paymentMethods];
+                                  updated[index].qrCodeUrl = url;
+                                  updated[index].qrKey = key;
+                                  setSettingsForm({ ...settingsForm, paymentMethods: updated });
                                 }}
-                                className={`w-full text-xs ${isLight ? 'text-stone-600' : 'text-white/50'} file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-[#c5a059]/10 file:text-[#c5a059] hover:file:bg-[#c5a059]/20`}
                               />
                             </div>
                           </div>
@@ -3126,6 +3113,27 @@ export const AdminExperience: React.FC = () => {
                 />
               </div>
 
+              <div className="space-y-1">
+                <label className="text-[10px] font-extrabold uppercase text-[#c5a059] tracking-wider">Category Cover Image (Optional)</label>
+                <div className="flex items-center gap-3">
+                  {catForm.image && (
+                    <img src={catForm.image} alt="Preview" className={`w-12 h-12 rounded-lg object-cover border ${isLight ? 'border-stone-300' : 'border-white/10'}`} />
+                  )}
+                  <ImageUpload
+                    label="Upload Image"
+                    folder="categories"
+                    onUploadSuccess={(url) => setCatForm({ ...catForm, image: url })}
+                  />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Or paste image URL here..."
+                  value={catForm.image}
+                  onChange={(e) => setCatForm({ ...catForm, image: e.target.value })}
+                  className={`w-full p-2 rounded-lg mt-1 ${isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-[#080808] border-white/10 text-white'} border outline-none focus:border-[#c5a059]/50 transition-colors text-[10px]`}
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-[10px] font-extrabold uppercase text-[#c5a059] tracking-wider">Sort Order No.</label>
@@ -3198,28 +3206,55 @@ export const AdminExperience: React.FC = () => {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-extrabold uppercase text-[#c5a059] tracking-wider">Discount Type</label>
+                  <label className="text-[10px] font-extrabold uppercase text-[#c5a059] tracking-wider">Voucher Reward Type</label>
                   <select
                     value={vForm.discountType}
                     onChange={(e) => setVForm({ ...vForm, discountType: e.target.value as any })}
                     className={`w-full p-2.5 rounded-xl ${isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-[#080808] border-white/10 text-white'} border outline-none`}
                   >
-                    <option value="percentage">Percentage (%)</option>
-                    <option value="fixed">Fixed Cash Amount (₱)</option>
+                    <option value="percentage">Percentage Discount (%)</option>
+                    <option value="fixed">Fixed Cash Discount (₱)</option>
+                    <option value="free_item">Free Beverage / Pastry Item</option>
                   </select>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              {vForm.discountType === 'free_item' ? (
                 <div className="space-y-1">
-                  <label className="text-[10px] font-extrabold uppercase text-[#c5a059] tracking-wider">Discount Value</label>
+                  <label className="text-[10px] font-extrabold uppercase text-[#c5a059] tracking-wider">Free Item Name</label>
                   <input
-                    type="number"
-                    value={vForm.discountValue}
-                    onChange={(e) => setVForm({ ...vForm, discountValue: Number(e.target.value) })}
+                    type="text"
+                    required
+                    placeholder="E.g. Hot Signature Latte"
+                    value={vForm.freeItemName}
+                    onChange={(e) => setVForm({ ...vForm, freeItemName: e.target.value })}
                     className={`w-full p-2.5 rounded-xl ${isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-[#080808] border-white/10 text-white'} border outline-none focus:border-[#c5a059]/50 transition-colors`}
                   />
                 </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-extrabold uppercase text-[#c5a059] tracking-wider">Discount Value</label>
+                    <input
+                      type="number"
+                      value={vForm.discountValue}
+                      onChange={(e) => setVForm({ ...vForm, discountValue: Number(e.target.value) })}
+                      className={`w-full p-2.5 rounded-xl ${isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-[#080808] border-white/10 text-white'} border outline-none focus:border-[#c5a059]/50 transition-colors`}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-extrabold uppercase text-[#c5a059] tracking-wider">Max Discount Cap</label>
+                    <input
+                      type="number"
+                      value={vForm.maxDiscount}
+                      onChange={(e) => setVForm({ ...vForm, maxDiscount: Number(e.target.value) })}
+                      className={`w-full p-2.5 rounded-xl ${isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-[#080808] border-white/10 text-white'} border outline-none focus:border-[#c5a059]/50 transition-colors`}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-[10px] font-extrabold uppercase text-[#c5a059] tracking-wider">Expiration Date</label>
                   <input
@@ -3229,9 +3264,6 @@ export const AdminExperience: React.FC = () => {
                     className={`w-full p-2.5 rounded-xl ${isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-[#080808] border-white/10 text-white'} border outline-none font-mono focus:border-[#c5a059]/50 transition-colors`}
                   />
                 </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-[10px] font-extrabold uppercase text-[#c5a059] tracking-wider">Min Purchase Req</label>
                   <input
@@ -3241,6 +3273,9 @@ export const AdminExperience: React.FC = () => {
                     className={`w-full p-2.5 rounded-xl ${isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-[#080808] border-white/10 text-white'} border outline-none focus:border-[#c5a059]/50 transition-colors`}
                   />
                 </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-[10px] font-extrabold uppercase text-[#c5a059] tracking-wider">Campaign Limit</label>
                   <input
@@ -3250,6 +3285,66 @@ export const AdminExperience: React.FC = () => {
                     className={`w-full p-2.5 rounded-xl ${isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-[#080808] border-white/10 text-white'} border outline-none focus:border-[#c5a059]/50 transition-colors`}
                   />
                 </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-extrabold uppercase text-[#c5a059] tracking-wider">Usage Mode</label>
+                  <select
+                    value={vForm.usageType}
+                    onChange={(e) => setVForm({ ...vForm, usageType: e.target.value as any })}
+                    className={`w-full p-2.5 rounded-xl ${isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-[#080808] border-white/10 text-white'} border outline-none`}
+                  >
+                    <option value="unlimited">Unlimited (Until Limit)</option>
+                    <option value="once_per_customer">One-Time Per Customer</option>
+                    <option value="single_use">Single Use Globally</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-extrabold uppercase text-[#c5a059] tracking-wider">Special Occasion / Event Name (Optional)</label>
+                <input
+                  type="text"
+                  placeholder="E.g. Grand Opening, Anniversary, Holiday"
+                  value={vForm.occasionName}
+                  onChange={(e) => setVForm({ ...vForm, occasionName: e.target.value })}
+                  className={`w-full p-2.5 rounded-xl ${isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-[#080808] border-white/10 text-white'} border outline-none focus:border-[#c5a059]/50 transition-colors`}
+                />
+              </div>
+
+              <div className="space-y-3 pt-1">
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input 
+                      type="checkbox"
+                      checked={vForm.claimableViaPoints}
+                      onChange={(e) => setVForm({ ...vForm, claimableViaPoints: e.target.checked })}
+                      className="w-4 h-4 accent-[#c5a059]"
+                    />
+                    <span className={`text-[11px] font-bold ${isLight ? 'text-stone-700' : 'text-white/80'}`}>Allow Customer Points Claim</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input 
+                      type="checkbox"
+                      checked={vForm.active}
+                      onChange={(e) => setVForm({ ...vForm, active: e.target.checked })}
+                      className="w-4 h-4 accent-[#c5a059]"
+                    />
+                    <span className={`text-[11px] font-bold ${isLight ? 'text-stone-700' : 'text-white/80'}`}>Active Campaign</span>
+                  </label>
+                </div>
+
+                {vForm.claimableViaPoints && (
+                  <div className="space-y-1 animate-in fade-in slide-in-from-top-2">
+                    <label className="text-[10px] font-extrabold uppercase text-[#c5a059] tracking-wider">Loyalty Points Cost</label>
+                    <input
+                      type="number"
+                      required
+                      placeholder="E.g. 500"
+                      value={vForm.pointCost}
+                      onChange={(e) => setVForm({ ...vForm, pointCost: Number(e.target.value) })}
+                      className={`w-full p-2.5 rounded-xl ${isLight ? 'bg-[#c5a059]/5 border-[#c5a059]/30 text-stone-900' : 'bg-[#c5a059]/5 border-[#c5a059]/20 text-white'} border outline-none font-bold focus:border-[#c5a059] transition-colors`}
+                    />
+                  </div>
+                )}
               </div>
             </div>
 

@@ -31,8 +31,8 @@ const getS3Client = () => {
 // Diagnostic endpoint to verify R2 configuration
 app.get("/api/diagnose-r2", async (req, res) => {
   const results = {
-    credentials: { s3ClientCreated: false, bucketAccessible: false, error: null },
-    publicUrl: { reachable: false, error: null }
+    credentials: { s3ClientCreated: false, bucketAccessible: false, error: null as string | null },
+    publicUrl: { reachable: false, error: null as string | null }
   };
 
   try {
@@ -40,7 +40,7 @@ app.get("/api/diagnose-r2", async (req, res) => {
     const bucketName = process.env.R2_BUCKET_NAME;
     const publicUrlBase = process.env.R2_PUBLIC_URL;
 
-    if (s3) {
+    if (s3 && bucketName) {
       results.credentials.s3ClientCreated = true;
       try {
         await s3.send(new HeadBucketCommand({ Bucket: bucketName }));
@@ -49,6 +49,8 @@ app.get("/api/diagnose-r2", async (req, res) => {
         results.credentials.bucketAccessible = false;
         results.credentials.error = err.message;
       }
+    } else {
+      results.credentials.error = s3 ? "R2_BUCKET_NAME not set" : "R2 credentials missing";
     }
 
     if (publicUrlBase) {
@@ -88,12 +90,12 @@ app.post("/api/upload-url", async (req, res) => {
       return res.status(500).json({ error: "R2 credentials missing: Check account ID and keys" });
     }
     if (!bucketName) {
-      console.error("R2 credentials missing: Check R2_BUCKET_NAME");
-      return res.status(500).json({ error: "R2 credentials missing: Check bucket name" });
+      console.error("R2 bucket name missing: Check R2_BUCKET_NAME");
+      return res.status(500).json({ error: "R2 bucket name missing: Check bucket name" });
     }
     if (!publicUrlBase) {
-      console.error("R2 credentials missing: Check R2_PUBLIC_URL");
-      return res.status(500).json({ error: "R2 credentials missing: Check public URL" });
+      console.error("R2 public URL missing: Check R2_PUBLIC_URL");
+      return res.status(500).json({ error: "R2 public URL missing: Check public URL" });
     }
 
     // Generate a unique filename (no folder prefix for testing)
@@ -125,6 +127,11 @@ app.get("/api/list-files", async (req, res) => {
   try {
     const s3 = getS3Client();
     const bucketName = process.env.R2_BUCKET_NAME;
+    
+    if (!s3 || !bucketName) {
+      return res.json({ message: "R2 not configured", files: [] });
+    }
+
     const command = new ListObjectsV2Command({ Bucket: bucketName });
     const response = await s3.send(command);
     res.json(response.Contents || []);

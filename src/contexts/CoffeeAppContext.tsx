@@ -16,7 +16,8 @@ import {
   serverTimestamp,
   increment,
   writeBatch,
-  getFirestore
+  getFirestore,
+  arrayUnion
 } from 'firebase/firestore';
 import { 
   signInWithEmailAndPassword, 
@@ -61,6 +62,7 @@ interface CoffeeAppContextType {
   categories: Category[];
   products: Product[];
   vouchers: Voucher[];
+  userVouchers: any[];
   rewards: Reward[];
   orders: Order[];
   usersList: UserProfile[];
@@ -120,6 +122,7 @@ interface CoffeeAppContextType {
   addVoucher: (voucher: Omit<Voucher, 'id' | 'usageCount'>) => Promise<void>;
   updateVoucher: (id: string, voucher: Partial<Voucher>) => Promise<void>;
   deleteVoucher: (id: string) => Promise<void>;
+  claimVoucher: (id: string) => Promise<void>;
 
   addReward: (reward: Omit<Reward, 'id'>) => Promise<void>;
   updateReward: (id: string, reward: Partial<Reward>) => Promise<void>;
@@ -461,6 +464,7 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [vouchers, setVouchers] = useState<Voucher[]>(DEMO_VOUCHERS);
   const [rewards, setRewards] = useState<Reward[]>(DEMO_REWARDS);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [userVouchers, setUserVouchers] = useState<any[]>([]);
   const [usersList, setUsersList] = useState<UserProfile[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [inventoryLogs, setInventoryLogs] = useState<InventoryTransaction[]>([]);
@@ -754,11 +758,27 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       setAuditLogs([]);
     }
 
+    // Sync User's Claimed Vouchers
+    let unsubUserVouchers = () => {};
+    if (currentUser) {
+      const qUserVouch = query(collection(db, `users/${currentUser.uid}/vouchers`), where('status', '==', 'active'));
+      unsubUserVouchers = onSnapshot(qUserVouch, (snap) => {
+        const list: any[] = [];
+        snap.forEach(doc => list.push({ id: doc.id, ...doc.data() }));
+        setUserVouchers(list);
+      }, (err) => {
+        console.warn("User vouchers snapshot failed:", err);
+      });
+    } else {
+      setUserVouchers([]);
+    }
+
     return () => {
       unsubOrders();
       unsubUsers();
       unsubInv();
       unsubAudit();
+      unsubUserVouchers();
     };
   }, [currentUser, authLoading]);
 
@@ -1013,7 +1033,18 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const applyVoucher = (code: string): string | null => {
     const cleanCode = code.trim().toUpperCase();
-    const v = vouchers.find(v => v.code === cleanCode && v.active);
+    
+    // Check global vouchers first
+    let v = vouchers.find(v => v.code === cleanCode && v.active);
+    
+    // If not found in global, check user's claimed vouchers (by instanceCode)
+    if (!v) {
+      const claimed = userVouchers.find(uv => uv.instanceCode === cleanCode);
+      if (claimed) {
+        v = claimed as Voucher;
+      }
+    }
+
     if (!v) return "Invalid or expired voucher code.";
 
     const now = new Date();
@@ -1031,6 +1062,21 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     if (subtotal < v.minPurchase) {
       return `Minimum purchase of ₱${v.minPurchase} is required for this voucher.`;
+    }
+
+    // Usage Mode Enforcement
+    if (v.usageType === 'once_per_customer' && currentUser) {
+      if (currentUser.usedVoucherIds?.includes(v.id)) {
+        return "You have already used this voucher once.";
+      }
+    }
+
+    // Free Item Validation
+    if (v.discountType === 'free_item') {
+      const hasItem = cart.some(item => item.product.name.toLowerCase() === v.freeItemName?.toLowerCase());
+      if (!hasItem) {
+        return `This voucher requires a "${v.freeItemName}" in your bag.`;
+      }
     }
 
     setAppliedVoucher(v);
@@ -1292,8 +1338,26 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (effectiveVoucher) {
         const vRef = getShopDoc('vouchers', effectiveVoucher.id);
         batch.update(vRef, {
-          usageCount: increment(1)
+          usageCount: increment(1),
+          // Single use globally - disable after first use
+          ...(effectiveVoucher.usageType === 'single_use' ? { active: false } : {})
         });
+
+        // Track usage for "once per customer" logic
+        if (effectiveVoucher.usageType === 'once_per_customer' && orderCustomerId !== 'guest') {
+          const userRef = doc(db, 'users', orderCustomerId);
+          batch.update(userRef, {
+            usedVoucherIds: arrayUnion(effectiveVoucher.id)
+          });
+        }
+
+        // If it was a CLAIMED voucher (reward claim), consume it
+        const usedCode = effectiveVoucher.code;
+        const claimedVoucher = userVouchers.find(uv => uv.instanceCode === usedCode);
+        if (claimedVoucher) {
+          const uvRef = doc(db, `users/${orderCustomerId}/vouchers`, claimedVoucher.id);
+          batch.delete(uvRef); // Consume the instance
+        }
       }
 
       // If points reward was used, deduct points
@@ -1721,9 +1785,9 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const deleteProduct = async (id: string) => {
-    // Soft delete / archive
-    await traceUpdateDoc(getShopDoc('products', id), { available: false }, 'deleteProduct');
-    await writeAuditLog(currentUser?.uid || 'admin', currentUser?.name || 'Admin', 'archive_product', id, 'available', 'unavailable');
+    // Hard delete from master records
+    await traceDeleteDoc(getShopDoc('products', id), 'deleteProduct');
+    await writeAuditLog(currentUser?.uid || 'admin', currentUser?.name || 'Admin', 'delete_product', id, '', 'deleted');
   };
 
   const addVoucher = async (v: Omit<Voucher, 'id' | 'usageCount'>) => {
@@ -1738,7 +1802,52 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const deleteVoucher = async (id: string) => {
-    await traceUpdateDoc(getShopDoc('vouchers', id), { active: false }, 'deleteVoucher');
+    await traceDeleteDoc(getShopDoc('vouchers', id), 'deleteVoucher');
+    await writeAuditLog(currentUser?.uid || 'admin', currentUser?.name || 'Admin', 'delete_voucher', id, '', 'deleted');
+  };
+
+  const claimVoucher = async (voucherId: string) => {
+    if (!currentUser) throw new Error("Authentication required to claim rewards.");
+    
+    const voucher = vouchers.find(v => v.id === voucherId);
+    if (!voucher) throw new Error("Voucher not found.");
+    if (!voucher.claimableViaPoints || !voucher.pointCost) throw new Error("This voucher is not claimable via points.");
+    
+    if (currentUser.loyaltyPoints < voucher.pointCost) {
+      throw new Error(`Insufficient points. You need ${voucher.pointCost} points.`);
+    }
+
+    const batch = writeBatch(db);
+    
+    // Deduct points
+    batch.update(doc(db, 'users', currentUser.uid), {
+      loyaltyPoints: increment(-voucher.pointCost),
+      updatedAt: serverTimestamp()
+    });
+    
+    // Log loyalty transaction
+    const txRef = doc(collection(db, `users/${currentUser.uid}/loyaltyTransactions`));
+    batch.set(txRef, {
+      customerId: currentUser.uid,
+      customerName: currentUser.name,
+      pointsChanged: -voucher.pointCost,
+      type: 'redeem',
+      description: `Claimed Voucher: ${voucher.name}`,
+      createdAt: serverTimestamp()
+    });
+
+    // Add to user's vouchers
+    const userVoucherRef = doc(collection(db, `users/${currentUser.uid}/vouchers`));
+    batch.set(userVoucherRef, {
+      ...voucher,
+      originalVoucherId: voucher.id,
+      claimedAt: serverTimestamp(),
+      status: 'active',
+      instanceCode: `${voucher.code}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`
+    });
+
+    await batch.commit();
+    await writeAuditLog(currentUser.uid, currentUser.name, 'claim_voucher', voucher.id, `${currentUser.loyaltyPoints}`, `${currentUser.loyaltyPoints - voucher.pointCost}`);
   };
 
   const addReward = async (rew: Omit<Reward, 'id'>) => {
@@ -1753,7 +1862,8 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const deleteReward = async (id: string) => {
-    await traceUpdateDoc(getShopDoc('rewards', id), { active: false }, 'deleteReward');
+    await traceDeleteDoc(getShopDoc('rewards', id), 'deleteReward');
+    await writeAuditLog(currentUser?.uid || 'admin', currentUser?.name || 'Admin', 'delete_reward', id, '', 'deleted');
   };
 
   const adjustInventory = async (productId: string, quantityChanged: number, reason: string) => {
@@ -1888,6 +1998,7 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       categories,
       products,
       vouchers,
+      userVouchers,
       rewards,
       orders,
       usersList,
@@ -1924,6 +2035,7 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       addVoucher,
       updateVoucher,
       deleteVoucher,
+      claimVoucher,
       addReward,
       updateReward,
       deleteReward,

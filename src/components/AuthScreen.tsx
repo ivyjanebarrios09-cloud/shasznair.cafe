@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion } from 'motion/react';
+import { ImageUpload } from './ImageUpload';
 import { useCoffeeApp } from '../contexts/CoffeeAppContext';
 import { DEMO_CATEGORIES, DEMO_PRODUCTS } from '../firebase/demoData';
 import { Product, CartItem, OrderType, PaymentMethod, Order } from '../types';
@@ -1257,34 +1258,14 @@ export const AuthScreen: React.FC = () => {
                       {checkoutReceiptUrl && (
                         <img src={checkoutReceiptUrl} alt="Receipt Preview" className="w-10 h-10 rounded-lg object-cover border border-white/10 bg-stone-900" />
                       )}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={async (e) => {
-                          const file = e.target.files?.[0];
-                          if (!file) return;
-                          setUploadingReceipt(true);
-                          try {
-                            const res = await fetch('/api/upload-url', {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ filename: file.name, contentType: file.type })
-                            });
-                            if (!res.ok) throw new Error(await res.text());
-                            const { signedUrl, publicUrl } = await res.json();
-                            await fetch(signedUrl, { method: 'PUT', headers: { 'Content-Type': file.type }, body: file });
-                            
-                            setCheckoutReceiptUrl(publicUrl);
-                          } catch (err: any) {
-                            alert("Failed to upload receipt: " + err.message);
-                          } finally {
-                            setUploadingReceipt(false);
-                          }
-                        }}
-                        className="w-full text-xs text-stone-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-[10px] file:font-bold file:bg-[#c5a059]/10 file:text-[#c5a059] hover:file:bg-[#c5a059]/20"
-                      />
+                      <div className="flex-1">
+                        <ImageUpload
+                          label="Select Receipt"
+                          folder="receipts"
+                          onUploadSuccess={(url) => setCheckoutReceiptUrl(url)}
+                        />
+                      </div>
                     </div>
-                    {uploadingReceipt && <p className="text-[9px] text-[#c5a059] animate-pulse mt-1 font-semibold">Uploading proof of payment...</p>}
                   </div>
                 </div>
               )}
