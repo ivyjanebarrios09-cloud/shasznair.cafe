@@ -37,7 +37,8 @@ export const CustomerExperience: React.FC = () => {
     settings,
     logout,
     updateUserProfile,
-    updateDocument
+    updateDocument,
+    loyaltyTransactions
   } = useCoffeeApp();
 
   // Navigation Tabs: 'menu' | 'orders' | 'profile'
@@ -1084,6 +1085,28 @@ export const CustomerExperience: React.FC = () => {
                   <div className="space-y-0.5">
                     <span className={`text-[10px] font-semibold block ${isLight ? 'text-stone-500' : 'text-white/40'}`}>Points Balance</span>
                     <strong className="text-xs sm:text-sm font-extrabold text-[#c5a059]">{currentUser?.loyaltyPoints || 0} pts</strong>
+                  </div>
+                </div>
+
+                {/* POINTS HISTORY */}
+                <div className="space-y-2">
+                  <h4 className={`text-xs font-bold ${isLight ? 'text-stone-900' : 'text-white'}`}>Points History</h4>
+                  <div className={`rounded-xl border ${isLight ? 'bg-white border-stone-200' : 'bg-[#121212] border-white/10'}`}>
+                    {loyaltyTransactions.length === 0 ? (
+                      <p className="p-4 text-center text-xs text-stone-500">No points history yet.</p>
+                    ) : (
+                      loyaltyTransactions.map((tx) => (
+                        <div key={tx.id} className={`p-3 border-b last:border-0 ${isLight ? 'border-stone-100' : 'border-white/5'} flex justify-between`}>
+                          <div>
+                            <p className={`text-xs font-bold ${isLight ? 'text-stone-900' : 'text-white'}`}>{tx.description}</p>
+                            <p className="text-[10px] text-stone-400">{new Date(tx.createdAt).toLocaleDateString()}</p>
+                          </div>
+                          <span className={`text-xs font-bold ${tx.pointsChanged > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                            {tx.pointsChanged > 0 ? '+' : ''}{tx.pointsChanged}
+                          </span>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
 

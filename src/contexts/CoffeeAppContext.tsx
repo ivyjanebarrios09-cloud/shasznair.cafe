@@ -68,6 +68,7 @@ interface CoffeeAppContextType {
   usersList: UserProfile[];
   auditLogs: AuditLog[];
   inventoryLogs: InventoryTransaction[];
+  loyaltyTransactions: LoyaltyTransaction[];
   settings: SystemSettings;
 
   // Loading states
@@ -482,6 +483,7 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [usersList, setUsersList] = useState<UserProfile[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [inventoryLogs, setInventoryLogs] = useState<InventoryTransaction[]>([]);
+  const [loyaltyTransactions, setLoyaltyTransactions] = useState<LoyaltyTransaction[]>([]);
   const [settings, setSettings] = useState<SystemSettings>(DEFAULT_SETTINGS);
 
   const [dataLoading, setDataLoading] = useState(true);
@@ -791,12 +793,33 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       setUserVouchers([]);
     }
 
+    // Sync Loyalty Transactions
+    const qLoyalty = isStaff 
+      ? query(getShopCol('loyaltyTransactions'), orderBy('createdAt', 'desc'))
+      : query(getShopCol('loyaltyTransactions'), where('customerId', '==', currentUser.uid), orderBy('createdAt', 'desc'));
+    
+    const unsubLoyalty = onSnapshot(qLoyalty, (snap) => {
+      const list: LoyaltyTransaction[] = [];
+      snap.forEach(doc => {
+        const data = doc.data();
+        list.push({ 
+          id: doc.id, 
+          ...data,
+          createdAt: data.createdAt?.toDate?.() || (data.createdAt ? new Date(data.createdAt) : new Date())
+        } as LoyaltyTransaction);
+      });
+      setLoyaltyTransactions(list);
+    }, (err) => {
+      console.warn("Loyalty transactions snapshot failed:", err);
+    });
+
     return () => {
       unsubOrders();
       unsubUsers();
       unsubInv();
       unsubAudit();
       unsubUserVouchers();
+      unsubLoyalty();
     };
   }, [currentUser, authLoading]);
 
@@ -2117,6 +2140,7 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       usersList,
       auditLogs,
       inventoryLogs,
+      loyaltyTransactions,
       settings,
       dataLoading,
       cart,
