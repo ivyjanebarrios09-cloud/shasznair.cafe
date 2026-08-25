@@ -234,6 +234,7 @@ export interface SystemSettings {
     lowStockThreshold: number;
     enableAlerts: boolean;
   };
+  totalExpenses?: number;
   accountsConfig: {
     admin: StaffAccountConfig;
     pos: StaffAccountConfig;

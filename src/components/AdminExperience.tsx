@@ -221,6 +221,8 @@ export const AdminExperience: React.FC = () => {
 
   const todaySales = todayOrders.filter(o => o.paymentStatus === 'paid').reduce((sum, o) => sum + o.total, 0);
   const totalSalesAllTime = completedOrders.reduce((sum, o) => sum + o.total, 0);
+  const totalExpenses = settings?.totalExpenses || 0;
+  const netProfit = totalSalesAllTime - totalExpenses;
   const averageOrderValue = completedOrders.length > 0 ? Math.round(totalSalesAllTime / completedOrders.length) : 0;
 
   // Real 7-day turnover analytics based on real paid/completed orders
@@ -705,15 +707,15 @@ export const AdminExperience: React.FC = () => {
               </div>
             </div>
 
-            {/* FINANCIALS KPI ROW WITH MOTION SQUARE CARDS */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* FINANCIALS KPI ROW WITH MOTION CARDS */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
               {/* Card 1: Today's Net Sales */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.35, delay: 0.05 }}
                 whileHover={{ y: -4, transition: { duration: 0.2 } }}
-                className={`${isLight ? 'bg-white border-stone-200 shadow-sm' : 'bg-[#121212] border-white/10 shadow-lg'} p-5 rounded-2xl border aspect-square flex flex-col justify-between relative overflow-hidden group`}
+                className={`${isLight ? 'bg-white border-stone-200 shadow-sm' : 'bg-[#121212] border-white/10 shadow-lg'} p-5 rounded-2xl border min-h-[180px] flex flex-col justify-between relative overflow-hidden group`}
               >
                 <div className="absolute top-0 right-0 w-28 h-28 bg-emerald-500/10 rounded-full blur-2xl -mr-8 -mt-8 pointer-events-none group-hover:bg-emerald-500/20 transition-all" />
                 <div className="flex justify-between items-center">
@@ -740,7 +742,7 @@ export const AdminExperience: React.FC = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.35, delay: 0.1 }}
                 whileHover={{ y: -4, transition: { duration: 0.2 } }}
-                className={`${isLight ? 'bg-white border-stone-200 shadow-sm' : 'bg-[#121212] border-white/10 shadow-lg'} p-5 rounded-2xl border aspect-square flex flex-col justify-between relative overflow-hidden group`}
+                className={`${isLight ? 'bg-white border-stone-200 shadow-sm' : 'bg-[#121212] border-white/10 shadow-lg'} p-5 rounded-2xl border min-h-[180px] flex flex-col justify-between relative overflow-hidden group`}
               >
                 <div className="absolute top-0 right-0 w-28 h-28 bg-[#c5a059]/10 rounded-full blur-2xl -mr-8 -mt-8 pointer-events-none group-hover:bg-[#c5a059]/20 transition-all" />
                 <div className="flex justify-between items-center">
@@ -760,13 +762,37 @@ export const AdminExperience: React.FC = () => {
                 </div>
               </motion.div>
 
+              {/* Card 2.5: Net Profit */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, delay: 0.12 }}
+                whileHover={{ y: -4, transition: { duration: 0.2 } }}
+                className={`${isLight ? 'bg-white border-stone-200 shadow-sm' : 'bg-[#121212] border-white/10 shadow-lg'} p-5 rounded-2xl border min-h-[180px] flex flex-col justify-between relative overflow-hidden group`}
+              >
+                <div className={`absolute top-0 right-0 w-28 h-28 ${netProfit >= 0 ? 'bg-emerald-500/10 group-hover:bg-emerald-500/20' : 'bg-rose-500/10 group-hover:bg-rose-500/20'} rounded-full blur-2xl -mr-8 -mt-8 pointer-events-none transition-all`} />
+                <div className="flex justify-between items-center">
+                  <p className={`text-[10px] sm:text-xs font-extrabold ${isLight ? 'text-stone-400' : 'text-white/40'} uppercase tracking-wider`}>Net Profit</p>
+                  <span className={`text-[10px] font-bold ${isLight ? 'text-stone-500 bg-stone-100 border-stone-200' : 'text-white/50 bg-white/5 border-white/10'} px-2 py-0.5 rounded-full border`}>Profit</span>
+                </div>
+                <div className="my-auto space-y-1">
+                  <div className={`w-11 h-11 rounded-2xl ${netProfit >= 0 ? 'bg-emerald-950/80 text-emerald-400 border-emerald-900/40' : 'bg-rose-950/80 text-rose-400 border-rose-900/40'} flex items-center justify-center border shadow-xs mb-2`}>
+                    <TrendingUp className="w-6 h-6" />
+                  </div>
+                  <span className={`text-2xl sm:text-3xl font-extrabold ${netProfit >= 0 ? 'text-emerald-500' : 'text-rose-500'} tracking-tight block`}>₱{netProfit.toLocaleString()}</span>
+                </div>
+                <div className={`pt-2 border-t border-white/5 text-[10px] sm:text-xs ${isLight ? 'text-stone-500' : 'text-white/40'} font-semibold truncate`}>
+                  Gross Sales - Total Expenses
+                </div>
+              </motion.div>
+
               {/* Card 3: Avg Order Ticket */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.35, delay: 0.15 }}
                 whileHover={{ y: -4, transition: { duration: 0.2 } }}
-                className={`${isLight ? 'bg-white border-stone-200 shadow-sm' : 'bg-[#121212] border-white/10 shadow-lg'} p-5 rounded-2xl border aspect-square flex flex-col justify-between relative overflow-hidden group`}
+                className={`${isLight ? 'bg-white border-stone-200 shadow-sm' : 'bg-[#121212] border-white/10 shadow-lg'} p-5 rounded-2xl border min-h-[180px] flex flex-col justify-between relative overflow-hidden group`}
               >
                 <div className="absolute top-0 right-0 w-28 h-28 bg-indigo-500/10 rounded-full blur-2xl -mr-8 -mt-8 pointer-events-none group-hover:bg-indigo-500/20 transition-all" />
                 <div className="flex justify-between items-center">
@@ -792,7 +818,7 @@ export const AdminExperience: React.FC = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.35, delay: 0.2 }}
                 whileHover={{ y: -4, transition: { duration: 0.2 } }}
-                className={`${isLight ? 'bg-white border-stone-200 shadow-sm' : 'bg-[#121212] border-white/10 shadow-lg'} p-5 rounded-2xl border aspect-square flex flex-col justify-between relative overflow-hidden group`}
+                className={`${isLight ? 'bg-white border-stone-200 shadow-sm' : 'bg-[#121212] border-white/10 shadow-lg'} p-5 rounded-2xl border min-h-[180px] flex flex-col justify-between relative overflow-hidden group`}
               >
                 <div className="absolute top-0 right-0 w-28 h-28 bg-rose-500/10 rounded-full blur-2xl -mr-8 -mt-8 pointer-events-none group-hover:bg-rose-500/20 transition-all" />
                 <div className="flex justify-between items-center">
@@ -1182,9 +1208,6 @@ export const AdminExperience: React.FC = () => {
                         </p>
                         <div className="flex items-baseline justify-between gap-1 pt-0.5">
                           <span className="text-xs font-extrabold text-[#c5a059]">₱{prod.price}</span>
-                          <span className="text-[9px] text-emerald-500 font-semibold truncate">
-                            +₱{prod.price - prod.cost}
-                          </span>
                         </div>
                       </div>
 
@@ -1225,7 +1248,6 @@ export const AdminExperience: React.FC = () => {
                       <th className="p-3">Product Name</th>
                       <th className="p-3">Category</th>
                       <th className="p-3">Unit Price</th>
-                      <th className="p-3">Unit Cost (Margin)</th>
                       <th className="p-3">Stock Count</th>
                       <th className="p-3 text-right">Actions</th>
                     </tr>
@@ -1275,9 +1297,6 @@ export const AdminExperience: React.FC = () => {
                           {categories.find(c => c.id === prod.category)?.name || prod.category}
                         </td>
                         <td className="p-3 font-extrabold text-[#c5a059]">₱{prod.price}</td>
-                        <td className="p-3 font-medium text-emerald-500">
-                          ₱{prod.cost} (₱{prod.price - prod.cost} profit)
-                        </td>
                         <td className="p-3">
                           <div className="flex items-center gap-1.5">
                             <span className={`font-mono font-bold flex items-center gap-1 ${
@@ -1654,7 +1673,7 @@ export const AdminExperience: React.FC = () => {
                   {(settings.loyaltySettings.pointsStrategy === 'amount_spent' || settings.loyaltySettings.pointsStrategy === 'both') && (
                     <div className={`p-4 rounded-xl ${isLight ? 'bg-stone-50' : 'bg-white/5'} space-y-4`}>
                       <p className="text-[10px] font-extrabold uppercase text-[#c5a059]">Order Amount Rule</p>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-1">
                           <label className="text-[9px] font-bold text-white/40 uppercase">Points Earned</label>
                           <input
@@ -1802,6 +1821,8 @@ export const AdminExperience: React.FC = () => {
             setCustomEndDate={setCustomEndDate}
             handleExportCSV={handleExportCSV}
             isLight={isLight}
+            settings={settings || undefined}
+            updateSettings={updateSettings}
           />
         )}
 
@@ -1824,7 +1845,7 @@ export const AdminExperience: React.FC = () => {
                   </div>
                   <div className="text-[10px] space-y-1">
                     <p className={`${isLight ? 'text-stone-600' : 'text-white/50'} truncate`}>Target: {log.target}</p>
-                    <div className="grid grid-cols-2 gap-2 mt-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
                       <div className={`p-1.5 ${isLight ? 'bg-rose-50 border-rose-200' : 'bg-rose-500/5 border-rose-500/10'} rounded border`}>
                         <p className="text-[8px] uppercase text-rose-500 font-bold">Old</p>
                         <p className={`${isLight ? 'text-stone-600' : 'text-white/40'} truncate`}>{log.prevValue || '—'}</p>
@@ -2153,7 +2174,7 @@ export const AdminExperience: React.FC = () => {
 
               <div className="space-y-3 text-xs">
                 <label className="text-[10px] font-extrabold uppercase text-[#c5a059] tracking-wider block">Select Interface Appearance</label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <button
                     type="button"
                     onClick={() => setSettingsForm({
@@ -2698,7 +2719,7 @@ export const AdminExperience: React.FC = () => {
                 {(settingsForm.paymentMethods || []).map((method, index) => (
                   <div key={method.id} className={`p-4 ${isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#080808] border-white/5'} border rounded-xl space-y-3`}>
                     <div className="flex justify-between items-start gap-4">
-                      <div className="grid grid-cols-2 gap-3 flex-1 text-xs">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1 text-xs">
                         <div className="space-y-1">
                           <label className="text-[10px] font-extrabold uppercase text-[#c5a059] tracking-wider">Method Name</label>
                           <input
@@ -2896,27 +2917,15 @@ export const AdminExperience: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-extrabold uppercase text-[#c5a059] tracking-wider">Unit Price (₱)</label>
-                  <input
-                    type="number"
-                    required
-                    value={prodForm.price}
-                    onChange={(e) => setProdForm({ ...prodForm, price: Number(e.target.value) })}
-                    className={`w-full p-2.5 rounded-xl ${isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-[#080808] border-white/10 text-white'} border outline-none focus:border-[#c5a059]/50 transition-colors`}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-extrabold uppercase text-[#c5a059] tracking-wider">Unit Ingredient Cost (₱)</label>
-                  <input
-                    type="number"
-                    required
-                    value={prodForm.cost}
-                    onChange={(e) => setProdForm({ ...prodForm, cost: Number(e.target.value) })}
-                    className={`w-full p-2.5 rounded-xl ${isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-[#080808] border-white/10 text-white'} border outline-none focus:border-[#c5a059]/50 transition-colors`}
-                  />
-                </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-extrabold uppercase text-[#c5a059] tracking-wider">Unit Price (₱)</label>
+                <input
+                  type="number"
+                  required
+                  value={prodForm.price}
+                  onChange={(e) => setProdForm({ ...prodForm, price: Number(e.target.value) })}
+                  className={`w-full p-2.5 rounded-xl ${isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-[#080808] border-white/10 text-white'} border outline-none focus:border-[#c5a059]/50 transition-colors`}
+                />
               </div>
 
               <div className="space-y-1">
@@ -2951,7 +2960,7 @@ export const AdminExperience: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-[10px] font-extrabold uppercase text-[#c5a059] tracking-wider">Initial Stock</label>
                   <input
@@ -3262,7 +3271,7 @@ export const AdminExperience: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-[10px] font-extrabold uppercase text-[#c5a059] tracking-wider">Sort Order No.</label>
                   <input
@@ -3321,7 +3330,7 @@ export const AdminExperience: React.FC = () => {
             )}
 
             <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-[10px] font-extrabold uppercase text-[#c5a059] tracking-wider">Voucher Code</label>
                   <input
@@ -3360,7 +3369,7 @@ export const AdminExperience: React.FC = () => {
                   />
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <label className="text-[10px] font-extrabold uppercase text-[#c5a059] tracking-wider">Discount Value</label>
                     <input
@@ -3382,7 +3391,7 @@ export const AdminExperience: React.FC = () => {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-[10px] font-extrabold uppercase text-[#c5a059] tracking-wider">Expiration Date</label>
                   <input
@@ -3403,7 +3412,7 @@ export const AdminExperience: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-[10px] font-extrabold uppercase text-[#c5a059] tracking-wider">Campaign Limit</label>
                   <input
@@ -3502,7 +3511,7 @@ export const AdminExperience: React.FC = () => {
               <p className={`text-[10px] mt-0.5 ${isLight ? 'text-stone-600' : 'text-white/70'}`}>Current Balance: {pointsUser.loyaltyPoints} points</p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
                 <label className="text-[10px] font-extrabold uppercase text-[#c5a059] tracking-wider">Points Delta (Positive/Negative)</label>
                 <input
@@ -3550,7 +3559,7 @@ export const AdminExperience: React.FC = () => {
               <p className={`text-[10px] mt-0.5 ${isLight ? 'text-stone-500' : 'text-white/60'}`}>Current Stock Ledger: {stockProduct.stockQuantity} units</p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
                 <label className="text-[10px] font-extrabold uppercase text-[#c5a059] tracking-wider">Adjustment Delta</label>
                 <input
@@ -3627,7 +3636,7 @@ export const AdminExperience: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-[10px] font-extrabold uppercase text-[#c5a059]">Assigned Staff Role</label>
                   <select
@@ -3794,7 +3803,7 @@ export const AdminExperience: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-[10px] font-extrabold uppercase text-[#c5a059]">Assigned Staff Role</label>
                   <select

@@ -1171,6 +1171,23 @@ export const PosExperience: React.FC = () => {
                       </div>
                     </div>
 
+                    {ord.receiptUrl && (
+                      <div className={`mt-2 p-2 rounded-xl border flex items-center justify-between gap-2.5 ${
+                        isLight ? 'bg-amber-50/40 border-amber-200 text-stone-800' : 'bg-amber-950/15 border-amber-800/30 text-white/90'
+                      }`}>
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <ReceiptText className="w-4 h-4 text-[#c5a059] shrink-0" />
+                          <span className="text-[10px] font-bold truncate">E-Wallet Receipt</span>
+                        </div>
+                        <button
+                          onClick={() => setViewReceiptUrl(ord.receiptUrl || null)}
+                          className="bg-[#c5a059] hover:bg-[#b08c47] text-black font-extrabold text-[9px] px-2 py-1 rounded-lg transition-all cursor-pointer shadow-sm shrink-0"
+                        >
+                          Check Receipt
+                        </button>
+                      </div>
+                    )}
+
                     {/* Fulfill / Payment buttons */}
                     <div className={`flex gap-2 pt-1 border-t ${isLight ? 'border-stone-200' : 'border-white/5'}`}>
                       {ord.paymentStatus === 'unpaid' && (
@@ -1258,15 +1275,18 @@ export const PosExperience: React.FC = () => {
                             )}
                           </div>
                           {ord.receiptUrl && (
-                            <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
-                              <span className="inline-flex items-center gap-0.5 text-[8px] font-mono font-bold px-1.5 py-0.5 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded">
-                                Receipt Uploaded
-                              </span>
+                            <div className={`mt-2 p-2 rounded-xl border flex items-center justify-between gap-2.5 ${
+                              isLight ? 'bg-amber-50/40 border-amber-200 text-stone-800' : 'bg-amber-950/15 border-amber-800/30 text-white/90'
+                            }`}>
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <ReceiptText className="w-4 h-4 text-[#c5a059] shrink-0" />
+                                <span className="text-[10px] font-bold truncate">E-Wallet Receipt</span>
+                              </div>
                               <button
-                                onClick={() => setViewReceiptUrl(ord.receiptUrl)}
-                                className="bg-[#c5a059]/10 hover:bg-[#c5a059]/20 border border-[#c5a059]/30 text-[#c5a059] font-extrabold text-[9px] px-1.5 py-0.5 rounded cursor-pointer transition-colors"
+                                onClick={() => setViewReceiptUrl(ord.receiptUrl || null)}
+                                className="bg-[#c5a059] hover:bg-[#b08c47] text-black font-extrabold text-[9px] px-2 py-1 rounded-lg transition-all cursor-pointer shadow-sm shrink-0"
                               >
-                                Check
+                                Check Receipt
                               </button>
                             </div>
                           )}

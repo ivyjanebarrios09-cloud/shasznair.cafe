@@ -162,7 +162,7 @@ export const KitchenExperience: React.FC = () => {
 
   return (
     <div 
-      className={`min-h-screen ${isLight ? 'bg-stone-100 text-stone-900' : 'bg-[#07080c] text-[#f2f2f2]'} flex flex-col font-sans select-none overflow-x-hidden transition-colors duration-300`}
+      className={`h-screen ${isLight ? 'bg-stone-100 text-stone-900' : 'bg-[#07080c] text-[#f2f2f2]'} flex flex-col font-sans select-none overflow-hidden transition-colors duration-300`}
       style={{ '--color-primary': settings.branding.primaryColor } as React.CSSProperties}
     >
       {/* TOP NAVIGATION BAR */}
@@ -211,8 +211,9 @@ export const KitchenExperience: React.FC = () => {
       )}
 
       {/* MAIN CONTAINER */}
-      <div className="flex-1 p-4 sm:p-6 space-y-5 max-w-7xl mx-auto w-full">
-        {/* HEADER SECTION */}
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 w-full">
+        <div className="max-w-7xl mx-auto space-y-5">
+          {/* HEADER SECTION */}
         <div className="space-y-1.5">
           <div className={`inline-block text-[9px] font-mono tracking-widest uppercase px-2.5 py-0.5 rounded-full font-bold border ${isLight ? 'bg-stone-200 border-amber-600/40 text-amber-900' : 'bg-[#161821] border-[#c5a059]/30 text-[#c5a059]'}`}>
             PRODUCTION
@@ -670,7 +671,7 @@ export const KitchenExperience: React.FC = () => {
             </div>
 
             {/* Desktop Table View (>= md) */}
-            <div className={`${isLight ? 'bg-white border-stone-200 shadow-xl' : 'bg-[#0b0c10] border-white/10 shadow-xl'} border rounded-2xl overflow-hidden transition-colors`}>
+            <div className={`hidden md:block ${isLight ? 'bg-white border-stone-200 shadow-xl' : 'bg-[#0b0c10] border-white/10 shadow-xl'} border rounded-2xl overflow-hidden transition-colors`}>
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs font-mono">
                   <thead className={`${isLight ? 'bg-stone-100 border-stone-200 text-stone-700 font-bold' : 'bg-[#12131a] border-white/10 text-white/50'} border-b uppercase text-[10px]`}>
@@ -803,6 +804,7 @@ export const KitchenExperience: React.FC = () => {
             <LogOut className="w-3 h-3" />
             <span>Exit Station</span>
           </button>
+        </div>
         </div>
       </div>
 

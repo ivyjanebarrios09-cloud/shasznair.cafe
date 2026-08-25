@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { motion } from 'motion/react';
-import { Order, Product, Category } from '../types';
+import { Order, Product, Category, SystemSettings } from '../types';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -49,6 +49,8 @@ interface AdminReportsTabProps {
   setCustomEndDate: (d: string) => void;
   handleExportCSV: () => void;
   isLight?: boolean;
+  settings?: SystemSettings;
+  updateSettings?: (s: SystemSettings) => Promise<void>;
 }
 
 // Helpers for categorization
@@ -156,7 +158,9 @@ export const AdminReportsTab: React.FC<AdminReportsTabProps> = ({
   customEndDate,
   setCustomEndDate,
   handleExportCSV,
-  isLight = false
+  isLight = false,
+  settings,
+  updateSettings
 }) => {
   // 1. FILTER ORDERS BASED ON SELECTED TIMEFRAME OR CALENDAR DATES
   const filteredReportOrders = useMemo(() => {
@@ -247,34 +251,30 @@ export const AdminReportsTab: React.FC<AdminReportsTabProps> = ({
     return { totalLunchCount: totalCount, totalLunchOrders: lunchOrders };
   }, [filteredReportOrders, products]);
 
-  // 4. PROFITABILITY & COGS (COST OF GOODS SOLD) ANALYSIS
-  const cogsAnalysis = useMemo(() => {
-    let totalCOGS = 0;
+  const [expenseFormVal, setExpenseFormVal] = React.useState<number | null>(null);
+  const [expenseSaving, setExpenseSaving] = React.useState(false);
+  const [expenseSuccessMsg, setExpenseSuccessMsg] = React.useState<string | null>(null);
 
-    filteredReportOrders.forEach(o => {
-      o.items?.forEach(it => {
-        const prod = products.find(p => p.id === it.productId || p.name.toLowerCase() === it.name.toLowerCase());
-        // If product has a configured cost, use it; otherwise standard 35% COGS estimate for coffee/bakery
-        const unitCost = prod && prod.cost > 0 ? prod.cost : Math.round((it.price || 0) * 0.35);
-        const qty = it.quantity || 1;
-        totalCOGS += unitCost * qty;
-      });
-    });
+  // Sync expense form value
+  React.useEffect(() => {
+    if (expenseFormVal === null && settings?.totalExpenses !== undefined) {
+      setExpenseFormVal(settings.totalExpenses);
+    }
+  }, [settings?.totalExpenses, expenseFormVal]);
 
+  // 4. FINANCIAL EXPENSES & PROFIT ANALYSIS
+  const financialAnalysis = useMemo(() => {
     const grossRevenue = reportNetSales;
-    const grossProfit = Math.max(0, grossRevenue - totalCOGS);
-    const profitMarginPercent = grossRevenue > 0 ? ((grossProfit / grossRevenue) * 100).toFixed(1) : '0';
-    const cogsPercent = grossRevenue > 0 ? ((totalCOGS / grossRevenue) * 100).toFixed(1) : '0';
-    const avgProfitPerOrder = reportOrdersCount > 0 ? Math.round(grossProfit / reportOrdersCount) : 0;
+    const totalExpenses = settings?.totalExpenses || 0;
+    const netProfit = grossRevenue - totalExpenses;
+    const avgProfitPerOrder = reportOrdersCount > 0 ? Math.round(netProfit / reportOrdersCount) : 0;
 
     return {
-      totalCOGS,
-      grossProfit,
-      profitMarginPercent,
-      cogsPercent,
+      totalExpenses,
+      netProfit,
       avgProfitPerOrder
     };
-  }, [filteredReportOrders, reportNetSales, reportOrdersCount, products]);
+  }, [reportNetSales, settings?.totalExpenses, reportOrdersCount]);
 
   // 5. ANIMATED REVENUE & ORDER VOLUME TREND DATA
   const revenueTrendData = useMemo(() => {
@@ -554,7 +554,7 @@ export const AdminReportsTab: React.FC<AdminReportsTabProps> = ({
       </div>
 
       {/* 2. SUMMARY KPI STATS CARDS */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
         {/* TOTAL REVENUE */}
         <div className={`p-4 rounded-xl border shadow-md space-y-1.5 relative overflow-hidden group transition-colors ${
           isLight ? 'bg-white border-stone-200' : 'bg-[#121212] border-white/10'
@@ -628,22 +628,22 @@ export const AdminReportsTab: React.FC<AdminReportsTabProps> = ({
           <p className={`text-[10px] ${isLight ? 'text-stone-600 font-medium' : 'text-white/40'}`}>{totalLunchOrders} lunch rush orders (11-2PM)</p>
         </div>
 
-        {/* GROSS PROFIT & MARGIN */}
+        {/* NET PROFIT */}
         <div className={`p-4 rounded-xl border shadow-md space-y-1.5 relative overflow-hidden group transition-colors ${
           isLight ? 'bg-white border-stone-200' : 'bg-[#121212] border-white/10'
         }`}>
           <div className="flex items-center justify-between">
-            <span className={`text-[10px] font-extrabold uppercase tracking-wider ${isLight ? 'text-stone-600' : 'text-white/40'}`}>Gross Profit</span>
-            <div className="p-1.5 rounded-lg bg-[#c5a059]/10 text-[#c5a059]">
+            <span className={`text-[10px] font-extrabold uppercase tracking-wider ${isLight ? 'text-stone-600' : 'text-white/40'}`}>Net Profit</span>
+            <div className={`p-1.5 rounded-lg ${financialAnalysis.netProfit >= 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
               <Percent className="w-4 h-4" />
             </div>
           </div>
-          <p className={`text-xl sm:text-2xl font-extrabold font-mono ${isLight ? 'text-[#8c6b27]' : 'text-[#c5a059]'}`}>₱{cogsAnalysis.grossProfit.toLocaleString()}</p>
-          <p className={`text-[10px] font-bold ${isLight ? 'text-[#8c6b27]' : 'text-[#c5a059]'}`}>{cogsAnalysis.profitMarginPercent}% Margin</p>
+          <p className={`text-xl sm:text-2xl font-extrabold font-mono ${financialAnalysis.netProfit >= 0 ? (isLight ? 'text-emerald-700' : 'text-emerald-400') : (isLight ? 'text-rose-700' : 'text-rose-400')}`}>₱{financialAnalysis.netProfit.toLocaleString()}</p>
+          <p className={`text-[10px] font-bold ${isLight ? 'text-stone-500' : 'text-white/40'}`}>Gross Sales - Expenses</p>
         </div>
       </div>
 
-      {/* 3. PROFITABILITY & COGS (COST OF GOODS SOLD) IN-DEPTH ANALYSIS */}
+      {/* 3. FINANCIAL EXPENSES & PROFIT BREAKDOWN */}
       <div className={`rounded-2xl border p-5 shadow-md space-y-4 transition-colors ${
         isLight 
           ? 'bg-white border-stone-200' 
@@ -657,13 +657,13 @@ export const AdminReportsTab: React.FC<AdminReportsTabProps> = ({
             <h3 className={`font-serif font-extrabold text-sm sm:text-base tracking-wide ${
               isLight ? 'text-stone-900' : 'text-white'
             }`}>
-              Profitability & COGS (Cost of Goods Sold) Financial Breakdown
+              Financial Expenses & Profit Breakdown
             </h3>
           </div>
           <span className={`text-[11px] px-2.5 py-1 rounded-full font-mono font-bold ${
-            isLight ? 'text-stone-800 bg-stone-100 border border-stone-300' : 'text-white/50 bg-white/5'
+            isLight ? 'text-emerald-800 bg-emerald-100 border border-emerald-300' : 'text-emerald-400 bg-emerald-950/50 border border-emerald-500/30'
           }`}>
-            COGS Benchmark: {cogsAnalysis.cogsPercent}% of Net Sales
+            Live Profit tracking
           </span>
         </div>
 
@@ -671,55 +671,71 @@ export const AdminReportsTab: React.FC<AdminReportsTabProps> = ({
           <div className={`p-3.5 rounded-xl border space-y-1 ${
             isLight ? 'bg-stone-50 border-stone-300' : 'bg-[#080808] border-white/5'
           }`}>
-            <p className={`text-[10px] uppercase font-extrabold tracking-wider ${isLight ? 'text-stone-700' : 'text-white/40'}`}>Net Sales Revenue</p>
+            <p className={`text-[10px] uppercase font-extrabold tracking-wider ${isLight ? 'text-stone-700' : 'text-white/40'}`}>Gross Sales Revenue</p>
             <p className={`text-lg font-extrabold font-mono ${isLight ? 'text-stone-900' : 'text-white'}`}>₱{reportNetSales.toLocaleString()}</p>
             <p className="text-[10px] text-emerald-600 font-bold flex items-center gap-0.5">
               <ArrowUpRight className="w-3 h-3" /> 100% Inflow
             </p>
           </div>
 
-          <div className={`p-3.5 rounded-xl border space-y-1 ${
+          <div className={`p-3.5 rounded-xl border space-y-2 ${
             isLight ? 'bg-stone-50 border-stone-300' : 'bg-[#080808] border-white/5'
           }`}>
-            <p className={`text-[10px] uppercase font-extrabold tracking-wider ${isLight ? 'text-stone-700' : 'text-white/40'}`}>Estimated Total COGS</p>
-            <p className={`text-lg font-extrabold font-mono ${isLight ? 'text-rose-700' : 'text-rose-400'}`}>₱{cogsAnalysis.totalCOGS.toLocaleString()}</p>
-            <p className={`text-[10px] ${isLight ? 'text-stone-600 font-medium' : 'text-white/40'}`}>Raw ingredients, beans, dairy, packaging</p>
+            <p className={`text-[10px] uppercase font-extrabold tracking-wider ${isLight ? 'text-stone-700' : 'text-white/40'}`}>Total Cumulative Expenses</p>
+            <div className="flex items-center gap-1">
+              <span className={`text-lg font-extrabold font-mono ${isLight ? 'text-rose-700' : 'text-rose-400'}`}>₱</span>
+              <input
+                type="number"
+                min={0}
+                value={expenseFormVal ?? 0}
+                onChange={(e) => setExpenseFormVal(Number(e.target.value) >= 0 ? Number(e.target.value) : 0)}
+                className={`w-full bg-transparent border-b ${isLight ? 'border-stone-300 text-rose-700 focus:border-rose-500' : 'border-white/20 text-rose-400 focus:border-rose-400'} outline-none font-extrabold font-mono text-lg transition-colors`}
+              />
+            </div>
+            
+            {expenseFormVal !== settings?.totalExpenses && (
+              <button
+                disabled={expenseSaving}
+                onClick={async () => {
+                  if (!updateSettings || !settings) return;
+                  setExpenseSaving(true);
+                  try {
+                    await updateSettings({ ...settings, totalExpenses: expenseFormVal ?? 0 });
+                    setExpenseSuccessMsg('Saved');
+                    setTimeout(() => setExpenseSuccessMsg(null), 2000);
+                  } catch (e) {
+                    console.error(e);
+                  } finally {
+                    setExpenseSaving(false);
+                  }
+                }}
+                className={`w-full py-1 rounded text-[10px] font-bold ${
+                  expenseSaving 
+                    ? 'opacity-50 cursor-not-allowed bg-stone-300 text-stone-600'
+                    : expenseSuccessMsg
+                      ? 'bg-emerald-500 text-white'
+                      : 'bg-rose-500 hover:bg-rose-600 text-white'
+                } transition-all`}
+              >
+                {expenseSaving ? 'Saving...' : expenseSuccessMsg || 'Update Expenses'}
+              </button>
+            )}
           </div>
 
           <div className={`p-3.5 rounded-xl border space-y-1 ${
             isLight ? 'bg-stone-50 border-stone-300' : 'bg-[#080808] border-white/5'
           }`}>
-            <p className={`text-[10px] uppercase font-extrabold tracking-wider ${isLight ? 'text-stone-700' : 'text-white/40'}`}>Estimated Gross Profit</p>
-            <p className={`text-lg font-extrabold font-mono ${isLight ? 'text-[#8c6b27]' : 'text-[#c5a059]'}`}>₱{cogsAnalysis.grossProfit.toLocaleString()}</p>
-            <p className={`text-[10px] font-bold ${isLight ? 'text-[#8c6b27]' : 'text-[#c5a059]'}`}>{cogsAnalysis.profitMarginPercent}% Gross Profit Margin</p>
+            <p className={`text-[10px] uppercase font-extrabold tracking-wider ${isLight ? 'text-stone-700' : 'text-white/40'}`}>Net Profit</p>
+            <p className={`text-lg font-extrabold font-mono ${financialAnalysis.netProfit >= 0 ? (isLight ? 'text-emerald-700' : 'text-emerald-400') : (isLight ? 'text-rose-700' : 'text-rose-400')}`}>₱{financialAnalysis.netProfit.toLocaleString()}</p>
+            <p className={`text-[10px] ${isLight ? 'text-stone-600 font-medium' : 'text-white/40'}`}>Gross Sales - Total Expenses</p>
           </div>
 
           <div className={`p-3.5 rounded-xl border space-y-1 ${
             isLight ? 'bg-stone-50 border-stone-300' : 'bg-[#080808] border-white/5'
           }`}>
             <p className={`text-[10px] uppercase font-extrabold tracking-wider ${isLight ? 'text-stone-700' : 'text-white/40'}`}>Avg Profit / Invoice</p>
-            <p className={`text-lg font-extrabold font-mono ${isLight ? 'text-stone-900' : 'text-white'}`}>₱{cogsAnalysis.avgProfitPerOrder}</p>
-            <p className={`text-[10px] ${isLight ? 'text-stone-600 font-medium' : 'text-white/40'}`}>Net margin per customer visit</p>
-          </div>
-        </div>
-
-        {/* Visual Progress Proportion Bar */}
-        <div className="space-y-1.5 pt-1">
-          <div className="flex justify-between text-[11px] font-bold">
-            <span className={isLight ? 'text-[#8c6b27]' : 'text-[#c5a059]'}>Gross Margin: {cogsAnalysis.profitMarginPercent}%</span>
-            <span className={isLight ? 'text-rose-700' : 'text-rose-400'}>COGS Expense: {cogsAnalysis.cogsPercent}%</span>
-          </div>
-          <div className={`w-full h-3 rounded-full overflow-hidden flex border ${
-            isLight ? 'bg-stone-200 border-stone-300' : 'bg-[#080808] border-white/10'
-          }`}>
-            <div 
-              style={{ width: `${Math.max(5, Math.min(95, parseFloat(cogsAnalysis.profitMarginPercent)))}%` }} 
-              className="bg-gradient-to-r from-[#c5a059] to-[#e0b868] h-full transition-all"
-            />
-            <div 
-              style={{ width: `${Math.max(5, Math.min(95, parseFloat(cogsAnalysis.cogsPercent)))}%` }} 
-              className="bg-rose-500/60 h-full transition-all"
-            />
+            <p className={`text-lg font-extrabold font-mono ${isLight ? 'text-stone-900' : 'text-white'}`}>₱{financialAnalysis.avgProfitPerOrder}</p>
+            <p className={`text-[10px] ${isLight ? 'text-stone-600 font-medium' : 'text-white/40'}`}>Net profit per customer visit</p>
           </div>
         </div>
       </div>
