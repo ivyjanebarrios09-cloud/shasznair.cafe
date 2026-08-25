@@ -85,6 +85,7 @@ export const AdminExperience: React.FC = () => {
 
   // Inventory Stock Filter State
   const [stockFilter, setStockFilter] = useState<'all' | 'low_stock' | 'out_of_stock'>('all');
+  const [prodPoints, setProdPoints] = useState<number>(0);
 
   React.useEffect(() => {
     if (settings) {
@@ -380,7 +381,8 @@ export const AdminExperience: React.FC = () => {
       minStock: Number(prodForm.minStock),
       available: prodForm.stockQuantity > 0,
       sizes: prodForm.sizes,
-      addOns: prodForm.addOns
+      addOns: prodForm.addOns,
+      loyaltyPoints: prodPoints
     };
 
     try {
@@ -425,6 +427,7 @@ export const AdminExperience: React.FC = () => {
         { name: 'Caramel Syrup', price: 15 }
       ]
     });
+    setProdPoints(prod.loyaltyPoints || 0);
     setModalError(null);
     setModalSuccess(null);
     setShowProductModal(true);
@@ -1053,6 +1056,7 @@ export const AdminExperience: React.FC = () => {
                         { name: 'Caramel Syrup', price: 15 }
                       ]
                     });
+                    setProdPoints(0);
                     setModalError(null);
                     setModalSuccess(null);
                     setShowProductModal(true);
@@ -1601,12 +1605,98 @@ export const AdminExperience: React.FC = () => {
                 </div>
               ))}
             </div>
+
+            {/* Loyalty Points Strategy Configuration */}
+            <div className={`mt-8 p-6 rounded-2xl border ${isLight ? 'bg-white border-stone-200' : 'bg-[#121212] border-white/10'} shadow-lg space-y-6`}>
+              <div className="flex items-center gap-3 border-b border-white/5 pb-4">
+                <Award className="w-5 h-5 text-[#c5a059]" />
+                <div>
+                  <h3 className={`font-serif font-extrabold ${isLight ? 'text-stone-900' : 'text-white'} text-sm uppercase tracking-widest`}>Loyalty Points System Configuration</h3>
+                  <p className={`text-[10px] ${isLight ? 'text-stone-500' : 'text-white/40'}`}>Configure how customers earn points on their orders</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-extrabold uppercase text-[#c5a059] tracking-wider block">Points Earning Strategy</label>
+                    <div className="grid grid-cols-1 gap-2">
+                      <button
+                        onClick={() => updateSettings({ loyaltySettings: { ...settings.loyaltySettings, pointsStrategy: 'amount_spent' } })}
+                        className={`p-3 rounded-xl border text-left transition-all ${settings.loyaltySettings.pointsStrategy === 'amount_spent' ? 'border-[#c5a059] bg-[#c5a059]/5 ring-1 ring-[#c5a059]' : 'border-white/5 bg-white/5 hover:bg-white/10'}`}
+                      >
+                        <p className={`text-xs font-bold ${settings.loyaltySettings.pointsStrategy === 'amount_spent' ? 'text-[#c5a059]' : 'text-white'}`}>Per Order Amount</p>
+                        <p className="text-[10px] text-white/40 mt-1">Customers earn points based on the total bill (e.g. 1 pt per ₱100)</p>
+                      </button>
+                      <button
+                        onClick={() => updateSettings({ loyaltySettings: { ...settings.loyaltySettings, pointsStrategy: 'per_item' } })}
+                        className={`p-3 rounded-xl border text-left transition-all ${settings.loyaltySettings.pointsStrategy === 'per_item' ? 'border-[#c5a059] bg-[#c5a059]/5 ring-1 ring-[#c5a059]' : 'border-white/5 bg-white/5 hover:bg-white/10'}`}
+                      >
+                        <p className={`text-xs font-bold ${settings.loyaltySettings.pointsStrategy === 'per_item' ? 'text-[#c5a059]' : 'text-white'}`}>Per Item Purchased</p>
+                        <p className="text-[10px] text-white/40 mt-1">Points are assigned to specific products (set in Product Records)</p>
+                      </button>
+                      <button
+                        onClick={() => updateSettings({ loyaltySettings: { ...settings.loyaltySettings, pointsStrategy: 'both' } })}
+                        className={`p-3 rounded-xl border text-left transition-all ${settings.loyaltySettings.pointsStrategy === 'both' ? 'border-[#c5a059] bg-[#c5a059]/5 ring-1 ring-[#c5a059]' : 'border-white/5 bg-white/5 hover:bg-white/10'}`}
+                      >
+                        <p className={`text-xs font-bold ${settings.loyaltySettings.pointsStrategy === 'both' ? 'text-[#c5a059]' : 'text-white'}`}>Combined Strategy</p>
+                        <p className="text-[10px] text-white/40 mt-1">Customers earn points from both bill amount AND specific item bonuses</p>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  {(settings.loyaltySettings.pointsStrategy === 'amount_spent' || settings.loyaltySettings.pointsStrategy === 'both') && (
+                    <div className={`p-4 rounded-xl ${isLight ? 'bg-stone-50' : 'bg-white/5'} space-y-4`}>
+                      <p className="text-[10px] font-extrabold uppercase text-[#c5a059]">Order Amount Rule</p>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-bold text-white/40 uppercase">Points Earned</label>
+                          <input
+                            type="number"
+                            value={settings.loyaltySettings.pointsPerAmountSpent}
+                            onChange={(e) => updateSettings({ loyaltySettings: { ...settings.loyaltySettings, pointsPerAmountSpent: Number(e.target.value) } })}
+                            className={`w-full p-2 rounded-lg bg-[#080808] border border-white/10 text-white outline-none focus:border-[#c5a059]/50`}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-bold text-white/40 uppercase">Per Amount Spent (₱)</label>
+                          <input
+                            type="number"
+                            value={settings.loyaltySettings.amountRequired}
+                            onChange={(e) => updateSettings({ loyaltySettings: { ...settings.loyaltySettings, amountRequired: Number(e.target.value) } })}
+                            className={`w-full p-2 rounded-lg bg-[#080808] border border-white/10 text-white outline-none focus:border-[#c5a059]/50`}
+                          />
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-amber-500 italic">Current: {settings.loyaltySettings.pointsPerAmountSpent} pt per ₱{settings.loyaltySettings.amountRequired} spent</p>
+                    </div>
+                  )}
+
+                  {(settings.loyaltySettings.pointsStrategy === 'per_item' || settings.loyaltySettings.pointsStrategy === 'both') && (
+                    <div className={`p-4 rounded-xl ${isLight ? 'bg-stone-50' : 'bg-white/5'} space-y-2`}>
+                      <p className="text-[10px] font-extrabold uppercase text-[#c5a059]">Item-Based Rule</p>
+                      <p className="text-[10px] text-white/40">Points for each item are managed directly in the <span className="text-[#c5a059] font-bold">Beverages & Pastries Master Records</span> modal.</p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <div className="flex -space-x-2">
+                          {products.slice(0, 3).map(p => (
+                            <div key={p.id} className="w-6 h-6 rounded-full border border-[#121212] overflow-hidden bg-stone-800">
+                              <img src={p.image} className="w-full h-full object-cover" />
+                            </div>
+                          ))}
+                        </div>
+                        <span className="text-[9px] text-white/60">Configure rewards per SKU</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         )}
-
         {activeTab === 'customers' && (
           <div className="space-y-4">
-            <h2 className={`font-serif font-extrabold ${isLight ? 'text-stone-900' : 'text-white'} text-base tracking-wide`}>Customer Loyalty Points Database</h2>
 
             {/* MOBILE CARD VIEW - CUSTOMERS */}
             <div className="lg:hidden space-y-3">
@@ -1892,10 +1982,15 @@ export const AdminExperience: React.FC = () => {
                   <ImageUpload
                     label="Upload New Logo"
                     folder="branding"
-                    onUploadSuccess={(url, key) => setSettingsForm({
-                      ...settingsForm,
-                      branding: { ...settingsForm.branding, logoUrl: url, logoKey: key }
-                    })}
+                    onUploadStart={() => setIsUploadingImage(true)}
+                    onUploadError={() => setIsUploadingImage(false)}
+                    onUploadSuccess={(url, key) => {
+                      setSettingsForm({
+                        ...settingsForm,
+                        branding: { ...settingsForm.branding, logoUrl: url, logoKey: key }
+                      });
+                      setIsUploadingImage(false);
+                    }}
                   />
                 </div>
                 <input
@@ -2686,11 +2781,14 @@ export const AdminExperience: React.FC = () => {
                               <ImageUpload
                                 label="Upload QR"
                                 folder="payments"
+                                onUploadStart={() => setIsUploadingImage(true)}
+                                onUploadError={() => setIsUploadingImage(false)}
                                 onUploadSuccess={(url, key) => {
                                   const updated = [...settingsForm.paymentMethods];
                                   updated[index].qrCodeUrl = url;
                                   updated[index].qrKey = key;
                                   setSettingsForm({ ...settingsForm, paymentMethods: updated });
+                                  setIsUploadingImage(false);
                                 }}
                               />
                             </div>
@@ -2826,11 +2924,16 @@ export const AdminExperience: React.FC = () => {
                   <ImageUpload
                     label="Upload Image"
                     folder="products"
-                    onUploadSuccess={(url, key) => setProdForm({
-                      ...prodForm,
-                      image: url,
-                      imageKey: key
-                    })}
+                    onUploadStart={() => setIsUploadingImage(true)}
+                    onUploadError={() => setIsUploadingImage(false)}
+                    onUploadSuccess={(url, key) => {
+                      setProdForm({
+                        ...prodForm,
+                        image: url,
+                        imageKey: key
+                      });
+                      setIsUploadingImage(false);
+                    }}
                   />
                 </div>
                 {isUploadingImage && <p className="text-[10px] text-[#c5a059] animate-pulse mt-1">Uploading to Cloudflare R2...</p>}
@@ -2861,6 +2964,22 @@ export const AdminExperience: React.FC = () => {
                     value={prodForm.minStock}
                     onChange={(e) => setProdForm({ ...prodForm, minStock: Number(e.target.value) })}
                     className={`w-full p-2.5 rounded-xl ${isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-[#080808] border-white/10 text-white'} border outline-none focus:border-[#c5a059]/50 transition-colors`}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-extrabold uppercase text-[#c5a059] tracking-wider">Loyalty Points Bonus (Optional)</label>
+                <div className={`p-3 rounded-xl border ${isLight ? 'bg-amber-50 border-amber-200' : 'bg-amber-500/5 border-amber-500/20'} flex items-center justify-between`}>
+                  <div className="flex items-center gap-2">
+                    <Award className="w-4 h-4 text-amber-500" />
+                    <span className={`text-[10px] font-bold ${isLight ? 'text-amber-800' : 'text-amber-200'}`}>Points earned per item:</span>
+                  </div>
+                  <input
+                    type="number"
+                    value={prodPoints}
+                    onChange={(e) => setProdPoints(Number(e.target.value))}
+                    className={`w-20 p-1.5 text-center font-bold rounded-lg ${isLight ? 'bg-white border-amber-300' : 'bg-black border-white/10'} border outline-none focus:border-[#c5a059] text-amber-500`}
                   />
                 </div>
               </div>
@@ -3122,7 +3241,12 @@ export const AdminExperience: React.FC = () => {
                   <ImageUpload
                     label="Upload Image"
                     folder="categories"
-                    onUploadSuccess={(url) => setCatForm({ ...catForm, image: url })}
+                    onUploadStart={() => setIsUploadingImage(true)}
+                    onUploadError={() => setIsUploadingImage(false)}
+                    onUploadSuccess={(url) => {
+                      setCatForm({ ...catForm, image: url });
+                      setIsUploadingImage(false);
+                    }}
                   />
                 </div>
                 <input

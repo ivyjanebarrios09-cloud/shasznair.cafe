@@ -440,7 +440,8 @@ const DEFAULT_SETTINGS: SystemSettings = {
   },
   loyaltySettings: {
     pointsPerAmountSpent: 1,
-    amountRequired: 100 // 1 point per ₱100
+    amountRequired: 100, // 1 point per ₱100
+    pointsStrategy: 'amount_spent'
   },
   inventorySettings: {
     lowStockThreshold: 10,
@@ -1246,8 +1247,21 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     // 2. Loyalty points calculation
     let pointsEarned = 0;
     if (orderCustomerId !== 'guest') {
-      const rate = settings.loyaltySettings.amountRequired || 100;
-      pointsEarned = Math.floor(total / rate);
+      const { pointsStrategy, amountRequired, pointsPerAmountSpent } = settings.loyaltySettings;
+      
+      if (pointsStrategy === 'amount_spent' || pointsStrategy === 'both') {
+        const rate = amountRequired || 100;
+        const multiplier = pointsPerAmountSpent || 1;
+        pointsEarned += Math.floor(total / rate) * multiplier;
+      }
+      
+      if (pointsStrategy === 'per_item' || pointsStrategy === 'both') {
+        activeCart.forEach(item => {
+          if (item.product.loyaltyPoints) {
+            pointsEarned += item.product.loyaltyPoints * item.quantity;
+          }
+        });
+      }
     }
 
     // 3. Generate sequential order number

@@ -54,6 +54,7 @@ export interface Product {
   minStock: number;
   sizes: SizeOption[];
   addOns: AddOnOption[];
+  loyaltyPoints?: number; // Specific points for this item
   createdAt: any;
   updatedAt: any;
 }
@@ -227,6 +228,7 @@ export interface SystemSettings {
   loyaltySettings: {
     pointsPerAmountSpent: number; // e.g. 1 point per 100 pesos
     amountRequired: number;
+    pointsStrategy: 'amount_spent' | 'per_item' | 'both';
   };
   inventorySettings?: {
     lowStockThreshold: number;

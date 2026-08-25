@@ -3,11 +3,13 @@ import { Upload, Loader2 } from 'lucide-react';
 
 interface ImageUploadProps {
   onUploadSuccess: (url: string, key: string) => void;
+  onUploadStart?: () => void;
+  onUploadError?: (error: string) => void;
   label?: string;
   folder?: string;
 }
 
-export const ImageUpload: React.FC<ImageUploadProps> = ({ onUploadSuccess, label = "Upload Image", folder = "uploads" }) => {
+export const ImageUpload: React.FC<ImageUploadProps> = ({ onUploadSuccess, onUploadStart, onUploadError, label = "Upload Image", folder = "uploads" }) => {
   const [isUploading, setIsUploading] = useState(false);
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -15,6 +17,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onUploadSuccess, label
     if (!file) return;
 
     setIsUploading(true);
+    if (onUploadStart) onUploadStart();
     try {
       // 1. Get signed URL
       const response = await fetch('/api/upload-url', {
@@ -27,15 +30,17 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onUploadSuccess, label
         const errorData = await response.json();
         const errorMessage = errorData.error || 'Failed to get signed URL';
         
-        if (errorMessage.includes("R2 credentials missing")) {
-          // Fallback to Base64 for the current session to allow the user to see the image in the UI
-          console.warn("R2 not configured. Falling back to local data URL for preview.");
+        // Fallback to Base64 for any configuration-related error (missing account ID, keys, bucket name, etc.)
+        if (errorMessage.toLowerCase().includes("r2") || errorMessage.toLowerCase().includes("missing") || errorMessage.toLowerCase().includes("credential")) {
+          console.warn("R2 not configured correctly. Falling back to local data URL for preview.");
           const reader = new FileReader();
           reader.readAsDataURL(file);
           reader.onload = () => {
             const base64Url = reader.result as string;
             onUploadSuccess(base64Url, `fallback-${Date.now()}`);
-            alert("IMAGE UPLOAD NOTICE: Cloudflare R2 is not configured in your .env file. The image is being used as a local data URL for this session. It may be too large to save to the database if it exceeds 1MB.");
+            setIsUploading(false);
+            if (onUploadError) onUploadError("Fallback to base64"); // Not strictly an error but triggers state reset
+            alert("IMAGE UPLOAD NOTICE: Cloudflare R2 is not fully configured in your settings. The image is being used as a local data URL for this session. It will be saved directly to the database, which is fine for small images (under 1MB).");
           };
           return;
         }
@@ -53,9 +58,10 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onUploadSuccess, label
       if (!uploadResponse.ok) throw new Error('Failed to upload file');
 
       onUploadSuccess(publicUrl, imageKey);
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      alert('Upload failed');
+      if (onUploadError) onUploadError(error.message || "Upload failed");
+      alert('Upload failed: ' + (error.message || "Unknown error"));
     } finally {
       setIsUploading(false);
     }
