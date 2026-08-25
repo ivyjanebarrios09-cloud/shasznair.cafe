@@ -20,32 +20,30 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onUploadSuccess, onUpl
     if (onUploadStart) onUploadStart();
     try {
       // 1. Get signed URL
-      const response = await fetch('/api/upload-url', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filename: file.name, contentType: file.type, folder }),
-      });
+      let response;
+      try {
+        response = await fetch('/api/upload-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename: file.name, contentType: file.type, folder }),
+        });
+      } catch (fetchError: any) {
+        // This catches "Failed to fetch" (e.g. CORS, offline, or Vercel routing issues)
+        throw new Error("Network error or API unavailable: " + fetchError.message);
+      }
 
       if (!response.ok) {
-        const errorData = await response.json();
-        const errorMessage = errorData.error || 'Failed to get signed URL';
-        
-        // Fallback to Base64 for any configuration-related error (missing account ID, keys, bucket name, etc.)
-        if (errorMessage.toLowerCase().includes("r2") || errorMessage.toLowerCase().includes("missing") || errorMessage.toLowerCase().includes("credential")) {
-          console.warn("R2 not configured correctly. Falling back to local data URL for preview.");
-          const reader = new FileReader();
-          reader.readAsDataURL(file);
-          reader.onload = () => {
-            const base64Url = reader.result as string;
-            onUploadSuccess(base64Url, `fallback-${Date.now()}`);
-            setIsUploading(false);
-            if (onUploadError) onUploadError("Fallback to base64"); // Not strictly an error but triggers state reset
-            alert("IMAGE UPLOAD NOTICE: Cloudflare R2 is not fully configured in your settings. The image is being used as a local data URL for this session. It will be saved directly to the database, which is fine for small images (under 1MB).");
-          };
-          return;
+        let errorMessage = 'Failed to get signed URL';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (parseError) {
+          // If the server returns HTML (e.g., a 404 page on static hosting like Vercel), json() parsing will fail
+          errorMessage = `Server API unavailable (${response.status})`;
         }
-        throw new Error(errorMessage);
+        throw new Error(`Upload API issue: ${errorMessage}`);
       }
+      
       const { signedUrl, publicUrl, imageKey } = await response.json();
 
       // 2. Upload file
@@ -55,13 +53,25 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onUploadSuccess, onUpl
         headers: { 'Content-Type': file.type },
       });
 
-      if (!uploadResponse.ok) throw new Error('Failed to upload file');
+      if (!uploadResponse.ok) throw new Error('Failed to upload file to storage bucket');
 
       onUploadSuccess(publicUrl, imageKey);
     } catch (error: any) {
-      console.error(error);
-      if (onUploadError) onUploadError(error.message || "Upload failed");
-      alert('Upload failed: ' + (error.message || "Unknown error"));
+      console.warn("Upload failed or unavailable, falling back to local base64. Reason:", error.message);
+      
+      // Fallback to Base64
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const base64Url = reader.result as string;
+        onUploadSuccess(base64Url, `fallback-${Date.now()}`);
+        setIsUploading(false);
+        if (onUploadError) onUploadError("Fallback to base64");
+        alert("IMAGE UPLOAD NOTICE: The image upload server is not available or configured on this environment. The image is being used as a local data URL for this session. It will be saved directly to the database, which is fine for small images (under 1MB).");
+      };
+      
+      // We return here so we don't trigger setIsUploading(false) in finally before the reader finishes
+      return; 
     } finally {
       setIsUploading(false);
     }

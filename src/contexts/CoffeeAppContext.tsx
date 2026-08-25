@@ -460,10 +460,10 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [activeWorkspace, setActiveWorkspace] = useState<UserRole | null>(null);
 
   // Core lists
-  const [categories, setCategories] = useState<Category[]>(DEMO_CATEGORIES);
-  const [products, setProducts] = useState<Product[]>(DEMO_PRODUCTS);
-  const [vouchers, setVouchers] = useState<Voucher[]>(DEMO_VOUCHERS);
-  const [rewards, setRewards] = useState<Reward[]>(DEMO_REWARDS);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [vouchers, setVouchers] = useState<Voucher[]>([]);
+  const [rewards, setRewards] = useState<Reward[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [userVouchers, setUserVouchers] = useState<any[]>([]);
   const [usersList, setUsersList] = useState<UserProfile[]>([]);

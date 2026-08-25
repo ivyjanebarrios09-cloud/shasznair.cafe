@@ -1528,7 +1528,7 @@ export const AdminExperience: React.FC = () => {
                       <button 
                         onClick={() => {
                           if (window.confirm(`Are you sure you want to delete voucher "${v.code}"?`)) {
-                            deleteVoucher(v.id).catch(err => setModalError(err.message));
+                            deleteVoucher(v.id).catch(err => alert(err.message));
                           }
                         }}
                         className="p-2 bg-red-500/10 hover:bg-red-500/20 rounded-lg text-red-500 transition-colors"
@@ -1596,7 +1596,11 @@ export const AdminExperience: React.FC = () => {
                       <Edit2 className="w-4.5 h-4.5" />
                     </button>
                     <button
-                      onClick={() => deleteVoucher(v.id)}
+                      onClick={() => {
+                        if (window.confirm(`Are you sure you want to delete voucher "${v.code}"?`)) {
+                          deleteVoucher(v.id).catch(err => alert(err.message));
+                        }
+                      }}
                       className={`p-1 ${isLight ? 'text-stone-400 hover:text-rose-500' : 'text-white/40 hover:text-rose-400'} cursor-pointer transition-colors`}
                     >
                       <Trash2 className="w-4.5 h-4.5" />
