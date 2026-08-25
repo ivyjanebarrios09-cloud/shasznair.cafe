@@ -459,6 +459,17 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [authLoading, setAuthLoading] = useState(true);
   const [activeWorkspace, setActiveWorkspace] = useState<UserRole | null>(null);
 
+  // Safety timeout to prevent infinite white loading screen if auth or firestore hangs
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (authLoading) {
+        console.warn("[CoffeeAppProvider] Auth loading timeout reached. Forcing authLoading to false.");
+        setAuthLoading(false);
+      }
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [authLoading]);
+
   // Core lists
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
