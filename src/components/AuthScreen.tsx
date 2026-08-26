@@ -1191,83 +1191,89 @@ export const AuthScreen: React.FC = () => {
                   Payment Method
                 </label>
                 <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod('cash')}
-                    className={`py-2 px-3 rounded-xl border text-xs font-bold flex items-center gap-2 cursor-pointer transition-all ${
-                      paymentMethod === 'cash'
-                        ? 'bg-[#c5a059] text-black border-[#c5a059]'
-                        : 'bg-stone-900 border-white/10 text-stone-300'
-                    }`}
-                  >
-                    <Banknote className="w-3.5 h-3.5" />
-                    <span>Cash on Counter</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod('gcash')}
-                    className={`py-2 px-3 rounded-xl border text-xs font-bold flex items-center gap-2 cursor-pointer transition-all ${
-                      paymentMethod === 'gcash'
-                        ? 'bg-[#c5a059] text-black border-[#c5a059]'
-                        : 'bg-stone-900 border-white/10 text-stone-300'
-                    }`}
-                  >
-                    <CreditCard className="w-3.5 h-3.5" />
-                    <span>GCash / E-Wallet</span>
-                  </button>
+                  {(settings?.paymentMethods || []).filter(m => m.active).map(p => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setPaymentMethod(p.id)}
+                      className={`py-2 px-3 rounded-xl border text-xs font-bold flex items-center gap-2 cursor-pointer transition-all ${
+                        paymentMethod === p.id
+                          ? 'bg-[#c5a059] text-black border-[#c5a059]'
+                          : 'bg-stone-900 border-white/10 text-stone-300'
+                      }`}
+                    >
+                      {p.type === 'cash' ? <Banknote className="w-3.5 h-3.5" /> : <CreditCard className="w-3.5 h-3.5" />}
+                      <span>{p.name}</span>
+                    </button>
+                  ))}
+                  {(settings?.paymentMethods || []).filter(m => m.active).length === 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('cash')}
+                      className={`py-2 px-3 rounded-xl border text-xs font-bold flex items-center gap-2 cursor-pointer transition-all ${
+                        paymentMethod === 'cash'
+                          ? 'bg-[#c5a059] text-black border-[#c5a059]'
+                          : 'bg-stone-900 border-white/10 text-stone-300'
+                      }`}
+                    >
+                      <Banknote className="w-3.5 h-3.5" />
+                      <span>Cash on Counter</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
-              {/* Dynamic QR Code Display & Upload Receipt button for GCash / E-Wallet */}
-              {paymentMethod === 'gcash' && (
-                <div className="p-4 rounded-2xl bg-stone-950 border border-white/10 flex flex-col items-center text-center space-y-3 animate-fade-in">
-                  <p className="text-xs font-bold text-white">Scan or Transfer to pay via GCash / E-Wallet</p>
+              {/* Dynamic QR Code Display & Upload Receipt button */}
+              {(() => {
+                const selectedMethod = (settings?.paymentMethods || []).find(m => m.id === paymentMethod);
+                const requiresProof = selectedMethod?.type === 'qr' || !!selectedMethod?.qrCodeUrl || paymentMethod === 'gcash';
+                
+                if (requiresProof && selectedMethod) {
+                  const accountNumber = selectedMethod.accountNumber || "0917 123 4567";
+                  const qrUrl = selectedMethod.qrCodeUrl || `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=GCash-Transfer-${accountNumber.replace(/\s+/g, '')}`;
                   
-                  {(() => {
-                    const qrMethod = (settings?.paymentMethods || []).find(m => m.type === 'qr' || m.id === 'gcash');
-                    const accountNumber = qrMethod?.accountNumber || "0917 123 4567";
-                    const qrUrl = qrMethod?.qrCodeUrl || `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=GCash-Transfer-${accountNumber.replace(/\s+/g, '')}`;
-                    return (
-                      <>
-                        <div className="bg-stone-900 text-[#c5a059] font-mono font-bold text-xs py-1.5 px-3 rounded-lg border border-white/5 flex items-center gap-1.5">
-                          <span>No./Account:</span>
-                          <span className="text-white tracking-wider select-all">{accountNumber}</span>
+                  return (
+                    <div className="p-4 rounded-2xl bg-stone-950 border border-white/10 flex flex-col items-center text-center space-y-3 animate-fade-in">
+                      <p className="text-xs font-bold text-white">Scan or Transfer to pay via {selectedMethod.name}</p>
+                      
+                      <div className="bg-stone-900 text-[#c5a059] font-mono font-bold text-xs py-1.5 px-3 rounded-lg border border-white/5 flex items-center gap-1.5">
+                        <span>No./Account:</span>
+                        <span className="text-white tracking-wider select-all">{accountNumber}</span>
+                      </div>
+                      
+                      <img 
+                        src={qrUrl} 
+                        alt={`${selectedMethod.name} QR Code`} 
+                        className="w-40 h-40 object-contain rounded-lg border border-white/10 bg-white p-1.5 shadow-sm" 
+                      />
+                      
+                      <p className="text-[10px] text-stone-400 leading-relaxed font-medium">
+                        Please transfer the exact order amount and upload your payment proof/receipt screenshot below.
+                      </p>
+                      
+                      {/* Receipt Upload Input at Checkout */}
+                      <div className="w-full pt-2 border-t border-white/5 text-left">
+                        <label className="text-[10px] font-extrabold uppercase text-stone-300 tracking-wider block mb-1.5">
+                          Upload Payment Receipt
+                        </label>
+                        <div className="flex items-center gap-2">
+                          {checkoutReceiptUrl && (
+                            <img src={checkoutReceiptUrl} alt="Receipt Preview" className="w-10 h-10 rounded-lg object-cover border border-white/10 bg-stone-900" />
+                          )}
+                          <div className="flex-1">
+                            <ImageUpload
+                              label="Select Receipt"
+                              folder="receipts"
+                              onUploadSuccess={(url, _key) => setCheckoutReceiptUrl(url)}
+                            />
+                          </div>
                         </div>
-                        
-                        <img 
-                          src={qrUrl} 
-                          alt="GCash QR Code" 
-                          className="w-40 h-40 object-contain rounded-lg border border-white/10 bg-white p-1.5 shadow-sm" 
-                        />
-                      </>
-                    );
-                  })()}
-                  
-                  <p className="text-[10px] text-stone-400 leading-relaxed font-medium">
-                    Please transfer the exact order amount and upload your payment proof/receipt screenshot below.
-                  </p>
-                  
-                  {/* Receipt Upload Input at Checkout */}
-                  <div className="w-full pt-2 border-t border-white/5 text-left">
-                    <label className="text-[10px] font-extrabold uppercase text-stone-300 tracking-wider block mb-1.5">
-                      Upload Payment Receipt
-                    </label>
-                    <div className="flex items-center gap-2">
-                      {checkoutReceiptUrl && (
-                        <img src={checkoutReceiptUrl} alt="Receipt Preview" className="w-10 h-10 rounded-lg object-cover border border-white/10 bg-stone-900" />
-                      )}
-                      <div className="flex-1">
-                        <ImageUpload
-                          label="Select Receipt"
-                          folder="receipts"
-                          onUploadSuccess={(url) => setCheckoutReceiptUrl(url)}
-                        />
                       </div>
                     </div>
-                  </div>
-                </div>
-              )}
+                  );
+                }
+                return null;
+              })()}
 
               {/* SPECIAL ORDER NOTES */}
               <div className="space-y-1">

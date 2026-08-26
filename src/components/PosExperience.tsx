@@ -1444,7 +1444,7 @@ export const PosExperience: React.FC = () => {
       {/* 1. CUSTOMER ASSOCIATOR DIALOG MODAL (MOBILE RESPONSIVE) */}
       {showCustomerModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
-          <div className={`w-full max-w-sm rounded-t-3xl sm:rounded-2xl shadow-2xl p-4 sm:p-5 space-y-4 border max-h-[80vh] flex flex-col ${
+          <div className={`w-full max-w-sm rounded-t-3xl sm:rounded-2xl shadow-2xl p-4 sm:p-5 space-y-4 border max-h-[92vh] flex flex-col ${
             isLight ? 'bg-white border-stone-200' : 'bg-[#12141c] border-white/10'
           }`}>
             <div className={`flex justify-between items-center border-b pb-3 ${isLight ? 'border-stone-200' : 'border-white/10'}`}>
@@ -1510,7 +1510,7 @@ export const PosExperience: React.FC = () => {
       {/* 2. CHOOSE PAYMENT & TABLE / ORDERTYPE MODAL (WITH QUICK CASH BUTTONS) */}
       {isPayModalOpen && (
         <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
-          <div className={`w-full max-w-md rounded-t-3xl sm:rounded-2xl shadow-2xl p-4 sm:p-6 space-y-4 border max-h-[90vh] overflow-y-auto ${
+          <div className={`w-full max-w-md rounded-t-3xl sm:rounded-2xl shadow-2xl p-4 sm:p-6 space-y-4 border max-h-[92vh] overflow-y-auto ${
             isLight ? 'bg-white border-stone-200' : 'bg-[#12141c] border-white/10'
           }`}>
             <div className={`flex justify-between items-center border-b pb-3 ${isLight ? 'border-stone-200' : 'border-white/10'}`}>
@@ -1708,8 +1708,8 @@ export const PosExperience: React.FC = () => {
 
       {/* 3. PRINT TICKET RECEIPT MODAL */}
       {printedReceipt && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center z-50 p-3 sm:p-4">
-          <div className={`w-full max-w-sm rounded-2xl shadow-2xl p-4 sm:p-5 space-y-4 max-h-[85vh] overflow-y-auto border scrollbar-none ${
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+          <div className={`w-full max-w-sm rounded-t-3xl sm:rounded-2xl shadow-2xl p-4 sm:p-5 space-y-4 max-h-[92vh] overflow-y-auto border scrollbar-none ${
             isLight ? 'bg-white border-stone-200' : 'bg-[#12141c] border-white/10'
           }`}>
             <div className={`flex justify-between items-center border-b pb-2 ${isLight ? 'border-stone-200' : 'border-white/10'}`}>
@@ -1799,7 +1799,7 @@ export const PosExperience: React.FC = () => {
       {/* 4. PRODUCT QUICK CUSTOMIZATION MODAL FOR POS GRID */}
       {customizeProduct && (
         <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
-          <div className={`w-full max-w-sm rounded-t-3xl sm:rounded-2xl shadow-2xl p-4 sm:p-5 space-y-4 border max-h-[85vh] overflow-y-auto ${
+          <div className={`w-full max-w-sm rounded-t-3xl sm:rounded-2xl shadow-2xl p-4 sm:p-5 space-y-4 border max-h-[92vh] overflow-y-auto ${
             isLight ? 'bg-white border-stone-200' : 'bg-[#12141c] border-white/10'
           }`}>
             <div className={`flex justify-between items-center border-b pb-3 ${isLight ? 'border-stone-200' : 'border-white/10'}`}>
@@ -1900,8 +1900,8 @@ export const PosExperience: React.FC = () => {
 
       {/* RECEIPT VIEWER LIGHTBOX MODAL */}
       {viewReceiptUrl && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs animate-fade-in">
-          <div className={`relative max-w-lg w-full rounded-2xl overflow-hidden p-6 shadow-2xl flex flex-col items-center gap-4 ${isLight ? 'bg-white text-stone-900' : 'bg-stone-950 text-white border border-white/10'}`}>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+          <div className={`relative max-w-lg w-full rounded-t-3xl sm:rounded-2xl overflow-hidden p-6 shadow-2xl flex flex-col items-center gap-4 max-h-[92vh] overflow-y-auto ${isLight ? 'bg-white text-stone-900' : 'bg-stone-950 text-white border border-white/10'}`}>
             <button 
               onClick={() => setViewReceiptUrl(null)}
               className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-stone-500/20 text-stone-400 hover:text-white transition-colors cursor-pointer"

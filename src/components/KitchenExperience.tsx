@@ -1,14 +1,41 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useCoffeeApp } from '../contexts/CoffeeAppContext';
 import { Order, OrderStatus, OrderItem } from '../types';
 import { InstallAppButton } from './InstallAppButton';
-import { Clock, Play, CheckCircle, Package, MapPin, Check, MessageSquare, AlertCircle, LogOut, Menu, Download, Table, LayoutGrid, CheckCircle2, User, UserCheck, Store, Smartphone, ReceiptText, X } from 'lucide-react';
+import { Clock, Play, CheckCircle, Package, MapPin, Check, MessageSquare, AlertCircle, LogOut, Menu, Download, Table, LayoutGrid, CheckCircle2, User, UserCheck, Store, Smartphone, ReceiptText, X, Volume2, VolumeX, Bell } from 'lucide-react';
 
 export const KitchenExperience: React.FC = () => {
   const { orders, updateOrderStatus, updateOrderItemStatus, dataLoading, currentUser, logout, settings } = useCoffeeApp();
   const [activeFilter, setActiveFilter] = useState<'all' | 'pay' | 'verify' | 'incoming' | 'active' | 'ready'>('all');
   const [queueMode, setQueueMode] = useState<'tabular' | 'grid'>('tabular');
   const [viewReceiptUrl, setViewReceiptUrl] = useState<string | null>(null);
+  const [isMuted, setIsMuted] = useState(false);
+  
+  const prevOrdersCountRef = useRef<number>(orders.length);
+  const notificationAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Initialize audio on mount
+  useEffect(() => {
+    // Using a clear, standard notification sound URL
+    notificationAudioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+    notificationAudioRef.current.volume = 0.5;
+    
+    // Initial sync
+    prevOrdersCountRef.current = orders.length;
+  }, []);
+
+  // Listen for new orders
+  useEffect(() => {
+    if (orders.length > prevOrdersCountRef.current) {
+      // New order detected!
+      if (!isMuted && notificationAudioRef.current) {
+        notificationAudioRef.current.play().catch(err => {
+          console.warn("Audio play failed (browser restriction?):", err);
+        });
+      }
+    }
+    prevOrdersCountRef.current = orders.length;
+  }, [orders, isMuted]);
 
   const isLight = settings?.branding?.theme === 'light';
 
@@ -137,11 +164,16 @@ export const KitchenExperience: React.FC = () => {
             </button>
             <button
               type="button"
+              disabled={ord.paymentStatus !== 'paid'}
               onClick={(e) => {
                 e.stopPropagation();
                 handleItemStatusChange(ord.id, idx, 'preparing');
               }}
-              className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase transition-all cursor-pointer ${
+              className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase transition-all ${
+                ord.paymentStatus !== 'paid' 
+                  ? 'opacity-40 cursor-not-allowed' 
+                  : 'cursor-pointer'
+              } ${
                 itemStatus === 'preparing'
                   ? isLight
                     ? 'bg-amber-200 text-amber-950 border border-amber-400 font-extrabold shadow-sm'
@@ -150,17 +182,22 @@ export const KitchenExperience: React.FC = () => {
                     ? 'text-stone-600 hover:text-stone-900 hover:bg-stone-300'
                     : 'text-white/40 hover:text-white/80 hover:bg-white/5'
               }`}
-              title="Set item status to Preparing"
+              title={ord.paymentStatus !== 'paid' ? "Waiting for payment" : "Set item status to Preparing"}
             >
               Preparing
             </button>
             <button
               type="button"
+              disabled={ord.paymentStatus !== 'paid'}
               onClick={(e) => {
                 e.stopPropagation();
                 handleItemStatusChange(ord.id, idx, 'ready');
               }}
-              className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase transition-all cursor-pointer ${
+              className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase transition-all ${
+                ord.paymentStatus !== 'paid' 
+                  ? 'opacity-40 cursor-not-allowed' 
+                  : 'cursor-pointer'
+              } ${
                 itemStatus === 'ready'
                   ? isLight
                     ? 'bg-emerald-200 text-emerald-950 border border-emerald-500 font-extrabold shadow-sm'
@@ -169,7 +206,7 @@ export const KitchenExperience: React.FC = () => {
                     ? 'text-stone-600 hover:text-stone-900 hover:bg-stone-300'
                     : 'text-white/40 hover:text-white/80 hover:bg-white/5'
               }`}
-              title="Set item status to Ready"
+              title={ord.paymentStatus !== 'paid' ? "Waiting for payment" : "Set item status to Ready"}
             >
               Ready
             </button>
@@ -214,6 +251,26 @@ export const KitchenExperience: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsMuted(!isMuted)}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-mono font-bold transition-all border cursor-pointer ${
+              isMuted 
+                ? isLight ? 'bg-rose-50 text-rose-600 border-rose-200' : 'bg-rose-950/20 text-rose-400 border-rose-800/30'
+                : isLight ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-emerald-950/20 text-emerald-400 border-emerald-800/30'
+            }`}
+          >
+            {isMuted ? (
+              <>
+                <VolumeX className="w-3.5 h-3.5" />
+                <span>MUTED</span>
+              </>
+            ) : (
+              <>
+                <Volume2 className="w-3.5 h-3.5" />
+                <span>NOTIFS ON</span>
+              </>
+            )}
+          </button>
           <InstallAppButton />
           <div className={`hidden sm:flex items-center gap-2 text-xs font-mono ${isLight ? 'text-stone-700 font-semibold' : 'text-white/60'}`}>
             <span>Station: <strong className={`${isLight ? 'text-[#b08c47]' : 'text-[var(--color-primary)]'} uppercase`}>{currentUser?.name || 'KDS-01'}</strong></span>
@@ -416,12 +473,21 @@ export const KitchenExperience: React.FC = () => {
 
                     {/* Primary Action Button */}
                     <div className={`pt-2 border-t ${isLight ? 'border-stone-200' : 'border-white/5'}`}>
-                      <button
-                        onClick={() => handleUpdateStatus(ord.id, 'preparing')}
-                        className="w-full bg-[#c5a059] hover:bg-[#b08c47] text-black font-mono font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider flex justify-center items-center gap-1.5 cursor-pointer transition-all shadow"
-                      >
-                        <Play className="w-3.5 h-3.5 fill-black" /> Start Preparing Order
-                      </button>
+                      {ord.paymentStatus !== 'paid' ? (
+                        <div className={`w-full py-2.5 px-3 rounded-xl border flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-wider ${
+                          isLight ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-amber-950/20 text-amber-500 border-amber-900/30'
+                        }`}>
+                          <AlertCircle className="w-3.5 h-3.5" />
+                          <span>Waiting for Cashier Payment Confirmation</span>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => handleUpdateStatus(ord.id, 'preparing')}
+                          className="w-full bg-[#c5a059] hover:bg-[#b08c47] text-black font-mono font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider flex justify-center items-center gap-1.5 cursor-pointer transition-all shadow"
+                        >
+                          <Play className="w-3.5 h-3.5 fill-black" /> Start Preparing Order
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -633,12 +699,21 @@ export const KitchenExperience: React.FC = () => {
                   {/* Order Level Action Button */}
                   <div className={`pt-2 border-t ${isLight ? 'border-stone-200' : 'border-white/5'}`}>
                     {ord.orderStatus === 'pending' && (
-                      <button
-                        onClick={() => handleUpdateStatus(ord.id, 'preparing')}
-                        className="w-full bg-[#c5a059] hover:bg-[#b08c47] text-black font-mono font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider flex justify-center items-center gap-1.5 cursor-pointer transition-all shadow"
-                      >
-                        <Play className="w-3.5 h-3.5 fill-black" /> Start Preparing
-                      </button>
+                      ord.paymentStatus !== 'paid' ? (
+                        <div className={`w-full py-2.5 px-3 rounded-xl border flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-wider text-center ${
+                          isLight ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-amber-950/20 text-amber-500 border-amber-900/30'
+                        }`}>
+                          <AlertCircle className="w-3.5 h-3.5" />
+                          <span>Waiting for Payment</span>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => handleUpdateStatus(ord.id, 'preparing')}
+                          className="w-full bg-[#c5a059] hover:bg-[#b08c47] text-black font-mono font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider flex justify-center items-center gap-1.5 cursor-pointer transition-all shadow"
+                        >
+                          <Play className="w-3.5 h-3.5 fill-black" /> Start Preparing
+                        </button>
+                      )
                     )}
                     {ord.orderStatus === 'preparing' && (
                       <div className="flex gap-2">
@@ -741,12 +816,20 @@ export const KitchenExperience: React.FC = () => {
                         </td>
                         <td className="p-3 text-right">
                           {ord.orderStatus === 'pending' && (
-                            <button
-                              onClick={() => handleUpdateStatus(ord.id, 'preparing')}
-                              className="bg-[#c5a059] hover:bg-[#b08c47] text-black font-bold px-3 py-1.5 rounded-lg text-[10px] uppercase cursor-pointer shadow transition-all flex items-center gap-1 ml-auto"
-                            >
-                              <Play className="w-3 h-3 fill-black" /> Start
-                            </button>
+                            ord.paymentStatus !== 'paid' ? (
+                              <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[9px] font-bold uppercase ${
+                                isLight ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-amber-950/20 text-amber-500 border-amber-900/30'
+                              }`}>
+                                <AlertCircle className="w-3 h-3" /> Unpaid
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => handleUpdateStatus(ord.id, 'preparing')}
+                                className="bg-[#c5a059] hover:bg-[#b08c47] text-black font-bold px-3 py-1.5 rounded-lg text-[10px] uppercase cursor-pointer shadow transition-all flex items-center gap-1 ml-auto"
+                              >
+                                <Play className="w-3 h-3 fill-black" /> Start
+                              </button>
+                            )
                           )}
                           {ord.orderStatus === 'preparing' && (
                             <div className="flex items-center gap-1.5 justify-end">
@@ -819,8 +902,8 @@ export const KitchenExperience: React.FC = () => {
 
       {/* RECEIPT VIEWER LIGHTBOX MODAL */}
       {viewReceiptUrl && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs animate-fade-in">
-          <div className={`relative max-w-lg w-full rounded-2xl overflow-hidden p-6 shadow-2xl flex flex-col items-center gap-4 ${isLight ? 'bg-white text-stone-900' : 'bg-stone-950 text-white border border-white/10'}`}>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+          <div className={`relative max-w-lg w-full rounded-t-3xl sm:rounded-2xl overflow-hidden p-6 shadow-2xl flex flex-col items-center gap-4 max-h-[92vh] overflow-y-auto ${isLight ? 'bg-white text-stone-900' : 'bg-stone-950 text-white border border-white/10'}`}>
             <button 
               onClick={() => setViewReceiptUrl(null)}
               className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-stone-500/20 text-stone-400 hover:text-white transition-colors cursor-pointer"

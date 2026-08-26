@@ -98,9 +98,10 @@ app.post("/api/upload-url", async (req, res) => {
       return res.status(500).json({ error: "R2 public URL missing: Check public URL" });
     }
 
-    // Generate a unique filename (no folder prefix for testing)
+    // Generate a unique filename with optional folder prefix
     const safeFilename = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const imageKey = `${Date.now()}-${safeFilename}`;
+    const folderPrefix = folder ? `${folder.replace(/\/$/, '')}/` : '';
+    const imageKey = `${folderPrefix}${Date.now()}-${safeFilename}`;
 
     const command = new PutObjectCommand({
       Bucket: bucketName,

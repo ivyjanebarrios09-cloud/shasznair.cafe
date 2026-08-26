@@ -117,22 +117,6 @@ export const CustomerExperience: React.FC = () => {
     setIsEditingProfile(true);
   };
 
-  const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
-      setProfileErrorMsg('Image size should be under 2MB');
-      return;
-    }
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      if (typeof reader.result === 'string') {
-        setEditAvatar(reader.result);
-      }
-    };
-    reader.readAsDataURL(file);
-  };
-
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editName.trim()) {
@@ -1354,24 +1338,18 @@ export const CustomerExperience: React.FC = () => {
                               )}
                             </div>
 
-                            <div className="flex-1 space-y-1.5">
-                              <label className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border cursor-pointer transition-all active:scale-95 ${
-                                isLight ? 'bg-stone-100 hover:bg-stone-200 text-stone-800 border-stone-300' : 'bg-white/10 hover:bg-white/15 text-white border-white/10'
-                              }`}>
-                                <Upload className="w-3.5 h-3.5 text-[#c5a059]" />
-                                <span>Upload Photo</span>
-                                <input
-                                  type="file"
-                                  accept="image/*"
-                                  onChange={handleAvatarFileChange}
-                                  className="hidden"
-                                />
-                              </label>
+                            <div className="flex-1">
+                              <ImageUpload
+                                label="Update Photo"
+                                folder="avatars"
+                                onUploadSuccess={(url, _key) => setEditAvatar(url)}
+                                onUploadError={(err) => setProfileErrorMsg(err)}
+                              />
                               {editAvatar && (
                                 <button
                                   type="button"
                                   onClick={() => setEditAvatar('')}
-                                  className="text-[10px] text-rose-500 hover:text-rose-600 block font-semibold"
+                                  className="text-[10px] text-rose-500 hover:text-rose-600 block font-semibold mt-1"
                                 >
                                   Remove photo
                                 </button>
@@ -1936,7 +1914,7 @@ export const CustomerExperience: React.FC = () => {
                   {/* Dynamic QR Code Display for selected payment method */}
                   {(() => {
                     const selectedMethod = (settings.paymentMethods || []).find(m => m.id === paymentMethod);
-                    const isEWallet = selectedMethod?.type === 'qr' || selectedMethod?.type === 'ewallet' || selectedMethod?.id === 'gcash' || selectedMethod?.id === 'ewallet' || paymentMethod === 'gcash' || paymentMethod === 'ewallet';
+                    const isEWallet = selectedMethod?.type === 'qr' || selectedMethod?.type === 'ewallet' || selectedMethod?.id === 'gcash' || selectedMethod?.id === 'ewallet' || paymentMethod === 'gcash' || paymentMethod === 'ewallet' || !!selectedMethod?.qrCodeUrl;
                     if (selectedMethod && isEWallet) {
                       const accountNumber = selectedMethod.accountNumber || "0917 123 4567";
                       const qrUrl = selectedMethod.qrCodeUrl || `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=GCash-Transfer-${accountNumber.replace(/\s+/g, '')}`;
@@ -1961,7 +1939,7 @@ export const CustomerExperience: React.FC = () => {
                                 <ImageUpload
                                   label="Select Receipt"
                                   folder="receipts"
-                                  onUploadSuccess={(url) => setCheckoutReceiptUrl(url)}
+                                  onUploadSuccess={(url, _key) => setCheckoutReceiptUrl(url)}
                                 />
                               </div>
                             </div>
@@ -2030,20 +2008,20 @@ export const CustomerExperience: React.FC = () => {
       {/* 6. ORDER DETAIL SYSTEM MODAL */}
       <AnimatePresence>
         {selectedOrderDetails && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setSelectedOrderDetails(null)}
-              className="absolute inset-0 bg-black/65 backdrop-blur-xs cursor-pointer"
+              className="absolute inset-0 bg-black/65 backdrop-blur-md cursor-pointer"
             />
             <motion.div 
-              initial={{ scale: 0.9, opacity: 0, y: 15 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 15 }}
+              initial={{ y: '100%', opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: '100%', opacity: 0 }}
               transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-              className="relative z-10 bg-white w-full max-w-sm rounded-2xl shadow-2xl p-4 space-y-4 max-h-[85vh] overflow-y-auto"
+              className="relative z-10 bg-white w-full max-w-sm rounded-t-3xl sm:rounded-2xl shadow-2xl p-4 space-y-4 max-h-[92vh] overflow-y-auto"
             >
               <div className="flex justify-between items-center border-b border-stone-200 pb-2">
                 <h3 className="font-extrabold text-stone-900 text-sm">Receipt Order Ticket</h3>
@@ -2111,7 +2089,7 @@ export const CustomerExperience: React.FC = () => {
               {selectedOrderDetails && (selectedOrderDetails.paymentStatus === 'unpaid' || selectedOrderDetails.paymentStatus === 'pending') && (
                 (() => {
                   const selectedMethod = (settings.paymentMethods || []).find(m => m.id === selectedOrderDetails.paymentMethod || m.name.toLowerCase() === selectedOrderDetails.paymentMethod.toLowerCase());
-                  if (selectedMethod && (selectedMethod.type === 'qr' || selectedMethod.type === 'other')) {
+                  if (selectedMethod && (selectedMethod.type === 'qr' || selectedMethod.type === 'other' || !!selectedMethod.qrCodeUrl)) {
                     return (
                       <div className="bg-amber-50/50 border border-stone-200 p-3.5 rounded-xl space-y-2.5 text-center text-xs">
                         <p className="font-extrabold text-stone-850">Payment Instructions ({selectedMethod.name})</p>
@@ -2145,7 +2123,7 @@ export const CustomerExperience: React.FC = () => {
                               <ImageUpload
                                 label="Select Receipt"
                                 folder="receipts"
-                                onUploadSuccess={async (url) => {
+                                onUploadSuccess={async (url, _key) => {
                                   try {
                                     // Update Firestore!
                                     await updateDocument('orders', selectedOrderDetails.id, { 

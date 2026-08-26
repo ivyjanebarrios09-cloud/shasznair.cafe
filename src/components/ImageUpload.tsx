@@ -12,49 +12,6 @@ interface ImageUploadProps {
 export const ImageUpload: React.FC<ImageUploadProps> = ({ onUploadSuccess, onUploadStart, onUploadError, label = "Upload Image", folder = "uploads" }) => {
   const [isUploading, setIsUploading] = useState(false);
 
-  const compressAndConvertToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = (event) => {
-        const img = new Image();
-        img.src = event.target?.result as string;
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          let width = img.width;
-          let height = img.height;
-          const MAX_WIDTH = 800;
-          const MAX_HEIGHT = 800;
-
-          if (width > height) {
-            if (width > MAX_WIDTH) {
-              height = Math.round((height * MAX_WIDTH) / width);
-              width = MAX_WIDTH;
-            }
-          } else {
-            if (height > MAX_HEIGHT) {
-              width = Math.round((width * MAX_HEIGHT) / height);
-              height = MAX_HEIGHT;
-            }
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          if (!ctx) {
-            resolve(event.target?.result as string);
-            return;
-          }
-          ctx.drawImage(img, 0, 0, width, height);
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
-          resolve(dataUrl);
-        };
-        img.onerror = (err) => reject(err);
-      };
-      reader.onerror = (err) => reject(err);
-    });
-  };
-
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -62,7 +19,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onUploadSuccess, onUpl
     setIsUploading(true);
     if (onUploadStart) onUploadStart();
     try {
-      // 1. Get signed URL
+      // 1. Get signed URL from our backend
       let response;
       try {
         response = await fetch('/api/upload-url', {
@@ -71,44 +28,37 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onUploadSuccess, onUpl
           body: JSON.stringify({ filename: file.name, contentType: file.type, folder }),
         });
       } catch (fetchError: any) {
-        throw new Error("Network error or API unavailable: " + fetchError.message);
+        throw new Error("Network error or upload service unavailable: " + fetchError.message);
       }
 
       if (!response.ok) {
-        let errorMessage = 'Failed to get signed URL';
+        let errorMessage = 'Failed to get signed upload URL';
         try {
           const errorData = await response.json();
           errorMessage = errorData.error || errorMessage;
         } catch (parseError) {
-          errorMessage = `Server API unavailable (${response.status})`;
+          errorMessage = `Upload service unavailable (${response.status})`;
         }
-        throw new Error(`Upload API issue: ${errorMessage}`);
+        throw new Error(errorMessage);
       }
       
       const { signedUrl, publicUrl, imageKey } = await response.json();
 
-      // 2. Upload file
+      // 2. Upload file directly to Cloudflare R2 via presigned URL
       const uploadResponse = await fetch(signedUrl, {
         method: 'PUT',
         body: file,
         headers: { 'Content-Type': file.type },
       });
 
-      if (!uploadResponse.ok) throw new Error('Failed to upload file to storage bucket');
+      if (!uploadResponse.ok) throw new Error('Failed to upload file to Cloudflare R2 storage bucket');
 
+      // 3. Success - provide the R2 public URL
       onUploadSuccess(publicUrl, imageKey);
     } catch (error: any) {
-      console.warn("Upload service unavailable, compressing and falling back to secure base64:", error.message);
-      
-      try {
-        const compressedBase64 = await compressAndConvertToBase64(file);
-        onUploadSuccess(compressedBase64, `fallback-${Date.now()}`);
-        if (onUploadError) onUploadError("Fallback to compressed base64");
-      } catch (compErr: any) {
-        console.error("Compression failed:", compErr);
-        if (onUploadError) onUploadError(compErr.message);
-        alert("Failed to process image: " + compErr.message);
-      }
+      console.error("R2 Upload Error:", error.message);
+      if (onUploadError) onUploadError(error.message);
+      alert("Upload Failed: " + error.message + ". Please ensure Cloudflare R2 is properly configured.");
     } finally {
       setIsUploading(false);
     }
