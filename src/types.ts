@@ -28,6 +28,8 @@ export interface Category {
   icon?: string;
   displayOrder: number;
   active: boolean;
+  defaultSizes?: SizeOption[];
+  defaultAddOns?: AddOnOption[];
 }
 
 export interface SizeOption {

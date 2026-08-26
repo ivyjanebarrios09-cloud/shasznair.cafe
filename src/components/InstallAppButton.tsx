@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Smartphone, CheckCircle2, Download, X, Share, Info } from 'lucide-react';
+import { SmartphoneSvg, CheckCircle2Svg, DownloadSvg, XSvg, ShareSvg, InfoSvg } from './SvgIcons';
 import { useCoffeeApp } from '../contexts/CoffeeAppContext';
 
 export const InstallAppButton: React.FC<{ className?: string; variant?: 'inline' | 'floating' | 'menu' }> = ({ 
@@ -116,7 +116,7 @@ export const InstallAppButton: React.FC<{ className?: string; variant?: 'inline'
     if (variant === 'floating') return null;
     return (
       <div title="App is running as an installed PWA application" className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold ${className}`}>
-        <CheckCircle2 className="w-3.5 h-3.5" />
+        <CheckCircle2Svg className="w-3.5 h-3.5" />
         <span className="hidden sm:inline">PWA Installed</span>
       </div>
     );
@@ -140,13 +140,13 @@ export const InstallAppButton: React.FC<{ className?: string; variant?: 'inline'
               } ${className}`}
             >
               <div className="relative flex items-center justify-center">
-                <Smartphone className="w-4 h-4 stroke-[2.5]" />
+                <SmartphoneSvg className="w-4 h-4 stroke-[2.5]" />
                 {deferredPrompt && (
                   <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-400 rounded-full animate-ping" />
                 )}
               </div>
               <span className="font-serif">Install PWA App</span>
-              <Download className="w-3.5 h-3.5 ml-0.5 opacity-80" />
+              <DownloadSvg className="w-3.5 h-3.5 ml-0.5 opacity-80" />
             </button>
           </div>
 
@@ -159,7 +159,7 @@ export const InstallAppButton: React.FC<{ className?: string; variant?: 'inline'
                 : 'bg-[#181a24] hover:bg-[#202330] text-white/60 hover:text-white border-white/20'
             }`}
           >
-            <X className="w-3.5 h-3.5" />
+            <XSvg className="w-3.5 h-3.5" />
           </button>
         </div>
 
@@ -171,14 +171,14 @@ export const InstallAppButton: React.FC<{ className?: string; variant?: 'inline'
             }`}>
               <div className="flex items-center justify-between border-b pb-3 border-stone-200 dark:border-white/10">
                 <div className="flex items-center gap-2 text-[#c5a059]">
-                  <Smartphone className="w-5 h-5" />
+                  <SmartphoneSvg className="w-5 h-5" />
                   <h3 className="font-bold text-sm font-serif">Install Shasznair Cafe App</h3>
                 </div>
                 <button 
                   onClick={() => setShowGuideModal(false)}
                   className="p-1 rounded-full hover:bg-stone-100 dark:hover:bg-white/10 text-stone-500 dark:text-white/50"
                 >
-                  <X className="w-4 h-4" />
+                  <XSvg className="w-4 h-4" />
                 </button>
               </div>
 
@@ -186,7 +186,7 @@ export const InstallAppButton: React.FC<{ className?: string; variant?: 'inline'
                 {isIOS ? (
                   <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-200 space-y-1">
                     <p className="font-bold flex items-center gap-1.5">
-                      <Share className="w-3.5 h-3.5" /> iOS Safari Installation Steps:
+                      <ShareSvg className="w-3.5 h-3.5" /> iOS Safari Installation Steps:
                     </p>
                     <ol className="list-decimal list-inside space-y-1 text-[11px] pt-1">
                       <li>Tap the <strong>Share</strong> icon in your Safari toolbar</li>
@@ -197,7 +197,7 @@ export const InstallAppButton: React.FC<{ className?: string; variant?: 'inline'
                 ) : (
                   <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-200 space-y-1">
                     <p className="font-bold flex items-center gap-1.5">
-                      <Info className="w-3.5 h-3.5" /> Chrome / Android PWA Installation:
+                      <InfoSvg className="w-3.5 h-3.5" /> Chrome / Android PWA Installation:
                     </p>
                     <p className="text-[11px]">
                       Tap the browser menu button (<strong>⋮</strong> or <strong>Share</strong>) and select <strong>"Install app"</strong> or <strong>"Add to Home Screen"</strong>.
@@ -213,7 +213,7 @@ export const InstallAppButton: React.FC<{ className?: string; variant?: 'inline'
                     }}
                     className="w-full py-2.5 px-3 rounded-xl bg-[#c5a059] hover:bg-[#b08c47] text-black font-extrabold flex items-center justify-center gap-2 text-xs shadow-md cursor-pointer active:scale-95 transition-all"
                   >
-                    <Download className="w-4 h-4" />
+                    <DownloadSvg className="w-4 h-4" />
                     <span>Download Standalone Web App Package</span>
                   </button>
                   <button
@@ -243,7 +243,7 @@ export const InstallAppButton: React.FC<{ className?: string; variant?: 'inline'
             : 'bg-[#c5a059] hover:bg-[#b08c47] text-black'
         } ${className}`}
       >
-        <Smartphone className="w-3.5 h-3.5 stroke-[2.5]" />
+        <SmartphoneSvg className="w-3.5 h-3.5 stroke-[2.5]" />
         <span>Install App</span>
       </button>
 
@@ -255,14 +255,14 @@ export const InstallAppButton: React.FC<{ className?: string; variant?: 'inline'
           }`}>
             <div className="flex items-center justify-between border-b pb-3 border-stone-200 dark:border-white/10">
               <div className="flex items-center gap-2 text-[#c5a059]">
-                <Smartphone className="w-5 h-5" />
+                <SmartphoneSvg className="w-5 h-5" />
                 <h3 className="font-bold text-sm font-serif">Install Shasznair Cafe App</h3>
               </div>
               <button 
                 onClick={() => setShowGuideModal(false)}
                 className="p-1 rounded-full hover:bg-stone-100 dark:hover:bg-white/10 text-stone-500 dark:text-white/50"
               >
-                <X className="w-4 h-4" />
+                <XSvg className="w-4 h-4" />
               </button>
             </div>
 
@@ -270,7 +270,7 @@ export const InstallAppButton: React.FC<{ className?: string; variant?: 'inline'
               {isIOS ? (
                 <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-200 space-y-1">
                   <p className="font-bold flex items-center gap-1.5">
-                    <Share className="w-3.5 h-3.5" /> iOS Safari Installation Steps:
+                    <ShareSvg className="w-3.5 h-3.5" /> iOS Safari Installation Steps:
                   </p>
                   <ol className="list-decimal list-inside space-y-1 text-[11px] pt-1">
                     <li>Tap the <strong>Share</strong> icon in your Safari toolbar</li>
@@ -281,7 +281,7 @@ export const InstallAppButton: React.FC<{ className?: string; variant?: 'inline'
               ) : (
                 <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-200 space-y-1">
                   <p className="font-bold flex items-center gap-1.5">
-                    <Info className="w-3.5 h-3.5" /> Chrome / Android PWA Installation:
+                    <InfoSvg className="w-3.5 h-3.5" /> Chrome / Android PWA Installation:
                   </p>
                   <p className="text-[11px]">
                     Tap the browser menu button (<strong>⋮</strong> or <strong>Share</strong>) and select <strong>"Install app"</strong> or <strong>"Add to Home Screen"</strong>.
@@ -297,7 +297,7 @@ export const InstallAppButton: React.FC<{ className?: string; variant?: 'inline'
                   }}
                   className="w-full py-2.5 px-3 rounded-xl bg-[#c5a059] hover:bg-[#b08c47] text-black font-extrabold flex items-center justify-center gap-2 text-xs shadow-md cursor-pointer active:scale-95 transition-all"
                 >
-                  <Download className="w-4 h-4" />
+                  <DownloadSvg className="w-4 h-4" />
                   <span>Download Standalone Web App Package</span>
                 </button>
                 <button

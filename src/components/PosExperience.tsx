@@ -1778,7 +1778,7 @@ export const PosExperience: React.FC = () => {
                   </>
                 )}
                 {printedReceipt.pointsEarned > 0 && (
-                  <p className="text-[#c5a059] font-sans font-bold mt-1 text-center">★ Points Earned: +{printedReceipt.pointsEarned} pts</p>
+                  <p className="text-[#c5a059] font-sans font-bold mt-1 text-center">Points Earned: +{printedReceipt.pointsEarned} pts</p>
                 )}
               </div>
             </div>

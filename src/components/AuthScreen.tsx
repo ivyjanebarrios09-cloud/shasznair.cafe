@@ -1,12 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { ImageUpload } from './ImageUpload';
+import { CoffeeSvg, MailSvg } from './SvgIcons';
 import { useCoffeeApp } from '../contexts/CoffeeAppContext';
 import { DEMO_CATEGORIES, DEMO_PRODUCTS } from '../firebase/demoData';
 import { Product, CartItem, OrderType, PaymentMethod, Order } from '../types';
 import { 
-  Coffee, 
-  Mail, 
   Lock, 
   User, 
   Phone, 
@@ -451,7 +450,7 @@ export const AuthScreen: React.FC = () => {
 
             {/* Total items badge */}
             <div className="text-xs text-stone-400 font-semibold px-2 flex items-center gap-2">
-              <Coffee className="w-4 h-4 text-[#c5a059]" />
+              <CoffeeSvg className="w-4 h-4 text-[#c5a059]" />
               <span>{filteredProducts.length} Items Available</span>
             </div>
           </div>
@@ -536,7 +535,7 @@ export const AuthScreen: React.FC = () => {
                 <div className="flex items-center justify-between border-b border-white/10 pb-3">
                   <div className="flex items-center gap-2.5">
                     <div className="w-8 h-8 rounded-xl bg-[#c5a059]/15 border border-[#c5a059]/30 flex items-center justify-center text-[#c5a059]">
-                      <Coffee className="w-4 h-4" />
+                      <CoffeeSvg className="w-4 h-4" />
                     </div>
                     <div>
                       <h3 className={`text-lg sm:text-xl font-serif font-bold ${isLight ? 'text-stone-900' : 'text-white'}`}>
@@ -576,7 +575,7 @@ export const AuthScreen: React.FC = () => {
                             />
                           ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center text-stone-700 space-y-1">
-                              <Coffee className="w-6 h-6" />
+                              <CoffeeSvg className="w-6 h-6" />
                               <span className="text-[9px]">Coffee</span>
                             </div>
                           )}
@@ -663,7 +662,7 @@ export const AuthScreen: React.FC = () => {
               <div className="flex items-center justify-between border-b border-white/10 pb-3">
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-xl bg-[#c5a059]/15 border border-[#c5a059]/30 flex items-center justify-center text-[#c5a059]">
-                    <Coffee className="w-4 h-4" />
+                    <CoffeeSvg className="w-4 h-4" />
                   </div>
                   <div>
                     <h3 className={`text-lg sm:text-xl font-serif font-bold ${isLight ? 'text-stone-900' : 'text-white'}`}>
@@ -700,7 +699,7 @@ export const AuthScreen: React.FC = () => {
                             />
                           ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center text-stone-700 space-y-1">
-                              <Coffee className="w-6 h-6" />
+                              <CoffeeSvg className="w-6 h-6" />
                               <span className="text-[9px]">Item</span>
                             </div>
                           )}
@@ -774,7 +773,7 @@ export const AuthScreen: React.FC = () => {
 
           {filteredProducts.length === 0 && (
             <div className="bg-stone-900/30 border border-dashed border-white/10 rounded-3xl p-12 text-center space-y-4">
-              <Coffee className="w-12 h-12 text-stone-600 mx-auto" />
+              <CoffeeSvg className="w-12 h-12 text-stone-600 mx-auto" />
               <div className="space-y-1">
                 <h4 className="text-base font-bold text-white">No Menu Products Found</h4>
                 <p className="text-xs text-stone-400 max-w-sm mx-auto">
@@ -1575,7 +1574,7 @@ export const AuthScreen: React.FC = () => {
                   Email Address
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-3.5 top-3 w-4 h-4 text-stone-500" />
+                  <MailSvg className="absolute left-3.5 top-3 w-4 h-4 text-stone-500" />
                   <input
                     type="email"
                     required

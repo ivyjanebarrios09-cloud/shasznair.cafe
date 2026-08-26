@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useCoffeeApp } from '../contexts/CoffeeAppContext';
-import { Coffee, Shield, Terminal, User, LogOut, X, AlertTriangle, Lock } from 'lucide-react';
+import { CoffeeSvg, ShieldSvg, TerminalSvg, UserSvg, LogOutSvg, XSvg, AlertTriangleSvg, LockSvg } from './SvgIcons';
 import { InstallAppButton } from './InstallAppButton';
 
 export const RoleSwitcher: React.FC = () => {
@@ -8,10 +8,10 @@ export const RoleSwitcher: React.FC = () => {
   const [showAdminWarning, setShowAdminWarning] = useState(false);
 
   const allRoles = [
-    { name: 'Customer App', role: 'customer', icon: User },
-    { name: 'POS Cashier', role: 'cashier', icon: Coffee },
-    { name: 'Kitchen KDS', role: 'kitchen', icon: Terminal },
-    { name: 'Admin Dashboard', role: 'admin', icon: Shield },
+    { name: 'Customer App', role: 'customer', icon: UserSvg },
+    { name: 'POS Cashier', role: 'cashier', icon: CoffeeSvg },
+    { name: 'Kitchen KDS', role: 'kitchen', icon: TerminalSvg },
+    { name: 'Admin Dashboard', role: 'admin', icon: ShieldSvg },
   ] as const;
 
   const currentRole = currentUser?.role || 'customer';
@@ -74,7 +74,7 @@ export const RoleSwitcher: React.FC = () => {
                   }`}
                   title={isLocked ? `Workspace switching is restricted to Admin accounts. You are locked to ${currentRole.toUpperCase()}.` : `Switch to ${item.name}`}
                 >
-                  {isLocked ? <Lock className="w-2.5 h-2.5 text-amber-500/70" /> : <Icon className="w-3 h-3" />}
+                  {isLocked ? <LockSvg className="w-2.5 h-2.5 text-amber-500/70" /> : <Icon className="w-3 h-3" />}
                   <span>{item.name}</span>
                 </button>
               );
@@ -88,7 +88,7 @@ export const RoleSwitcher: React.FC = () => {
               id="role-logout-btn"
               className="flex items-center gap-1 px-2 py-0.5 rounded bg-rose-950/20 border border-rose-500/20 text-rose-300 hover:bg-rose-950/40 hover:border-rose-500/40 transition-all cursor-pointer text-[10px]"
             >
-              <LogOut className="w-3 h-3" />
+              <LogOutSvg className="w-3 h-3" />
               <span className="hidden md:inline">Exit</span>
             </button>
           )}
@@ -104,11 +104,11 @@ export const RoleSwitcher: React.FC = () => {
               onClick={() => setShowAdminWarning(false)}
               className="absolute top-4 right-4 text-white/40 hover:text-white rounded-full p-1 cursor-pointer"
             >
-              <X className="w-4 h-4" />
+              <XSvg className="w-4 h-4" />
             </button>
 
             <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-500">
-              <AlertTriangle className="w-6 h-6" />
+              <AlertTriangleSvg className="w-6 h-6" />
             </div>
 
             <div className="space-y-1">
@@ -135,7 +135,7 @@ export const RoleSwitcher: React.FC = () => {
                 }}
                 className="flex-1 bg-rose-900/80 hover:bg-rose-900 text-white text-xs font-bold py-2 px-4 rounded-xl flex justify-center items-center gap-1.5 transition-all cursor-pointer"
               >
-                <LogOut className="w-3.5 h-3.5" />
+                <LogOutSvg className="w-3.5 h-3.5" />
                 <span>Log Out</span>
               </button>
             </div>

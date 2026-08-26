@@ -8,7 +8,7 @@ import { InstallAppButton } from './InstallAppButton';
 import { CategoryIcon } from '../utils/categoryIcons';
 import { 
   Search, ShoppingBag, ArrowRight, User, Award, 
-  MapPin, Clock, Star, Gift, Check, QrCode, 
+  MapPin, Clock, Gift, Check, QrCode, 
   History, Eye, Trash2, Edit2, X, Plus, Minus,
   AlertCircle, ChevronRight, HelpCircle, Store, Smartphone,
   Flame, ChevronDown, ChevronUp, Coffee, ReceiptText, Sparkles,
@@ -2102,7 +2102,7 @@ export const CustomerExperience: React.FC = () => {
                     </>
                   )}
                   {selectedOrderDetails.pointsEarned > 0 && (
-                    <p className="text-amber-900 font-extrabold mt-1">★ Points Earned: +{selectedOrderDetails.pointsEarned} pts</p>
+                    <p className="text-amber-900 font-extrabold mt-1">Points Earned: +{selectedOrderDetails.pointsEarned} pts</p>
                   )}
                 </div>
               </div>

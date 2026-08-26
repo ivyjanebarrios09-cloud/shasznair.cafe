@@ -152,13 +152,24 @@ export const AdminExperience: React.FC = () => {
   // Form states - Categories
   const [showCatModal, setShowCatModal] = useState(false);
   const [editingCat, setEditingCat] = useState<Category | null>(null);
-  const [catForm, setCatForm] = useState({
+  const [catForm, setCatForm] = useState<{
+    name: string;
+    description: string;
+    image: string;
+    icon: string;
+    displayOrder: number;
+    active: boolean;
+    defaultSizes: SizeOption[];
+    defaultAddOns: AddOnOption[];
+  }>({
     name: '',
     description: '',
     image: '',
     icon: 'coffee',
     displayOrder: 1,
-    active: true
+    active: true,
+    defaultSizes: [],
+    defaultAddOns: []
   });
 
   // Form states - Vouchers
@@ -442,11 +453,14 @@ export const AdminExperience: React.FC = () => {
     setModalError(null);
     setModalSuccess(null);
     try {
+      const payload = {
+        ...catForm
+      };
       if (editingCat) {
-        await updateCategory(editingCat.id, catForm);
+        await updateCategory(editingCat.id, payload);
         setModalSuccess("Category updated successfully!");
       } else {
-        await addCategory(catForm);
+        await addCategory(payload);
         setModalSuccess("Category record created in database successfully!");
       }
       setTimeout(() => {
@@ -465,10 +479,12 @@ export const AdminExperience: React.FC = () => {
     setCatForm({
       name: cat.name,
       description: cat.description,
-      image: cat.image,
+      image: cat.image || '',
       icon: cat.icon || 'coffee',
       displayOrder: cat.displayOrder,
-      active: cat.active
+      active: cat.active,
+      defaultSizes: cat.defaultSizes || [],
+      defaultAddOns: cat.defaultAddOns || []
     });
     setModalError(null);
     setModalSuccess(null);
@@ -2896,7 +2912,26 @@ export const AdminExperience: React.FC = () => {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-extrabold uppercase text-[#c5a059] tracking-wider">Category</label>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="text-[10px] font-extrabold uppercase text-[#c5a059] tracking-wider">Category</label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const parentCat = categories.find(c => c.id === prodForm.category);
+                        if (parentCat) {
+                          setProdForm({
+                            ...prodForm,
+                            sizes: parentCat.defaultSizes ? [...parentCat.defaultSizes] : prodForm.sizes,
+                            addOns: parentCat.defaultAddOns ? [...parentCat.defaultAddOns] : prodForm.addOns
+                          });
+                        }
+                      }}
+                      className="text-[9px] font-bold text-[#c5a059] hover:text-white transition-colors bg-[#c5a059]/10 px-2 py-0.5 rounded flex items-center gap-1"
+                    >
+                      <Sparkles className="w-2.5 h-2.5" />
+                      Apply Category Defaults
+                    </button>
+                  </div>
                   <select
                     value={prodForm.category}
                     onChange={(e) => setProdForm({ ...prodForm, category: e.target.value })}
@@ -3271,6 +3306,100 @@ export const AdminExperience: React.FC = () => {
                   onChange={(e) => setCatForm({ ...catForm, image: e.target.value })}
                   className={`w-full p-2 rounded-lg mt-1 ${isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-[#080808] border-white/10 text-white'} border outline-none focus:border-[#c5a059]/50 transition-colors text-[10px]`}
                 />
+              </div>
+
+              {/* Category Configuration Section */}
+              <div className={`p-4 rounded-2xl border ${isLight ? 'bg-stone-50/50 border-stone-200' : 'bg-white/5 border-white/10'} space-y-4`}>
+                <h4 className="text-[11px] font-bold uppercase text-[#c5a059] border-b border-[#c5a059]/20 pb-2">Default Menu Configurations</h4>
+                <p className="text-[10px] text-stone-400 leading-relaxed italic">
+                  Set default options for all products created within this category to speed up your menu building process.
+                </p>
+
+                {/* Default Sizes */}
+                <div className="space-y-2 pt-2">
+                  <label className="text-[10px] font-extrabold uppercase text-[#c5a059]/80 tracking-wider">Category Default Sizes</label>
+                  <div className="space-y-2">
+                    {catForm.defaultSizes?.map((size, index) => (
+                      <div key={index} className="flex gap-2">
+                        <input 
+                          type="text" 
+                          placeholder="E.g. Large" 
+                          value={size.name} 
+                          onChange={(e) => {
+                            const newSizes = [...catForm.defaultSizes!];
+                            newSizes[index].name = e.target.value;
+                            setCatForm({ ...catForm, defaultSizes: newSizes });
+                          }} 
+                          className={`flex-1 p-2 rounded-lg ${isLight ? 'bg-white border-stone-300 text-stone-900' : 'bg-[#080808] border-white/10 text-white'} border text-xs`}
+                        />
+                        <input 
+                          type="number" 
+                          placeholder="+₱" 
+                          value={size.priceAdjustment} 
+                          onChange={(e) => {
+                            const newSizes = [...catForm.defaultSizes!];
+                            newSizes[index].priceAdjustment = Number(e.target.value);
+                            setCatForm({ ...catForm, defaultSizes: newSizes });
+                          }} 
+                          className={`w-20 p-2 rounded-lg ${isLight ? 'bg-white border-stone-300 text-stone-900' : 'bg-[#080808] border-white/10 text-white'} border text-xs`}
+                        />
+                        <button type="button" onClick={() => setCatForm({...catForm, defaultSizes: catForm.defaultSizes!.filter((_, i) => i !== index)})} className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors">
+                          <Trash2 className="w-4 h-4"/>
+                        </button>
+                      </div>
+                    ))}
+                    <button 
+                      type="button" 
+                      onClick={() => setCatForm({...catForm, defaultSizes: [...(catForm.defaultSizes || []), {name: '', priceAdjustment: 0}]})} 
+                      className={`w-full text-[10px] font-bold p-2 border border-dashed rounded-lg transition-all ${isLight ? 'border-stone-300 text-stone-500 hover:bg-stone-100' : 'border-white/10 text-white/40 hover:bg-white/5 hover:text-[#c5a059]'}`}
+                    >
+                      + Add Global Size Option
+                    </button>
+                  </div>
+                </div>
+
+                {/* Default Add-ons */}
+                <div className="space-y-2 pt-2">
+                  <label className="text-[10px] font-extrabold uppercase text-[#c5a059]/80 tracking-wider">Category Default Add-Ons</label>
+                  <div className="space-y-2">
+                    {catForm.defaultAddOns?.map((addOn, index) => (
+                      <div key={index} className="flex gap-2">
+                        <input 
+                          type="text" 
+                          placeholder="E.g. Extra Shot" 
+                          value={addOn.name} 
+                          onChange={(e) => {
+                            const newAddOns = [...catForm.defaultAddOns!];
+                            newAddOns[index].name = e.target.value;
+                            setCatForm({ ...catForm, defaultAddOns: newAddOns });
+                          }} 
+                          className={`flex-1 p-2 rounded-lg ${isLight ? 'bg-white border-stone-300 text-stone-900' : 'bg-[#080808] border-white/10 text-white'} border text-xs`}
+                        />
+                        <input 
+                          type="number" 
+                          placeholder="₱ Price" 
+                          value={addOn.price} 
+                          onChange={(e) => {
+                            const newAddOns = [...catForm.defaultAddOns!];
+                            newAddOns[index].price = Number(e.target.value);
+                            setCatForm({ ...catForm, defaultAddOns: newAddOns });
+                          }} 
+                          className={`w-20 p-2 rounded-lg ${isLight ? 'bg-white border-stone-300 text-stone-900' : 'bg-[#080808] border-white/10 text-white'} border text-xs`}
+                        />
+                        <button type="button" onClick={() => setCatForm({...catForm, defaultAddOns: catForm.defaultAddOns!.filter((_, i) => i !== index)})} className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors">
+                          <Trash2 className="w-4 h-4"/>
+                        </button>
+                      </div>
+                    ))}
+                    <button 
+                      type="button" 
+                      onClick={() => setCatForm({...catForm, defaultAddOns: [...(catForm.defaultAddOns || []), {name: '', price: 0}]})} 
+                      className={`w-full text-[10px] font-bold p-2 border border-dashed rounded-lg transition-all ${isLight ? 'border-stone-300 text-stone-500 hover:bg-stone-100' : 'border-white/10 text-white/40 hover:bg-white/5 hover:text-[#c5a059]'}`}
+                    >
+                      + Add Global Add-on Option
+                    </button>
+                  </div>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
