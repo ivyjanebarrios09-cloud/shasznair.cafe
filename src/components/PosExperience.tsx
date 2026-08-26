@@ -70,6 +70,8 @@ export const PosExperience: React.FC = () => {
   const [txStatusFilter, setTxStatusFilter] = useState<'all' | 'pending' | 'preparing' | 'ready' | 'completed' | 'unpaid'>('all');
   const [showPosBestSellers, setShowPosBestSellers] = useState(true);
   const [viewReceiptUrl, setViewReceiptUrl] = useState<string | null>(null);
+  const [tenderingOrder, setTenderingOrder] = useState<Order | null>(null);
+  const [tenderCashAmount, setTenderCashAmount] = useState<string>('');
 
   // Dynamic Best Sellers calculation for POS from real orders
   const posBestSellers = useMemo(() => {
@@ -251,11 +253,17 @@ export const PosExperience: React.FC = () => {
 
       // If paid instantly, mark transaction as paid
       if (!isCashType || cashReceived) {
-        await updatePaymentStatus(result.id, 'paid', parseFloat(cashReceived) || result.total);
+        const cash = parseFloat(cashReceived);
+        const changeValue = cash ? Math.max(0, cash - result.total) : undefined;
+        await updatePaymentStatus(result.id, 'paid', isCashType ? cash : undefined, isCashType ? changeValue : undefined);
         await updateOrderStatus(result.id, 'preparing');
       }
 
-      setPrintedReceipt({ ...result, cashReceived: parseFloat(cashReceived) || undefined, change: parseFloat(cashReceived) ? Math.max(0, parseFloat(cashReceived) - result.total) : undefined });
+      setPrintedReceipt({ 
+        ...result, 
+        cashReceived: isCashType ? parseFloat(cashReceived) : undefined, 
+        change: isCashType && parseFloat(cashReceived) ? Math.max(0, parseFloat(cashReceived) - result.total) : undefined 
+      });
       
       // Clear cart & inputs
       setPosCart([]);
@@ -1199,19 +1207,32 @@ export const PosExperience: React.FC = () => {
                     )}
 
                     {/* Fulfill / Payment buttons */}
-                    <div className={`flex gap-2 pt-1 border-t ${isLight ? 'border-stone-200' : 'border-white/5'}`}>
+                    <div className={`flex gap-2 pt-2 border-t ${isLight ? 'border-stone-200' : 'border-white/5'}`}>
                       {ord.paymentStatus === 'unpaid' && (
                         <button
-                          onClick={() => updatePaymentStatus(ord.id, 'paid')}
-                          className="flex-1 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-2 rounded-xl text-xs transition-all cursor-pointer text-center"
+                          onClick={() => {
+                            if (ord.paymentMethod === 'cash') {
+                              setTenderingOrder(ord);
+                              setTenderCashAmount('');
+                            } else {
+                              updatePaymentStatus(ord.id, 'paid');
+                            }
+                          }}
+                          className="flex-1 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-3.5 rounded-xl text-sm transition-all cursor-pointer text-center flex items-center justify-center"
                         >
                           Mark Paid
                         </button>
                       )}
+                      <button
+                        onClick={() => setPrintedReceipt(ord)}
+                        className={`bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold py-3.5 rounded-xl text-sm transition-all cursor-pointer text-center flex items-center justify-center flex-1 border ${isLight ? 'border-stone-300' : 'bg-white/10 border-white/10 text-white hover:bg-white/20'}`}
+                      >
+                        <Printer className="w-4 h-4 mr-1.5" /> Print Receipt
+                      </button>
                       {ord.orderStatus === 'ready' && (
                         <button
                           onClick={() => updateOrderStatus(ord.id, 'completed')}
-                          className="flex-1 bg-[#c5a059] hover:bg-[#b08c47] active:scale-95 text-black font-bold py-2 rounded-xl text-xs transition-all cursor-pointer text-center"
+                          className="flex-1 bg-[#c5a059] hover:bg-[#b08c47] active:scale-95 text-black font-bold py-3.5 rounded-xl text-sm transition-all cursor-pointer text-center flex items-center justify-center"
                         >
                           Fulfill Order
                         </button>
@@ -1365,7 +1386,14 @@ export const PosExperience: React.FC = () => {
                             )}
                             {ord.paymentStatus !== 'paid' && (
                               <button
-                                onClick={() => updatePaymentStatus(ord.id, 'paid')}
+                                onClick={() => {
+                                  if (ord.paymentMethod === 'cash') {
+                                    setTenderingOrder(ord);
+                                    setTenderCashAmount('');
+                                  } else {
+                                    updatePaymentStatus(ord.id, 'paid');
+                                  }
+                                }}
                                 className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2.5 py-1 rounded-lg text-[10px] transition-colors cursor-pointer shrink-0"
                               >
                                 Mark Paid
@@ -1379,6 +1407,13 @@ export const PosExperience: React.FC = () => {
                                 Fulfill Order
                               </button>
                             )}
+                            <button
+                              onClick={() => setPrintedReceipt(ord)}
+                              className={`font-bold px-2.5 py-1 rounded-lg text-[10px] transition-colors cursor-pointer shrink-0 flex items-center gap-1 border ${isLight ? 'bg-stone-100 border-stone-300 text-stone-800 hover:bg-stone-200' : 'bg-white/5 border-white/10 text-white/80 hover:bg-white/15'}`}
+                              title="Print Receipt"
+                            >
+                              <Printer className="w-3 h-3" /> Print
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -1502,6 +1537,71 @@ export const PosExperience: React.FC = () => {
                     </span>
                   </button>
                 ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TENDER MODAL FOR EXISTING ORDERS (APP ORDERS) */}
+      {tenderingOrder && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-end sm:items-center justify-center z-[60] p-0 sm:p-4 animate-fade-in">
+          <div className={`w-full max-w-sm rounded-t-3xl sm:rounded-2xl shadow-2xl p-4 sm:p-6 space-y-4 border ${
+            isLight ? 'bg-white border-stone-200' : 'bg-[#12141c] border-white/10'
+          }`}>
+            <div className="flex justify-between items-center border-b pb-3 border-stone-200 dark:border-white/10">
+              <div className="flex items-center gap-2">
+                <Banknote className="w-5 h-5 text-[#c5a059]" />
+                <div>
+                  <h3 className={`font-bold text-sm ${isLight ? 'text-stone-900' : 'text-white'}`}>Tender Cash Payment</h3>
+                  <p className={`text-[10px] ${isLight ? 'text-stone-500' : 'text-white/40'}`}>Order #{tenderingOrder.orderNumber.slice(-8)}</p>
+                </div>
+              </div>
+              <button onClick={() => setTenderingOrder(null)} className="p-1 text-stone-400 hover:text-stone-600 cursor-pointer"><X className="w-5 h-5" /></button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex justify-between items-center p-3 rounded-xl bg-stone-50 dark:bg-white/5 border border-stone-200 dark:border-white/10">
+                <span className="text-xs font-bold opacity-70">TOTAL DUE:</span>
+                <span className="text-xl font-black text-[#c5a059]">₱{tenderingOrder.total}</span>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-extrabold uppercase text-[#c5a059]">Cash Received</label>
+                <input
+                  type="number"
+                  autoFocus
+                  placeholder="0.00"
+                  value={tenderCashAmount}
+                  onChange={(e) => setTenderCashAmount(e.target.value)}
+                  className={`w-full text-2xl font-mono font-black p-3 rounded-xl border outline-none text-right ${
+                    isLight 
+                      ? 'bg-stone-50 border-stone-300 text-stone-900 focus:border-amber-600' 
+                      : 'bg-[#07080c] border-white/10 text-white focus:border-[#c5a059]'
+                  }`}
+                />
+              </div>
+
+              {parseFloat(tenderCashAmount) >= tenderingOrder.total && (
+                <div className="flex justify-between items-center p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/30">
+                  <span className="text-xs font-bold text-emerald-800 dark:text-emerald-400">CHANGE:</span>
+                  <span className="text-xl font-black text-emerald-700 dark:text-emerald-400">₱{(parseFloat(tenderCashAmount) - tenderingOrder.total).toFixed(2)}</span>
+                </div>
+              )}
+
+              <button
+                disabled={!tenderCashAmount || parseFloat(tenderCashAmount) < tenderingOrder.total}
+                onClick={async () => {
+                  const cash = parseFloat(tenderCashAmount);
+                  const changeValue = cash - tenderingOrder.total;
+                  await updatePaymentStatus(tenderingOrder.id, 'paid', cash, changeValue);
+                  setPrintedReceipt({...tenderingOrder, paymentStatus: 'paid' as any, cashReceived: cash, change: changeValue});
+                  setTenderingOrder(null);
+                }}
+                className="w-full bg-[#c5a059] hover:bg-[#b08c47] text-black font-extrabold py-4 rounded-xl shadow-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span>Process Payment</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
             </div>
           </div>
         </div>
@@ -1773,7 +1873,7 @@ export const PosExperience: React.FC = () => {
                 <p className="text-xs font-black text-[#c5a059] pt-1">Total Paid: ₱{printedReceipt.total}</p>
                 {printedReceipt.cashReceived !== undefined && (
                   <>
-                    <p>Cash: ₱{printedReceipt.cashReceived}</p>
+                    <p>Cash Tendered: ₱{printedReceipt.cashReceived}</p>
                     <p className="text-emerald-600 dark:text-emerald-400 font-bold">Change: ₱{printedReceipt.change}</p>
                   </>
                 )}

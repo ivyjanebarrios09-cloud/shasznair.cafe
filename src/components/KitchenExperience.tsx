@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useCoffeeApp } from '../contexts/CoffeeAppContext';
-import { Order, OrderStatus, OrderItem } from '../types';
+import { Order, OrderStatus, OrderItem, getPaymentMethodDisplayName } from '../types';
 import { InstallAppButton } from './InstallAppButton';
-import { Clock, Play, CheckCircle, Package, MapPin, Check, MessageSquare, AlertCircle, LogOut, Menu, Download, Table, LayoutGrid, CheckCircle2, User, UserCheck, Store, Smartphone, ReceiptText, X, Volume2, VolumeX, Bell } from 'lucide-react';
+import { Clock, Play, CheckCircle, Package, MapPin, Check, MessageSquare, AlertCircle, LogOut, Menu, Download, Table, LayoutGrid, CheckCircle2, User, UserCheck, Store, Smartphone, ReceiptText, X, Volume2, VolumeX, Bell, Printer } from 'lucide-react';
 
 export const KitchenExperience: React.FC = () => {
   const { orders, updateOrderStatus, updateOrderItemStatus, dataLoading, currentUser, logout, settings } = useCoffeeApp();
   const [activeFilter, setActiveFilter] = useState<'all' | 'pay' | 'verify' | 'incoming' | 'active' | 'ready'>('all');
   const [queueMode, setQueueMode] = useState<'tabular' | 'grid'>('tabular');
   const [viewReceiptUrl, setViewReceiptUrl] = useState<string | null>(null);
+  const [printedReceipt, setPrintedReceipt] = useState<Order | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   
   const prevOrdersCountRef = useRef<number>(orders.length);
@@ -363,6 +365,20 @@ export const KitchenExperience: React.FC = () => {
           >
             <div className="w-2 h-2 rounded-full bg-emerald-500" /> READY ({readyOrders.length})
           </button>
+          <button 
+            onClick={() => setActiveFilter('verify')}
+            className={`px-3 py-1.5 rounded-xl border text-[11px] font-mono font-bold tracking-wider flex items-center gap-1.5 cursor-pointer transition-all ${
+              activeFilter === 'verify' 
+                ? isLight 
+                  ? 'bg-amber-100 border-amber-400 text-amber-950 font-extrabold shadow-sm' 
+                  : 'bg-amber-950/60 border-amber-500/50 text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.2)]' 
+                : isLight 
+                  ? 'bg-stone-100 border-stone-200 text-stone-700 hover:text-stone-900 hover:bg-stone-200' 
+                  : 'bg-[#12131a] border-white/5 text-white/50 hover:text-white/80'
+            }`}
+          >
+            <div className="w-2 h-2 rounded-full bg-amber-500" /> VERIFY ({orders.filter(o => o.receiptUrl && o.paymentStatus !== 'paid').length})
+          </button>
         </div>
 
         {/* QUEUE MODE SWITCHER */}
@@ -416,7 +432,53 @@ export const KitchenExperience: React.FC = () => {
             </div>
           </div>
         ) : queueMode === 'grid' ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className={`grid gap-4 ${activeFilter === 'verify' ? 'grid-cols-1 max-w-md mx-auto' : 'grid-cols-1 md:grid-cols-3'}`}>
+            {/* VERIFY ORDERS (FOR EWALLET RECEIPTS) */}
+            {activeFilter === 'verify' && (
+              <div className="space-y-3">
+                <div className={`${isLight ? 'bg-white border-stone-200' : 'bg-[#0b0c10] border-white/10'} p-3 rounded-xl border flex justify-between items-center transition-colors`}>
+                  <span className={`text-xs font-mono font-bold uppercase ${isLight ? 'text-stone-800' : 'text-white/80'}`}>Awaiting Verification ({orders.filter(o => o.receiptUrl && o.paymentStatus !== 'paid').length})</span>
+                </div>
+                {orders.filter(o => o.receiptUrl && o.paymentStatus !== 'paid').map(ord => (
+                  <div key={ord.id} className={`${isLight ? 'bg-white border-stone-200 text-stone-900' : 'bg-[#0b0c10] border-white/15 text-white'} border rounded-2xl p-4 space-y-3 shadow-lg transition-colors`}>
+                    <div className={`flex justify-between items-start text-xs border-b pb-2 ${isLight ? 'border-stone-200' : 'border-white/5'}`}>
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <p className={`font-mono font-bold ${isLight ? 'text-stone-900' : 'text-white'}`}>#{ord.orderNumber.slice(-4)}</p>
+                          <span className={`inline-flex items-center gap-0.5 text-[8px] font-bold px-1.5 py-0.5 rounded ${
+                            ord.orderSource === 'pos' 
+                              ? isLight ? 'bg-blue-100 text-blue-900 border border-blue-300' : 'bg-blue-950/70 text-blue-300 border border-blue-800/40' 
+                              : isLight ? 'bg-purple-100 text-purple-900 border border-purple-300' : 'bg-purple-950/70 text-purple-300 border border-purple-800/40'
+                          }`}>
+                            {ord.orderSource === 'pos' ? <Store className="w-2.5 h-2.5" /> : <Smartphone className="w-2.5 h-2.5" />}
+                            {ord.orderSource === 'pos' ? 'POS' : 'APP'}
+                          </span>
+                        </div>
+                        {renderCustomerBadge(ord)}
+                        <p className={`text-[10px] font-mono mt-0.5 ${isLight ? 'text-stone-500 font-semibold' : 'text-white/40'}`}>{getElapsedTime(ord.createdAt)}</p>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-[9px] font-mono font-medium text-stone-400 uppercase">
+                          {ord.orderType.replace('_', ' ')}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                       {ord.items.map((it, idx) => (
+                         <div key={idx} className="text-xs flex justify-between">
+                           <span>{it.quantity}x {it.name}</span>
+                           <span className="font-mono">₱{it.price * it.quantity}</span>
+                         </div>
+                       ))}
+                    </div>
+
+                    {renderReceiptPreview(ord)}
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* NEW / INCOMING ORDERS */}
             {(activeFilter === 'all' || activeFilter === 'incoming') && (
               <div className="space-y-3">
@@ -472,7 +534,16 @@ export const KitchenExperience: React.FC = () => {
                     {renderReceiptPreview(ord)}
 
                     {/* Primary Action Button */}
-                    <div className={`pt-2 border-t ${isLight ? 'border-stone-200' : 'border-white/5'}`}>
+                    <div className={`pt-2 border-t ${isLight ? 'border-stone-200' : 'border-white/5'} flex gap-2`}>
+                      <button
+                        onClick={() => setPrintedReceipt(ord)}
+                        className={`px-3 py-2.5 rounded-xl text-xs font-mono font-semibold transition-all cursor-pointer border flex items-center justify-center gap-1.5 ${
+                          isLight ? 'bg-stone-100 text-stone-600 hover:bg-stone-200 border-stone-200' : 'bg-stone-900 text-stone-400 hover:text-white border-white/5'
+                        }`}
+                        title="Print Order Ticket"
+                      >
+                        <Printer className="w-3.5 h-3.5" />
+                      </button>
                       {ord.paymentStatus !== 'paid' ? (
                         <div className={`w-full py-2.5 px-3 rounded-xl border flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-wider ${
                           isLight ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-amber-950/20 text-amber-500 border-amber-900/30'
@@ -483,9 +554,9 @@ export const KitchenExperience: React.FC = () => {
                       ) : (
                         <button
                           onClick={() => handleUpdateStatus(ord.id, 'preparing')}
-                          className="w-full bg-[#c5a059] hover:bg-[#b08c47] text-black font-mono font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider flex justify-center items-center gap-1.5 cursor-pointer transition-all shadow"
+                          className="w-full bg-[#c5a059] hover:bg-[#b08c47] text-black font-mono font-bold py-3.5 rounded-xl text-sm uppercase tracking-wider flex justify-center items-center gap-1.5 cursor-pointer transition-all shadow-lg active:scale-95"
                         >
-                          <Play className="w-3.5 h-3.5 fill-black" /> Start Preparing Order
+                          <Play className="w-4 h-4 fill-black" /> Start Preparing Order
                         </button>
                       )}
                     </div>
@@ -550,6 +621,15 @@ export const KitchenExperience: React.FC = () => {
 
                     {/* Action Controls */}
                     <div className={`pt-2 border-t ${isLight ? 'border-stone-200' : 'border-white/5'} flex gap-2`}>
+                      <button
+                        onClick={() => setPrintedReceipt(ord)}
+                        className={`px-3 py-2 rounded-xl text-xs font-mono font-semibold transition-all cursor-pointer border flex items-center justify-center gap-1.5 ${
+                          isLight ? 'bg-stone-100 text-stone-600 hover:bg-stone-200 border-stone-200' : 'bg-stone-900 text-stone-400 hover:text-white border-white/5'
+                        }`}
+                        title="Print Order Ticket"
+                      >
+                        <Printer className="w-3.5 h-3.5" />
+                      </button>
                       <button
                         onClick={() => handleUpdateStatus(ord.id, 'pending')}
                         className={`px-3 py-2 rounded-xl text-xs font-mono font-semibold transition-all cursor-pointer ${
@@ -622,6 +702,15 @@ export const KitchenExperience: React.FC = () => {
                     {/* Action Controls */}
                     <div className={`pt-2 border-t ${isLight ? 'border-stone-200' : 'border-white/5'} flex gap-2`}>
                       <button
+                        onClick={() => setPrintedReceipt(ord)}
+                        className={`px-3 py-2 rounded-xl text-xs font-mono font-semibold transition-all cursor-pointer border flex items-center justify-center gap-1.5 ${
+                          isLight ? 'bg-stone-100 text-stone-600 hover:bg-stone-200 border-stone-200' : 'bg-stone-900 text-stone-400 hover:text-white border-white/5'
+                        }`}
+                        title="Print Order Ticket"
+                      >
+                        <Printer className="w-3.5 h-3.5" />
+                      </button>
+                      <button
                         onClick={() => handleUpdateStatus(ord.id, 'preparing')}
                         className={`px-3 py-2 rounded-xl text-xs font-mono font-semibold transition-all cursor-pointer ${
                           isLight ? 'bg-stone-100 text-stone-600 hover:bg-stone-200' : 'bg-stone-900 text-stone-400 hover:text-white'
@@ -651,6 +740,7 @@ export const KitchenExperience: React.FC = () => {
                 if (activeFilter === 'incoming') return o.orderStatus === 'pending';
                 if (activeFilter === 'active') return o.orderStatus === 'preparing';
                 if (activeFilter === 'ready') return o.orderStatus === 'ready';
+                if (activeFilter === 'verify') return o.receiptUrl && o.paymentStatus !== 'paid';
                 return ['pending', 'preparing', 'ready'].includes(o.orderStatus);
               }).map(ord => (
                 <div key={ord.id} className={`${isLight ? 'bg-white border-stone-200 text-stone-900 shadow-md' : 'bg-[#0b0c10] border-white/15 text-white shadow-lg'} border rounded-2xl p-4 space-y-3 font-mono transition-colors`}>
@@ -697,7 +787,16 @@ export const KitchenExperience: React.FC = () => {
                   </div>
 
                   {/* Order Level Action Button */}
-                  <div className={`pt-2 border-t ${isLight ? 'border-stone-200' : 'border-white/5'}`}>
+                  <div className={`pt-2 border-t ${isLight ? 'border-stone-200' : 'border-white/5'} flex gap-2`}>
+                    <button
+                      onClick={() => setPrintedReceipt(ord)}
+                      className={`px-3 py-2 rounded-xl text-xs font-mono font-semibold transition-all cursor-pointer border flex items-center justify-center gap-1.5 ${
+                        isLight ? 'bg-stone-100 text-stone-600 hover:bg-stone-200 border-stone-200' : 'bg-stone-900 text-stone-400 hover:text-white border-white/5'
+                      }`}
+                      title="Print Order Ticket"
+                    >
+                      <Printer className="w-3.5 h-3.5" />
+                    </button>
                     {ord.orderStatus === 'pending' && (
                       ord.paymentStatus !== 'paid' ? (
                         <div className={`w-full py-2.5 px-3 rounded-xl border flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-wider text-center ${
@@ -815,7 +914,17 @@ export const KitchenExperience: React.FC = () => {
                           </span>
                         </td>
                         <td className="p-3 text-right">
-                          {ord.orderStatus === 'pending' && (
+                          <div className="flex items-center gap-1.5 justify-end">
+                            <button
+                              onClick={() => setPrintedReceipt(ord)}
+                              className={`px-2 py-1 rounded-lg text-[9px] font-semibold transition-all cursor-pointer border flex items-center justify-center ${
+                                isLight ? 'bg-stone-100 text-stone-600 hover:bg-stone-200 border-stone-200' : 'bg-stone-900 text-stone-400 hover:text-white border-white/5'
+                              }`}
+                              title="Print Order Ticket"
+                            >
+                              <Printer className="w-3 h-3" />
+                            </button>
+                            {ord.orderStatus === 'pending' && (
                             ord.paymentStatus !== 'paid' ? (
                               <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[9px] font-bold uppercase ${
                                 isLight ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-amber-950/20 text-amber-500 border-amber-900/30'
@@ -867,6 +976,7 @@ export const KitchenExperience: React.FC = () => {
                               </button>
                             </div>
                           )}
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -936,6 +1046,90 @@ export const KitchenExperience: React.FC = () => {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* THERMAL RECEIPT MODAL */}
+      {printedReceipt && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className={`relative bg-white text-black p-6 rounded-xl shadow-2xl max-w-sm w-full max-h-[90vh] overflow-y-auto font-mono flex flex-col`}
+          >
+            <button 
+              onClick={() => setPrintedReceipt(null)}
+              className="absolute top-2 right-2 p-2 hover:bg-stone-100 rounded-full transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5 text-stone-500" />
+            </button>
+            
+            <div className="text-center space-y-1 mb-4">
+              <h2 className="text-lg font-black uppercase tracking-tight text-amber-950">{settings.branding.shopName}</h2>
+              <p className="text-[10px] font-bold">{settings.businessInfo.address}</p>
+              <p className="text-[10px] font-bold">{settings.businessInfo.contactNumber}</p>
+              <div className="border-t border-dashed border-stone-300 my-2" />
+              <h3 className="text-xs font-black uppercase">ORDER TICKET</h3>
+            </div>
+
+            <div className="text-[11px] space-y-1 mb-4">
+              <div className="flex justify-between"><span>Date:</span> <span>{printedReceipt.createdAt instanceof Date ? printedReceipt.createdAt.toLocaleString() : new Date(printedReceipt.createdAt).toLocaleString()}</span></div>
+              <div className="flex justify-between"><span>Order No:</span> <span className="font-bold">#{printedReceipt.orderNumber.slice(-6)}</span></div>
+              <div className="flex justify-between"><span>Customer:</span> <span>{printedReceipt.customerName}</span></div>
+              <div className="flex justify-between"><span>Type:</span> <span className="uppercase">{printedReceipt.orderType.replace('_', ' ')}</span></div>
+              <div className="flex justify-between"><span>Payment:</span> <span className="uppercase font-bold">{getPaymentMethodDisplayName(printedReceipt.paymentMethod, settings.paymentMethods)}</span></div>
+            </div>
+
+            <div className="border-t border-dashed border-stone-300 my-2" />
+            
+            <div className="space-y-2 text-[11px] mb-4">
+              {printedReceipt.items.map((item, idx) => (
+                <div key={idx} className="flex flex-col">
+                  <div className="flex justify-between font-bold">
+                    <span>{item.quantity}x {item.name} ({item.selectedSize})</span>
+                    <span>₱{item.price * item.quantity}</span>
+                  </div>
+                  {item.selectedAddOns && item.selectedAddOns.length > 0 && (
+                    <span className="text-[10px] pl-4 text-stone-600">+ {item.selectedAddOns.join(', ')}</span>
+                  )}
+                  {item.notes && (
+                    <span className="text-[10px] pl-4 italic text-stone-600 font-medium">"{item.notes}"</span>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div className="border-t border-dashed border-stone-300 my-2" />
+
+            <div className="space-y-1 text-right text-[11px] mb-4 font-bold">
+              <div className="flex justify-between"><span>Subtotal:</span> <span>₱{printedReceipt.subtotal}</span></div>
+              {printedReceipt.discount > 0 && <div className="flex justify-between text-emerald-700"><span>Discount:</span> <span>-₱{printedReceipt.discount}</span></div>}
+              <div className="flex justify-between text-xs font-black pt-1"><span>Total:</span> <span>₱{printedReceipt.total}</span></div>
+              {printedReceipt.cashReceived !== undefined && (
+                <>
+                  <div className="flex justify-between text-stone-600 font-bold pt-1 border-t border-dashed border-stone-200 mt-1">
+                    <span>Cash Tendered:</span> <span>₱{printedReceipt.cashReceived}</span>
+                  </div>
+                  <div className="flex justify-between text-emerald-700 font-bold">
+                    <span>Change:</span> <span>₱{printedReceipt.change}</span>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="text-center text-[10px] font-bold space-y-1 mt-auto">
+              <p>Thank you for choosing {settings.branding.shopName}!</p>
+              <p className="opacity-50 tracking-widest uppercase">Visit again soon</p>
+            </div>
+
+            <button 
+              onClick={() => window.print()}
+              className="mt-6 w-full bg-black text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-stone-800 transition-all cursor-pointer shadow-lg"
+            >
+              <Printer className="w-4 h-4" />
+              <span>Print Thermal Ticket</span>
+            </button>
+          </motion.div>
         </div>
       )}
     </div>

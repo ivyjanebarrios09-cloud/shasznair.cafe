@@ -1585,11 +1585,23 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
     try {
+      console.log(`Updating order ${orderId} to status: ${status}`);
       const orderRef = getShopDoc('orders', orderId);
       await updateDoc(orderRef, {
         orderStatus: status,
         updatedAt: serverTimestamp(),
         ...(status === 'completed' ? { completedAt: serverTimestamp() } : {})
+      });
+
+      // Optimistic update
+      setOrders(prev => {
+        console.log("Applying optimistic update to local state");
+        return prev.map(o => o.id === orderId ? { 
+          ...o, 
+          orderStatus: status, 
+          updatedAt: new Date(),
+          ...(status === 'completed' ? { completedAt: new Date() } : {})
+        } : o);
       });
 
       const orderDoc = orders.find(o => o.id === orderId);
