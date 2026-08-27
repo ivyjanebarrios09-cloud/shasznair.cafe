@@ -156,8 +156,8 @@ export const PosExperience: React.FC = () => {
     // Check if item already exists with exact customizations
     const existingIndex = posCart.findIndex(i => 
       i.product.id === item.product.id && 
-      i.selectedSize.name === item.selectedSize.name &&
-      JSON.stringify(i.selectedAddOns.map(a => a.name)) === JSON.stringify(item.selectedAddOns.map(a => a.name))
+      (i.selectedSize?.name || i.selectedSize) === (item.selectedSize?.name || item.selectedSize) &&
+      JSON.stringify(i.selectedAddOns.map(a => typeof a === 'object' ? a.name : a)) === JSON.stringify(item.selectedAddOns.map(a => typeof a === 'object' ? a.name : a))
     );
 
     if (existingIndex > -1) {
@@ -428,7 +428,7 @@ export const PosExperience: React.FC = () => {
 
                   <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
                     <span className="bg-[#c5a059]/10 text-[#c5a059] px-1.5 py-0.5 rounded font-semibold border border-[#c5a059]/20">
-                      {item.selectedSize.name}
+                      {typeof item.selectedSize === 'object' ? (item.selectedSize?.name || 'Standard') : (item.selectedSize || 'Standard')}
                     </span>
                     {item.selectedAddOns.length > 0 && (
                       <span className={`truncate max-w-[150px] ${isLight ? 'text-stone-500' : 'text-white/40'}`}>
@@ -1175,7 +1175,7 @@ export const PosExperience: React.FC = () => {
                         <div className="pt-1 max-h-16 overflow-y-auto">
                           {ord.items.map((it, i) => (
                             <div key={i} className="flex flex-col">
-                              <span className={isLight ? 'text-stone-800' : 'text-white/80'}><strong className="text-[#c5a059]">{it.quantity}x</strong> {it.name} <span className={isLight ? 'text-stone-500' : 'text-white/40'}>({it.selectedSize})</span></span>
+                              <span className={isLight ? 'text-stone-800' : 'text-white/80'}><strong className="text-[#c5a059]">{it.quantity}x</strong> {it.name} <span className={isLight ? 'text-stone-500' : 'text-white/40'}>({typeof it.selectedSize === 'object' ? (it.selectedSize as any)?.name : it.selectedSize})</span></span>
                               {it.selectedAddOns && it.selectedAddOns.length > 0 && (
                                 <span className={`italic text-[10px] pl-3 ${isLight ? 'text-stone-500' : 'text-white/40'}`}>+ {it.selectedAddOns.join(', ')}</span>
                               )}
@@ -1336,7 +1336,7 @@ export const PosExperience: React.FC = () => {
                           <div className="space-y-1 max-h-16 overflow-y-auto">
                             {ord.items.map((it, i) => (
                               <div key={i} className="flex flex-col">
-                                <span className={`font-bold ${isLight ? 'text-stone-800' : 'text-white/80'}`}>{it.quantity}x {it.name} <span className={`font-normal ${isLight ? 'text-stone-500' : 'text-white/40'}`}>({it.selectedSize})</span></span>
+                                <span className={`font-bold ${isLight ? 'text-stone-800' : 'text-white/80'}`}>{it.quantity}x {it.name} <span className={`font-normal ${isLight ? 'text-stone-500' : 'text-white/40'}`}>({typeof it.selectedSize === 'object' ? (it.selectedSize as any)?.name : it.selectedSize})</span></span>
                                 {it.selectedAddOns && it.selectedAddOns.length > 0 && (
                                   <span className={`italic ${isLight ? 'text-stone-500' : 'text-white/40'}`}>+ {it.selectedAddOns.join(', ')}</span>
                                 )}
@@ -1852,7 +1852,7 @@ export const PosExperience: React.FC = () => {
                 {printedReceipt.items.map((it: any, idx: number) => (
                   <div key={idx} className="flex flex-col">
                     <div className={`flex justify-between ${isLight ? 'text-stone-800' : 'text-white/80'}`}>
-                      <span>{it.quantity}x {it.name} ({it.selectedSize})</span>
+                      <span>{it.quantity}x {it.name} ({typeof it.selectedSize === 'object' ? (it.selectedSize as any)?.name : it.selectedSize})</span>
                       <span className="font-mono">₱{it.price * it.quantity}</span>
                     </div>
                     {it.selectedAddOns && it.selectedAddOns.length > 0 && (

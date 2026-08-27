@@ -7,7 +7,6 @@ import { KitchenExperience } from './components/KitchenExperience';
 import { AdminExperience } from './components/AdminExperience';
 import { AuthScreen } from './components/AuthScreen';
 import { LandingPage } from './components/LandingPage';
-import { FloatingInstallAppButton } from './components/InstallAppButton';
 import { Home, Sparkles, Coffee, ShieldCheck, Database } from 'lucide-react';
 import appletConfig from '../firebase-applet-config.json';
 
@@ -62,9 +61,6 @@ const AppContent: React.FC = () => {
       <div className={`flex-1 min-h-0 ${isLight ? 'bg-stone-100 text-stone-900' : 'bg-[#050505] text-[#f2f2f2]'} flex flex-col overflow-hidden relative`}>
         {renderRoleViewport()}
       </div>
-
-      {/* FLOATING PWA INSTALL ACTION BUTTON */}
-      <FloatingInstallAppButton />
     </div>
   );
 };

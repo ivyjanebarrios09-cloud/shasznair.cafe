@@ -1392,7 +1392,7 @@ export const AuthScreen: React.FC = () => {
               <div className="border-t border-white/5 pt-2 space-y-1">
                 {confirmedOrder.items?.map((it, idx) => (
                   <div key={idx} className="flex justify-between text-xs text-stone-300">
-                    <span>{it.quantity}x {it.name} ({it.selectedSize})</span>
+                    <span>{it.quantity}x {it.name} ({typeof it.selectedSize === 'object' ? (it.selectedSize as any)?.name : it.selectedSize})</span>
                     <span className="font-mono text-stone-400">₱{it.price * it.quantity}</span>
                   </div>
                 ))}

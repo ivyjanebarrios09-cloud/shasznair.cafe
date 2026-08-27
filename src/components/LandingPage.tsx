@@ -4,12 +4,16 @@ import {
   Coffee, ShoppingBag, Search, Plus, Minus, Flame, 
   ChevronDown, ArrowRight, User, LogIn, Sparkles, 
   X, Check, AlertCircle, Eye, EyeOff, Shield,
-  Layers, CupSoda, Croissant, Cake, Sandwich, Cookie, Pizza
+  Layers, CupSoda, Croissant, Cake, Sandwich, Cookie, Pizza,
+  UtensilsCrossed, Clock, ReceiptText, Banknote, CreditCard,
+  QrCode, Smartphone, MapPin, Store, CheckCircle2, UserCheck, Tag, Upload
 } from 'lucide-react';
 import { useCoffeeApp } from '../contexts/CoffeeAppContext';
-import { Product, CartItem, UserRole } from '../types';
+import { Product, CartItem, UserRole, OrderType, PaymentMethod, Order, getPaymentMethodDisplayName } from '../types';
 import { InstallAppButton } from './InstallAppButton';
 import { CategoryIcon } from '../utils/categoryIcons';
+import { ImageUpload } from './ImageUpload';
+import { getQRCodeUrl } from '../utils/qr';
 
 export const LandingPage: React.FC = () => {
   const { 
@@ -18,6 +22,8 @@ export const LandingPage: React.FC = () => {
     settings, 
     cart, 
     addToCart, 
+    clearCart,
+    placeOrder,
     login, 
     register, 
     simulateRole,
@@ -25,6 +31,7 @@ export const LandingPage: React.FC = () => {
   } = useCoffeeApp();
 
   const isLight = settings?.branding?.theme === 'light';
+  const isStoreClosed = settings?.storeStatus?.isOpen === false;
 
   // Navigation & Filter States
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -36,6 +43,20 @@ export const LandingPage: React.FC = () => {
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+
+  // Guest Checkout State
+  const [isGuestCheckoutOpen, setIsGuestCheckoutOpen] = useState<boolean>(false);
+  const [guestName, setGuestName] = useState<string>('');
+  const [guestPhone, setGuestPhone] = useState<string>('');
+  const [guestOrderType, setGuestOrderType] = useState<OrderType>('dine_in');
+  const [guestTableNo, setGuestTableNo] = useState<string>('');
+  const [guestPaymentMethod, setGuestPaymentMethod] = useState<PaymentMethod>('cash');
+  const [guestNotes, setGuestNotes] = useState<string>('');
+  const [guestReceiptUrl, setGuestReceiptUrl] = useState<string>('');
+  const [guestLoading, setGuestLoading] = useState<boolean>(false);
+  const [guestError, setGuestError] = useState<string | null>(null);
+  const [lastPlacedGuestOrder, setLastPlacedGuestOrder] = useState<Order | null>(null);
+  const [isGuestSuccessModalOpen, setIsGuestSuccessModalOpen] = useState<boolean>(false);
 
   // Customization State
   const [customSize, setCustomSize] = useState<{ name: string; priceAdjustment: number }>({ name: 'Regular', priceAdjustment: 0 });
@@ -57,7 +78,9 @@ export const LandingPage: React.FC = () => {
   // Cart Metrics
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const cartTotal = cart.reduce((sum, item) => {
-    const itemUnitPrice = (item.product?.price || 0) + (item.selectedSize?.priceAdjustment || 0) + (item.selectedAddOns?.reduce((acc, a) => acc + a.price, 0) || 0);
+    const sizePrice = typeof item.selectedSize === 'object' ? (item.selectedSize?.priceAdjustment || 0) : 0;
+    const addOnsPrice = item.selectedAddOns?.reduce((acc, a) => acc + (typeof a === 'object' ? a.price : 0), 0) || 0;
+    const itemUnitPrice = (item.product?.price || 0) + sizePrice + addOnsPrice;
     return sum + itemUnitPrice * item.quantity;
   }, 0);
 
@@ -128,12 +151,65 @@ export const LandingPage: React.FC = () => {
     setSelectedProduct(null);
   };
 
+  // Guest Checkout Submission
+  const handleGuestCheckoutSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setGuestError(null);
+    if (cart.length === 0) {
+      setGuestError("Your order tray is empty.");
+      return;
+    }
+    if (isStoreClosed) {
+      setGuestError("The store is currently closed for incoming orders.");
+      return;
+    }
+    if ((guestOrderType === 'table' || guestOrderType === 'dine_in') && guestOrderType === 'table' && !guestTableNo.trim()) {
+      setGuestError("Please specify your table number.");
+      return;
+    }
+
+    setGuestLoading(true);
+    try {
+      const effectiveName = guestName.trim() || 'Online Guest';
+      const effectivePhone = guestPhone.trim() || undefined;
+      const effectiveTable = (guestOrderType === 'table' || guestOrderType === 'dine_in') ? (guestTableNo.trim() || 'Dine-In') : '';
+
+      const order = await placeOrder(
+        guestOrderType,
+        effectiveTable,
+        guestPaymentMethod,
+        guestNotes.trim(),
+        effectivePhone,
+        undefined, // customCart
+        undefined, // customVoucher
+        effectiveName,
+        'web_app',
+        undefined, // cashReceived
+        undefined, // change
+        guestReceiptUrl || undefined
+      );
+
+      setLastPlacedGuestOrder(order);
+      setIsGuestCheckoutOpen(false);
+      setIsCartOpen(false);
+      setIsGuestSuccessModalOpen(true);
+      clearCart();
+      setGuestReceiptUrl('');
+      setGuestNotes('');
+      setGuestTableNo('');
+    } catch (err: any) {
+      setGuestError(err.message || 'Unable to submit guest order. Please try again.');
+    } finally {
+      setGuestLoading(false);
+    }
+  };
+
   // Auth Handler
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthLoading(true);
     setAuthError(null);
-
+ 
     try {
       if (authMode === 'login') {
         await login(authEmail.trim(), authPassword);
@@ -268,7 +344,7 @@ export const LandingPage: React.FC = () => {
       </aside>
 
       {/* 2. MAIN CONTENT CONTAINER */}
-      <div className="flex-1 flex flex-col h-full min-h-0 overflow-hidden relative grid-bg">
+      <div className={`flex-1 flex flex-col h-full min-h-0 overflow-hidden relative ${isLight ? 'bg-stone-100 text-stone-900' : 'bg-[#050505] text-[#f2f2f2]'}`}>
         {/* TOP BRAND HEADER (NO BURGER MENU) */}
         <header className={`${isLight ? 'bg-white/90 border-stone-200 text-stone-900' : 'bg-[#121212]/95 border-white/10 text-white'} backdrop-blur-xl shrink-0 z-30 px-3 sm:px-6 py-2.5 sm:py-3.5 flex items-center justify-between border-b transition-colors`}>
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1 mr-2">
@@ -353,8 +429,75 @@ export const LandingPage: React.FC = () => {
 
         {/* SCROLLABLE STORE VIEW */}
         <main className="flex-1 overflow-y-auto scrollbar-none px-3.5 sm:px-6 py-4 space-y-6 pb-28">
-          {/* CATEGORY TITLE WITH ORANGE ACCENT */}
-          <div className="flex items-center gap-2 pt-1">
+          {isStoreClosed ? (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="flex flex-col items-center justify-center min-h-[60vh] max-w-lg mx-auto text-center px-4 py-8 space-y-6"
+            >
+              <div 
+                className="w-20 h-20 rounded-3xl flex items-center justify-center border shadow-xl"
+                style={{ 
+                  backgroundColor: `${primaryColor}15`, 
+                  borderColor: `${primaryColor}40`,
+                  color: primaryColor 
+                }}
+              >
+                <Store className="w-10 h-10 stroke-[1.5]" />
+              </div>
+
+              <div className="space-y-2">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-black uppercase tracking-wider">
+                  <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+                  Store is Currently Closed
+                </div>
+                <h2 className={`text-xl sm:text-2xl font-black uppercase tracking-wide ${isLight ? 'text-stone-900' : 'text-white'}`}>
+                  We're Currently Closed
+                </h2>
+                <p className={`text-xs sm:text-sm leading-relaxed max-w-md ${isLight ? 'text-stone-600' : 'text-white/60'}`}>
+                  Our coffee bar is currently closed and not accepting new orders. The menu catalog is temporarily unavailable while our team prepares for the next opening hours.
+                </p>
+              </div>
+
+              {/* Business Hours & Contact Details */}
+              <div className={`w-full rounded-2xl p-4 border text-left space-y-2.5 ${isLight ? 'bg-white border-stone-200 shadow-sm' : 'bg-[#121212] border-white/10'}`}>
+                <div className="flex items-center justify-between text-xs pb-2 border-b border-white/5">
+                  <span className={`font-semibold ${isLight ? 'text-stone-500' : 'text-white/40'}`}>Operating Hours</span>
+                  <span className={`font-bold ${isLight ? 'text-stone-900' : 'text-white'}`}>
+                    {settings?.businessInfo?.businessHours || '7:00 AM - 10:00 PM'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-xs pb-2 border-b border-white/5">
+                  <span className={`font-semibold ${isLight ? 'text-stone-500' : 'text-white/40'}`}>Contact Number</span>
+                  <span className={`font-bold ${isLight ? 'text-stone-900' : 'text-white'}`}>
+                    {settings?.businessInfo?.contactNumber || '+63 917 123 4567'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className={`font-semibold ${isLight ? 'text-stone-500' : 'text-white/40'}`}>Location</span>
+                  <span className={`font-bold truncate max-w-[220px] ${isLight ? 'text-stone-900' : 'text-white'}`}>
+                    {settings?.businessInfo?.address || 'SHASZNAIR CAFE, Manila'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Action Button to Sign in */}
+              <button
+                onClick={() => {
+                  setAuthMode('login');
+                  setIsAuthModalOpen(true);
+                }}
+                style={{ backgroundColor: primaryColor, color: '#000' }}
+                className="px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg cursor-pointer transition-all hover:brightness-110 flex items-center gap-2"
+              >
+                <LogIn size={15} />
+                <span>Sign In to VIP Account</span>
+              </button>
+            </motion.div>
+          ) : (
+            <>
+              {/* CATEGORY TITLE WITH ORANGE ACCENT */}
+              <div className="flex items-center gap-2 pt-1">
             <div 
               style={{ backgroundColor: primaryColor, boxShadow: `0 0 8px ${primaryColor}cc` }}
               className="w-1.5 h-5 rounded-full" 
@@ -522,6 +665,8 @@ export const LandingPage: React.FC = () => {
               ));
             })}
           </div>
+            </>
+          )}
         </main>
 
         {/* 3. FLOATING ACTION BUTTON (FAB) */}
@@ -791,7 +936,7 @@ export const LandingPage: React.FC = () => {
                       >
                         <div className="min-w-0">
                           <h4 className={`text-xs font-bold truncate ${isLight ? 'text-stone-900' : 'text-white'}`}>{item.product.name}</h4>
-                          <p className={`text-[10px] ${isLight ? 'text-stone-500' : 'text-white/40'}`}>{item.selectedSize} • {item.selectedTemp} • {item.selectedSugar}</p>
+                          <p className={`text-[10px] ${isLight ? 'text-stone-500' : 'text-white/40'}`}>{typeof item.selectedSize === 'object' ? (item.selectedSize as any)?.name : item.selectedSize} • {item.selectedTemp} • {item.selectedSugar}</p>
                           <span style={{ color: primaryColor }} className="text-xs font-black mt-1 block">₱{item.itemTotal}</span>
                         </div>
                         <div className={`text-xs font-black px-2.5 py-1 rounded-lg ${isLight ? 'bg-stone-200 text-stone-800' : 'bg-white/10 text-white/80'}`}>
@@ -803,34 +948,62 @@ export const LandingPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Checkout / Sign in Prompt */}
+              {/* Checkout / Guest Order Action Panel */}
               <div className={`border-t pt-4 space-y-3 ${isLight ? 'border-stone-200' : 'border-white/10'}`}>
                 <div className="flex justify-between items-center text-sm">
                   <span className={`font-bold ${isLight ? 'text-stone-600' : 'text-white/60'}`}>Total Amount</span>
                   <span style={{ color: primaryColor }} className="text-lg font-black">₱{cartTotal}</span>
                 </div>
 
-                <div 
-                  style={{ backgroundColor: `${primaryColor}15`, borderColor: `${primaryColor}30` }}
-                  className="border rounded-2xl p-3 flex items-center gap-3"
-                >
-                  <Sparkles className="w-5 h-5 shrink-0" style={{ color: primaryColor }} />
-                  <p style={{ color: primaryColor }} className="text-[10px] leading-snug font-medium">
-                    Sign in or join VIP to earn 1 point per ₱10 spent and unlock exclusive coupons!
-                  </p>
-                </div>
+                {isStoreClosed ? (
+                  <div className="bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs p-3 rounded-2xl flex items-center gap-2.5">
+                    <Store className="w-5 h-5 text-rose-400 shrink-0" />
+                    <div>
+                      <p className="font-bold">Store is Currently Closed</p>
+                      <p className="text-[10px] text-rose-200/70">Orders are paused while our coffee bar prepares for opening.</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div 
+                    style={{ backgroundColor: `${primaryColor}15`, borderColor: `${primaryColor}30` }}
+                    className="border rounded-2xl p-2.5 flex items-center gap-2.5"
+                  >
+                    <Sparkles className="w-4 h-4 shrink-0" style={{ color: primaryColor }} />
+                    <p style={{ color: primaryColor }} className="text-[9.5px] leading-snug font-medium">
+                      Order as guest immediately, or sign in to earn loyalty points on every purchase!
+                    </p>
+                  </div>
+                )}
 
+                {/* Primary Action: Order as Guest */}
+                <button
+                  disabled={cart.length === 0 || isStoreClosed}
+                  onClick={() => {
+                    setIsCartOpen(false);
+                    setIsGuestCheckoutOpen(true);
+                  }}
+                  style={{ backgroundColor: primaryColor, color: '#000', boxShadow: `0 8px 25px ${primaryColor}50` }}
+                  className="w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:brightness-110"
+                >
+                  <UserCheck size={16} />
+                  <span>Order as Guest (No Account Required)</span>
+                </button>
+
+                {/* Secondary Action: Member Sign In */}
                 <button
                   onClick={() => {
                     setIsCartOpen(false);
                     setAuthMode('login');
                     setIsAuthModalOpen(true);
                   }}
-                  style={{ backgroundColor: primaryColor, color: '#000', boxShadow: `0 8px 25px ${primaryColor}50` }}
-                  className="w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer"
+                  className={`w-full py-2.5 rounded-xl text-[11px] font-bold border flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                    isLight 
+                      ? 'bg-stone-100 hover:bg-stone-200 border-stone-300 text-stone-700' 
+                      : 'bg-white/5 hover:bg-white/10 border-white/10 text-white/70 hover:text-white'
+                  }`}
                 >
-                  <LogIn size={15} />
-                  <span>Sign In & Complete Order</span>
+                  <LogIn size={13} />
+                  <span>Sign In to VIP Account & Earn Points</span>
                 </button>
               </div>
             </motion.div>
@@ -838,7 +1011,344 @@ export const LandingPage: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* 6. IOS AUTHENTICATION POPUP MODAL */}
+      {/* 6. GUEST CHECKOUT DRAWER / MODAL */}
+      <AnimatePresence>
+        {isGuestCheckoutOpen && (
+          <div className="fixed inset-0 z-50 flex justify-end">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => !guestLoading && setIsGuestCheckoutOpen(false)}
+              className="absolute inset-0 bg-black/80 backdrop-blur-xs cursor-pointer"
+            />
+
+            <motion.div 
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+              className={`relative w-full max-w-md ${isLight ? 'bg-white border-stone-200 text-stone-900' : 'bg-[#121212] border-white/10 text-white'} border-l h-full flex flex-col justify-between shadow-2xl z-10`}
+            >
+              {/* Header */}
+              <div className={`p-4 sm:p-5 border-b flex items-center justify-between ${isLight ? 'border-stone-200' : 'border-white/10'}`}>
+                <div className="flex items-center gap-2.5">
+                  <div 
+                    style={{ backgroundColor: `${primaryColor}20`, borderColor: `${primaryColor}40`, color: primaryColor }}
+                    className="w-9 h-9 rounded-xl border flex items-center justify-center"
+                  >
+                    <UserCheck size={18} />
+                  </div>
+                  <div>
+                    <h3 className={`text-base font-black ${isLight ? 'text-stone-900' : 'text-white'}`}>Guest Checkout</h3>
+                    <p className={`text-[10px] ${isLight ? 'text-stone-500' : 'text-white/40'}`}>Fast ordering without account registration</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setIsGuestCheckoutOpen(false)}
+                  className={`w-8 h-8 rounded-full flex items-center justify-center cursor-pointer ${isLight ? 'bg-stone-100 text-stone-500 hover:text-stone-900' : 'bg-white/5 text-white/40 hover:text-white'}`}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Form Body */}
+              <form id="guestCheckoutForm" onSubmit={handleGuestCheckoutSubmit} className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 scrollbar-none">
+                {/* Guest Error Alert */}
+                {guestError && (
+                  <div className="bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs px-3.5 py-2.5 rounded-xl flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                    <span>{guestError}</span>
+                  </div>
+                )}
+
+                {/* Customer Details */}
+                <div className="space-y-3">
+                  <h4 className={`text-[10px] font-black uppercase tracking-wider ${isLight ? 'text-stone-500' : 'text-white/40'}`}>Customer Details</h4>
+                  
+                  <div className="space-y-1">
+                    <label className={`text-[10px] font-bold block ${isLight ? 'text-stone-700' : 'text-white/80'}`}>Your Name *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Maria Santos / Guest"
+                      value={guestName}
+                      onChange={(e) => setGuestName(e.target.value)}
+                      className={`w-full px-3.5 py-2.5 border rounded-xl text-xs outline-none font-medium ${isLight ? 'bg-stone-50 border-stone-300 text-stone-900 placeholder:text-stone-400 focus:bg-white focus:border-stone-500' : 'bg-white/5 border-white/10 text-white placeholder:text-white/20 focus:border-white/30'}`}
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className={`text-[10px] font-bold block ${isLight ? 'text-stone-700' : 'text-white/80'}`}>Phone Number (Optional for order SMS)</label>
+                    <input
+                      type="tel"
+                      placeholder="e.g. 0912 345 6789"
+                      value={guestPhone}
+                      onChange={(e) => setGuestPhone(e.target.value)}
+                      className={`w-full px-3.5 py-2.5 border rounded-xl text-xs outline-none font-medium ${isLight ? 'bg-stone-50 border-stone-300 text-stone-900 placeholder:text-stone-400 focus:bg-white focus:border-stone-500' : 'bg-white/5 border-white/10 text-white placeholder:text-white/20 focus:border-white/30'}`}
+                    />
+                  </div>
+                </div>
+
+                {/* Fulfillment Method */}
+                <div className="space-y-2 pt-1">
+                  <label className={`text-[10px] font-black uppercase tracking-wider block ${isLight ? 'text-stone-500' : 'text-white/40'}`}>Fulfillment Type</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { id: 'dine_in' as OrderType, label: 'Dine-In', desc: 'In-Store', icon: Coffee },
+                      { id: 'takeout' as OrderType, label: 'Takeout', desc: 'To Go', icon: ShoppingBag },
+                      { id: 'pickup' as OrderType, label: 'Pickup', desc: 'Curbside', icon: Clock }
+                    ].map(t => {
+                      const Icon = t.icon;
+                      const isSelected = guestOrderType === t.id;
+                      return (
+                        <button
+                          type="button"
+                          key={t.id}
+                          onClick={() => setGuestOrderType(t.id)}
+                          className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-1 ${
+                            isSelected
+                              ? 'border-2 font-black shadow-md'
+                              : isLight ? 'bg-stone-50 border-stone-200 text-stone-700 hover:bg-stone-100' : 'bg-white/5 border-white/5 text-white/70 hover:bg-white/10'
+                          }`}
+                          style={isSelected ? { backgroundColor: `${primaryColor}18`, borderColor: primaryColor, color: isLight ? '#000' : '#fff' } : undefined}
+                        >
+                          <Icon size={16} style={isSelected ? { color: primaryColor } : undefined} />
+                          <span className="text-[11px] font-bold">{t.label}</span>
+                          <span className="text-[8.5px] opacity-60">{t.desc}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Table Number (if Dine In) */}
+                {guestOrderType === 'dine_in' && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="space-y-1 overflow-hidden"
+                  >
+                    <label className={`text-[10px] font-bold block ${isLight ? 'text-stone-700' : 'text-white/80'}`}>Table Number / Location</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Table 04 or Counter"
+                      value={guestTableNo}
+                      onChange={(e) => setGuestTableNo(e.target.value)}
+                      className={`w-full px-3.5 py-2.5 border rounded-xl text-xs outline-none font-medium ${isLight ? 'bg-stone-50 border-stone-300 text-stone-900 placeholder:text-stone-400 focus:bg-white focus:border-stone-500' : 'bg-white/5 border-white/10 text-white placeholder:text-white/20 focus:border-white/30'}`}
+                    />
+                  </motion.div>
+                )}
+
+                {/* Payment Method Selector */}
+                <div className="space-y-2 pt-1">
+                  <label className={`text-[10px] font-black uppercase tracking-wider block ${isLight ? 'text-stone-500' : 'text-white/40'}`}>Payment Option</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { id: 'cash' as PaymentMethod, label: 'Cash', icon: Banknote },
+                      { id: 'gcash' as PaymentMethod, label: 'GCash / QR', icon: QrCode },
+                      { id: 'card' as PaymentMethod, label: 'Card / POS', icon: CreditCard }
+                    ].map(p => {
+                      const Icon = p.icon;
+                      const isSelected = guestPaymentMethod === p.id;
+                      return (
+                        <button
+                          type="button"
+                          key={p.id}
+                          onClick={() => setGuestPaymentMethod(p.id)}
+                          className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-1 ${
+                            isSelected
+                              ? 'border-2 font-black shadow-md'
+                              : isLight ? 'bg-stone-50 border-stone-200 text-stone-700 hover:bg-stone-100' : 'bg-white/5 border-white/5 text-white/70 hover:bg-white/10'
+                          }`}
+                          style={isSelected ? { backgroundColor: `${primaryColor}18`, borderColor: primaryColor, color: isLight ? '#000' : '#fff' } : undefined}
+                        >
+                          <Icon size={16} style={isSelected ? { color: primaryColor } : undefined} />
+                          <span className="text-[11px] font-bold">{p.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* QR Code / GCash Notice */}
+                  {guestPaymentMethod === 'gcash' && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className={`p-3.5 rounded-2xl border text-center space-y-2.5 ${isLight ? 'bg-stone-50 border-stone-200' : 'bg-white/5 border-white/10'}`}
+                    >
+                      <div className="flex flex-col items-center gap-1.5">
+                        <div className="p-2 bg-white rounded-xl shadow-md inline-block">
+                          <img 
+                            src={getQRCodeUrl(`GCASH:${settings?.businessInfo?.contactNumber || '09123456789'}`)} 
+                            alt="Payment QR" 
+                            className="w-28 h-28 object-contain"
+                          />
+                        </div>
+                        <p className={`text-[10px] font-bold ${isLight ? 'text-stone-700' : 'text-white/80'}`}>
+                          Scan with GCash • Pay to: <span style={{ color: primaryColor }}>{settings?.businessInfo?.contactNumber || '0912 345 6789'}</span>
+                        </p>
+                      </div>
+
+                      <div className="text-left space-y-1 pt-1 border-t border-white/5">
+                        <label className={`text-[9px] font-black uppercase tracking-wider block ${isLight ? 'text-stone-600' : 'text-white/50'}`}>Upload Payment Screenshot (Optional)</label>
+                        <div className="flex items-center gap-2">
+                          {guestReceiptUrl && (
+                            <img src={guestReceiptUrl} alt="Receipt" className="w-10 h-10 rounded-lg object-cover border border-stone-300 bg-white shrink-0" />
+                          )}
+                          <div className="flex-1">
+                            <ImageUpload
+                              label="Attach Proof"
+                              folder="receipts"
+                              onUploadSuccess={(url) => setGuestReceiptUrl(url)}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </div>
+
+                {/* Special Instructions */}
+                <div className="space-y-1 pt-1">
+                  <label className={`text-[10px] font-black uppercase tracking-wider block ${isLight ? 'text-stone-500' : 'text-white/40'}`}>Order Notes</label>
+                  <textarea
+                    rows={2}
+                    placeholder="e.g. Extra hot, separate lid, call when ready..."
+                    value={guestNotes}
+                    onChange={(e) => setGuestNotes(e.target.value)}
+                    className={`w-full px-3.5 py-2.5 border rounded-xl text-xs outline-none font-medium resize-none ${isLight ? 'bg-stone-50 border-stone-300 text-stone-900 placeholder:text-stone-400 focus:bg-white focus:border-stone-500' : 'bg-white/5 border-white/10 text-white placeholder:text-white/20 focus:border-white/30'}`}
+                  />
+                </div>
+
+                {/* Order Summary */}
+                <div className={`p-3.5 rounded-2xl border space-y-2 text-xs ${isLight ? 'bg-stone-50 border-stone-200' : 'bg-white/5 border-white/5'}`}>
+                  <h5 className={`text-[10px] font-black uppercase tracking-wider ${isLight ? 'text-stone-600' : 'text-white/50'}`}>Order Overview</h5>
+                  <div className="space-y-1">
+                    {cart.map((it, idx) => (
+                      <div key={idx} className="flex justify-between text-[11px]">
+                        <span className={`truncate max-w-[220px] ${isLight ? 'text-stone-700' : 'text-white/70'}`}>
+                          {it.quantity}x {it.product.name} ({typeof it.selectedSize === 'object' ? (it.selectedSize as any)?.name : it.selectedSize})
+                        </span>
+                        <span className="font-bold">₱{it.itemTotal}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className={`pt-2 border-t flex justify-between font-black text-sm ${isLight ? 'border-stone-200 text-stone-900' : 'border-white/10 text-white'}`}>
+                    <span>Total Amount</span>
+                    <span style={{ color: primaryColor }}>₱{cartTotal}</span>
+                  </div>
+                </div>
+              </form>
+
+              {/* Footer */}
+              <div className={`p-4 sm:p-5 border-t space-y-2 ${isLight ? 'border-stone-200 bg-white' : 'border-white/10 bg-[#121212]'}`}>
+                <button
+                  type="submit"
+                  form="guestCheckoutForm"
+                  disabled={guestLoading || cart.length === 0}
+                  style={{ backgroundColor: primaryColor, color: '#000', boxShadow: `0 8px 25px ${primaryColor}50` }}
+                  className="w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 transition-all hover:brightness-110"
+                >
+                  {guestLoading ? (
+                    <span>Placing Guest Order...</span>
+                  ) : (
+                    <>
+                      <CheckCircle2 size={16} />
+                      <span>Confirm & Place Order (₱{cartTotal})</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* 7. GUEST ORDER SUCCESS & LIVE STATUS TRACKER MODAL */}
+      <AnimatePresence>
+        {isGuestSuccessModalOpen && lastPlacedGuestOrder && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsGuestSuccessModalOpen(false)}
+              className="absolute inset-0 bg-black/85 backdrop-blur-md cursor-pointer"
+            />
+
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className={`relative w-full max-w-sm ${isLight ? 'bg-white border-stone-200 text-stone-900' : 'bg-[#121212] border-white/10 text-white'} border rounded-3xl p-6 shadow-2xl z-10 space-y-5 text-center`}
+            >
+              {/* Checkmark Animation Icon */}
+              <div 
+                style={{ backgroundColor: `${accentColor}20`, borderColor: `${accentColor}40`, color: accentColor }}
+                className="w-16 h-16 rounded-full border-2 mx-auto flex items-center justify-center shadow-lg"
+              >
+                <Check className="w-8 h-8 stroke-[3]" />
+              </div>
+
+              <div className="space-y-1">
+                <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 inline-block">
+                  Order Received by Kitchen
+                </span>
+                <h3 className={`text-xl font-black font-serif uppercase tracking-wide ${isLight ? 'text-stone-900' : 'text-white'}`}>
+                  Thank You, {lastPlacedGuestOrder.customerName || 'Valued Guest'}!
+                </h3>
+                <p className={`text-xs ${isLight ? 'text-stone-500' : 'text-white/50'}`}>
+                  Your order has been queued and is being prepared by our baristas.
+                </p>
+              </div>
+
+              {/* Order Number & Tracker Card */}
+              <div className={`p-4 rounded-2xl border text-left space-y-3 ${isLight ? 'bg-stone-50 border-stone-200' : 'bg-white/5 border-white/5'}`}>
+                <div className="flex items-center justify-between pb-2 border-b border-white/5">
+                  <span className={`text-[10px] font-black uppercase tracking-wider ${isLight ? 'text-stone-500' : 'text-white/40'}`}>Order Number</span>
+                  <span className="text-sm font-black" style={{ color: primaryColor }}>
+                    #{lastPlacedGuestOrder.orderNumber || lastPlacedGuestOrder.id.slice(0, 6).toUpperCase()}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between text-xs pb-2 border-b border-white/5">
+                  <span className={`text-[10px] font-semibold ${isLight ? 'text-stone-500' : 'text-white/40'}`}>Fulfillment</span>
+                  <span className={`font-bold capitalize ${isLight ? 'text-stone-900' : 'text-white'}`}>
+                    {lastPlacedGuestOrder.orderType.replace('_', ' ')} {lastPlacedGuestOrder.tableNumber ? `(${lastPlacedGuestOrder.tableNumber})` : ''}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between text-xs pb-2 border-b border-white/5">
+                  <span className={`text-[10px] font-semibold ${isLight ? 'text-stone-500' : 'text-white/40'}`}>Payment</span>
+                  <span className={`font-bold uppercase ${isLight ? 'text-stone-900' : 'text-white'}`}>
+                    {getPaymentMethodDisplayName(lastPlacedGuestOrder.paymentMethod)}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between text-xs">
+                  <span className={`text-[10px] font-semibold ${isLight ? 'text-stone-500' : 'text-white/40'}`}>Total Settle</span>
+                  <span className="text-base font-black" style={{ color: primaryColor }}>
+                    ₱{lastPlacedGuestOrder.total}
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <button
+                  onClick={() => setIsGuestSuccessModalOpen(false)}
+                  style={{ backgroundColor: primaryColor, color: '#000' }}
+                  className="w-full py-3 rounded-xl font-black text-xs uppercase tracking-wider cursor-pointer shadow-lg transition-all hover:brightness-110"
+                >
+                  Return to Menu
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* 8. IOS AUTHENTICATION POPUP MODAL */}
       <AnimatePresence>
         {isAuthModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -992,6 +1502,21 @@ export const LandingPage: React.FC = () => {
                   )}
                 </button>
               </form>
+
+              {/* Order as Guest Direct Option */}
+              {cart.length > 0 && !isStoreClosed && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAuthModalOpen(false);
+                    setIsGuestCheckoutOpen(true);
+                  }}
+                  style={{ color: primaryColor }}
+                  className="w-full py-2 text-center text-xs font-black underline cursor-pointer hover:opacity-80"
+                >
+                  Or Continue & Order as Guest (Skip Login)
+                </button>
+              )}
 
               {/* Demo Account Quick Buttons */}
               <div className={`pt-2 border-t space-y-2 ${isLight ? 'border-stone-200' : 'border-white/10'}`}>

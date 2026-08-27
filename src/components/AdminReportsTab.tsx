@@ -1272,7 +1272,7 @@ export const AdminReportsTab: React.FC<AdminReportsTabProps> = ({
                         {o.items?.map((item: any, i: number) => (
                           <div key={i} className="flex justify-between items-center text-[10.5px]">
                             <span className={isLight ? 'text-stone-900 font-medium' : 'text-white/80'}>
-                              {item.quantity}x {item.name} <span className={isLight ? 'text-stone-600 text-[9.5px]' : 'text-white/40 text-[9.5px]'}>({item.selectedSize})</span>
+                              {item.quantity}x {item.name} <span className={isLight ? 'text-stone-600 text-[9.5px]' : 'text-white/40 text-[9.5px]'}>({typeof item.selectedSize === 'object' ? (item.selectedSize as any)?.name : item.selectedSize})</span>
                             </span>
                             <span className={`text-[10px] font-bold ${isLight ? 'text-stone-800' : 'text-white/40'}`}>₱{item.price * item.quantity}</span>
                           </div>
@@ -1340,7 +1340,7 @@ export const AdminReportsTab: React.FC<AdminReportsTabProps> = ({
                             {o.items?.map((it, i) => (
                               <div key={i} className="flex flex-col">
                                 <span className={`font-bold ${isLight ? 'text-stone-900' : 'text-white/80'}`}>
-                                  {it.quantity}x {it.name} <span className={`font-normal ${isLight ? 'text-stone-600' : 'text-white/40'}`}>({it.selectedSize})</span>
+                                  {it.quantity}x {it.name} <span className={`font-normal ${isLight ? 'text-stone-600' : 'text-white/40'}`}>({typeof it.selectedSize === 'object' ? (it.selectedSize as any)?.name : it.selectedSize})</span>
                                 </span>
                                 {it.selectedAddOns && it.selectedAddOns.length > 0 && (
                                   <span className={`italic text-[8.5px] font-medium ${isLight ? 'text-stone-600' : 'text-white/40'}`}>+ {it.selectedAddOns.join(', ')}</span>

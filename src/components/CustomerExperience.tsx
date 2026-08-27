@@ -265,6 +265,7 @@ export const CustomerExperience: React.FC = () => {
 
   const isAdmin = currentUser?.role === 'admin';
   const isLight = settings?.branding?.theme === 'light';
+  const isStoreClosed = settings?.storeStatus?.isOpen === false;
   const primaryColor = settings?.branding?.primaryColor || '#c5a059';
   const secondaryColor = settings?.branding?.secondaryColor || '#1c1917';
   const accentColor = settings?.branding?.accentColor || '#10b981';
@@ -368,7 +369,7 @@ export const CustomerExperience: React.FC = () => {
       </aside>
 
       {/* MAIN CONTENT AREA */}
-      <div className="flex-1 min-h-0 flex flex-col h-full overflow-hidden relative grid-bg">
+      <div className={`flex-1 min-h-0 flex flex-col h-full overflow-hidden relative ${isLight ? 'bg-stone-100 text-stone-900' : 'bg-[#050505] text-[#f2f2f2]'}`}>
         {/* 1. BRAND HEADER (NO BURGER MENU, CLEAN IOS BRAND IDENTITY) */}
         <header className={`${isLight ? 'bg-white/90 border-stone-200 text-stone-900' : 'bg-[#121212]/95 border-white/10 text-white'} backdrop-blur-xl shrink-0 z-30 px-3 sm:px-6 py-2.5 sm:py-3.5 flex items-center justify-between border-b transition-colors`}>
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1 mr-2">
@@ -387,7 +388,7 @@ export const CustomerExperience: React.FC = () => {
               ) : (
                 <div 
                   className="w-full h-full flex items-center justify-center text-black font-serif font-black text-sm sm:text-lg"
-                  style={{ background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)` }}
+                  style={{ backgroundColor: primaryColor }}
                 >
                   {settings?.branding?.shopName?.charAt(0) || 'C'}
                 </div>
@@ -400,9 +401,9 @@ export const CustomerExperience: React.FC = () => {
                 {settings?.branding?.shopName || 'CAIDOZ'}
               </h1>
               <div className="flex items-center gap-1.5 min-w-0">
-                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${settings?.storeStatus?.isOpen !== false ? 'bg-emerald-400 shadow-[0_0_6px_#34d399] animate-pulse' : 'bg-rose-400'}`} />
+                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${!isStoreClosed ? 'bg-emerald-400 shadow-[0_0_6px_#34d399] animate-pulse' : 'bg-rose-400 shadow-[0_0_6px_#f43f5e]'}`} />
                 <span className={`text-[8.5px] sm:text-[9px] font-extrabold ${isLight ? 'text-stone-500' : 'text-white/50'} tracking-wider uppercase truncate`}>
-                  • SYSTEM {settings?.storeStatus?.isOpen !== false ? 'LIVE' : 'OFFLINE'}
+                  • STORE {!isStoreClosed ? 'OPEN' : 'CLOSED'}
                 </span>
               </div>
             </div>
@@ -438,187 +439,254 @@ export const CustomerExperience: React.FC = () => {
         <main className="flex-1 overflow-y-auto scrollbar-none px-3.5 sm:px-6 py-4 space-y-6 pb-28">
           <AnimatePresence mode="wait">
             {activeTab === 'menu' && (
-              <motion.div 
-                key="menu"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="space-y-5 max-w-5xl"
-              >
-                {/* CATEGORY TITLE WITH ACCENT */}
-                <div className="flex items-center gap-2 pt-1">
+              isStoreClosed ? (
+                <motion.div 
+                  key="store-closed-view"
+                  initial={{ opacity: 0, scale: 0.96 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.96 }}
+                  className="flex flex-col items-center justify-center min-h-[60vh] max-w-lg mx-auto text-center px-4 py-8 space-y-6"
+                >
                   <div 
-                    className="w-1.5 h-5 rounded-full" 
-                    style={{ backgroundColor: primaryColor, boxShadow: `0 0 8px ${primaryColor}cc` }}
-                  />
-                  <h2 className={`text-base sm:text-lg font-black uppercase tracking-wider ${isLight ? 'text-stone-900' : 'text-white'}`}>
-                    {selectedCategory === 'all' ? 'FULL CATALOG' : (categories.find(c => c.id === selectedCategory)?.name || selectedCategory)}
-                  </h2>
-                </div>
-
-                {/* SEARCH BAR & BEST SELLER DROPDOWN ROW */}
-                <div className="flex items-center gap-3">
-                  <div className="relative flex-1">
-                    <Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 ${isLight ? 'text-stone-400' : 'text-white/30'}`} />
-                    <input
-                      type="text"
-                      placeholder="Search products..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className={`w-full pl-11 pr-4 py-3 ${isLight ? 'bg-white border-stone-200 text-stone-900 placeholder:text-stone-400' : 'bg-[#121212] border-white/10 text-white placeholder:text-white/30'} border rounded-2xl text-xs sm:text-sm outline-none transition-all`}
-                    />
-                    {searchQuery && (
-                      <button 
-                        onClick={() => setSearchQuery('')}
-                        className={`absolute right-3.5 top-1/2 -translate-y-1/2 text-xs ${isLight ? 'text-stone-400 hover:text-stone-700' : 'text-white/40 hover:text-white'} cursor-pointer`}
-                      >
-                        Clear
-                      </button>
-                    )}
+                    className="w-20 h-20 rounded-3xl flex items-center justify-center border shadow-xl"
+                    style={{ 
+                      backgroundColor: `${primaryColor}15`, 
+                      borderColor: `${primaryColor}40`,
+                      color: primaryColor 
+                    }}
+                  >
+                    <Store className="w-10 h-10 stroke-[1.5]" />
                   </div>
 
-                  <button
-                    onClick={() => setShowBestSellers(!showBestSellers)}
-                    className={`shrink-0 px-3.5 py-3 rounded-2xl ${isLight ? 'bg-white border-stone-200 text-stone-800 hover:text-stone-950' : 'bg-[#121212] border-white/10 text-white/80 hover:text-white'} border text-[11px] font-bold flex items-center gap-1.5 cursor-pointer transition-all`}
-                    style={showBestSellers ? { borderColor: `${primaryColor}80` } : undefined}
-                  >
-                    <Flame className="w-3.5 h-3.5" style={{ color: primaryColor }} />
-                    <span className="hidden xs:inline">BEST SELLER</span>
-                    <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showBestSellers ? 'rotate-180' : ''}`} style={showBestSellers ? { color: primaryColor } : undefined} />
-                  </button>
-                </div>
-
-                {/* OVERALL BEST SELLERS SECTION */}
-                {showBestSellers && bestSellerItems.length > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className={`border ${isLight ? 'border-stone-200 bg-white/70' : 'border-white/10 bg-[#121212]'} backdrop-blur-md rounded-3xl p-3.5 sm:p-4 space-y-3 shadow-xl`}
-                    style={{ borderColor: `${primaryColor}40` }}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Flame className="w-4 h-4" style={{ color: primaryColor }} />
-                      <h3 className={`text-xs sm:text-sm font-black tracking-wider uppercase ${isLight ? 'text-stone-900' : 'text-white'}`}>OVERALL BEST SELLERS</h3>
+                  <div className="space-y-2">
+                    <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-black uppercase tracking-wider">
+                      <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+                      Store is Currently Closed
                     </div>
+                    <h2 className={`text-xl sm:text-2xl font-black uppercase tracking-wide ${isLight ? 'text-stone-900' : 'text-white'}`}>
+                      We're Currently Closed
+                    </h2>
+                    <p className={`text-xs sm:text-sm leading-relaxed max-w-md ${isLight ? 'text-stone-600' : 'text-white/60'}`}>
+                      Our coffee bar is currently closed and not accepting new orders. The menu catalog is temporarily unavailable while our team prepares for the next opening hours.
+                    </p>
+                  </div>
 
-                    <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
-                      {bestSellerItems.map(({ product: prod, soldCount }) => (
-                        <motion.div
-                          key={prod.id}
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={() => handleOpenCustomize(prod)}
-                          className={`min-w-[240px] sm:min-w-[260px] ${isLight ? 'bg-white border-stone-200 hover:border-stone-400' : 'bg-[#18181b] border-white/5 hover:bg-[#202024] hover:border-white/20'} border rounded-2xl p-2.5 sm:p-3 flex gap-3 items-center cursor-pointer transition-all shadow-md group`}
+                  {/* Business Hours & Contact Details */}
+                  <div className={`w-full rounded-2xl p-4 border text-left space-y-2.5 ${isLight ? 'bg-white border-stone-200 shadow-sm' : 'bg-[#121212] border-white/10'}`}>
+                    <div className="flex items-center justify-between text-xs pb-2 border-b border-white/5">
+                      <span className={`font-semibold ${isLight ? 'text-stone-500' : 'text-white/40'}`}>Operating Hours</span>
+                      <span className={`font-bold ${isLight ? 'text-stone-900' : 'text-white'}`}>
+                        {settings?.businessInfo?.businessHours || '7:00 AM - 10:00 PM'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs pb-2 border-b border-white/5">
+                      <span className={`font-semibold ${isLight ? 'text-stone-500' : 'text-white/40'}`}>Contact Number</span>
+                      <span className={`font-bold ${isLight ? 'text-stone-900' : 'text-white'}`}>
+                        {settings?.businessInfo?.contactNumber || '+63 917 123 4567'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className={`font-semibold ${isLight ? 'text-stone-500' : 'text-white/40'}`}>Location</span>
+                      <span className={`font-bold truncate max-w-[220px] ${isLight ? 'text-stone-900' : 'text-white'}`}>
+                        {settings?.businessInfo?.address || 'SHASZNAIR CAFE, Manila'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {customerOrders.length > 0 && (
+                    <button
+                      onClick={() => setActiveTab('orders')}
+                      style={{ backgroundColor: primaryColor, color: '#000' }}
+                      className="px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg cursor-pointer transition-all hover:brightness-110 flex items-center gap-2"
+                    >
+                      <ReceiptText size={15} />
+                      <span>View Order History ({customerOrders.length})</span>
+                    </button>
+                  )}
+                </motion.div>
+              ) : (
+                <motion.div 
+                  key="menu"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="space-y-5 max-w-5xl"
+                >
+                  {/* CATEGORY TITLE WITH ACCENT */}
+                  <div className="flex items-center gap-2 pt-1">
+                    <div 
+                      className="w-1.5 h-5 rounded-full" 
+                      style={{ backgroundColor: primaryColor, boxShadow: `0 0 8px ${primaryColor}cc` }}
+                    />
+                    <h2 className={`text-base sm:text-lg font-black uppercase tracking-wider ${isLight ? 'text-stone-900' : 'text-white'}`}>
+                      {selectedCategory === 'all' ? 'FULL CATALOG' : (categories.find(c => c.id === selectedCategory)?.name || selectedCategory)}
+                    </h2>
+                  </div>
+
+                  {/* SEARCH BAR & BEST SELLER DROPDOWN ROW */}
+                  <div className="flex items-center gap-3">
+                    <div className="relative flex-1">
+                      <Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 ${isLight ? 'text-stone-400' : 'text-white/30'}`} />
+                      <input
+                        type="text"
+                        placeholder="Search products..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className={`w-full pl-11 pr-4 py-3 ${isLight ? 'bg-white border-stone-200 text-stone-900 placeholder:text-stone-400' : 'bg-[#121212] border-white/10 text-white placeholder:text-white/30'} border rounded-2xl text-xs sm:text-sm outline-none transition-all`}
+                      />
+                      {searchQuery && (
+                        <button 
+                          onClick={() => setSearchQuery('')}
+                          className={`absolute right-3.5 top-1/2 -translate-y-1/2 text-xs ${isLight ? 'text-stone-400 hover:text-stone-700' : 'text-white/40 hover:text-white'} cursor-pointer`}
                         >
-                          <div className="relative w-18 h-18 sm:w-20 sm:h-20 rounded-xl overflow-hidden shrink-0 bg-black/40 border border-white/5">
-                            <img 
-                              src={prod.image || 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&q=80&w=300'} 
-                              alt={prod.name} 
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-                              referrerPolicy="no-referrer"
-                            />
-                            <div 
-                              className="absolute top-1.5 left-1.5 text-[7.5px] font-black px-1.5 py-0.5 rounded-full flex items-center gap-0.5 shadow-md"
-                              style={{ backgroundColor: primaryColor, color: '#000' }}
-                            >
-                              <Flame size={7} /> {soldCount} sold
-                            </div>
-                          </div>
-                          <div className="flex-1 flex flex-col justify-between min-w-0 py-0.5">
-                            <div>
-                              <span className="text-[8px] font-black uppercase tracking-widest block" style={{ color: primaryColor }}>BEST SELLER</span>
-                              <h4 className={`text-xs sm:text-sm font-bold truncate ${isLight ? 'text-stone-900' : 'text-white'}`}>{prod.name}</h4>
-                              <p className={`text-[9px] uppercase truncate ${isLight ? 'text-stone-500' : 'text-white/40'}`}>{prod.category}</p>
-                            </div>
-                            <div className="flex items-center justify-between mt-1">
-                              <span className="text-sm sm:text-base font-black" style={{ color: primaryColor }}>₱{prod.price}</span>
-                              <span 
-                                className="text-[9px] font-extrabold px-2 py-1 rounded-lg border transition-all"
-                                style={{ 
-                                  backgroundColor: `${primaryColor}15`, 
-                                  borderColor: `${primaryColor}40`, 
-                                  color: primaryColor 
-                                }}
-                              >
-                                + ADD
-                              </span>
-                            </div>
-                          </div>
-                        </motion.div>
-                      ))}
+                          Clear
+                        </button>
+                      )}
                     </div>
-                  </motion.div>
-                )}
 
-                {/* PRODUCT GRID - 2 COLUMNS ON MOBILE MATCHING SCREENSHOT */}
-                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 pb-12">
-                  {activeCategories.map(cat => {
-                    const catProducts = filteredProducts.filter(p => {
-                      const pCat = (p.category || '').toLowerCase().trim();
-                      return pCat === cat.id.toLowerCase() || pCat === cat.name.toLowerCase();
-                    });
-                    
-                    if (catProducts.length === 0 || (selectedCategory !== 'all' && selectedCategory !== cat.id)) return null;
+                    <button
+                      onClick={() => setShowBestSellers(!showBestSellers)}
+                      className={`shrink-0 px-3.5 py-3 rounded-2xl ${isLight ? 'bg-white border-stone-200 text-stone-800 hover:text-stone-950' : 'bg-[#121212] border-white/10 text-white/80 hover:text-white'} border text-[11px] font-bold flex items-center gap-1.5 cursor-pointer transition-all`}
+                      style={showBestSellers ? { borderColor: `${primaryColor}80` } : undefined}
+                    >
+                      <Flame className="w-3.5 h-3.5" style={{ color: primaryColor }} />
+                      <span className="hidden xs:inline">BEST SELLER</span>
+                      <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showBestSellers ? 'rotate-180' : ''}`} style={showBestSellers ? { color: primaryColor } : undefined} />
+                    </button>
+                  </div>
 
-                    return catProducts.map(prod => (
-                      <motion.div
-                        key={prod.id}
-                        initial={{ opacity: 0, y: 15 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => handleOpenCustomize(prod)}
-                        className={`${isLight ? 'bg-white border-stone-200 hover:bg-stone-50' : 'bg-[#121212] border-white/5 hover:bg-[#18181b]'} border rounded-2xl sm:rounded-3xl p-2.5 sm:p-3 flex flex-col justify-between group cursor-pointer transition-all shadow-xl`}
-                      >
-                        <div>
-                          {/* Product Image Box */}
-                          <div className="relative aspect-[4/3] sm:aspect-square rounded-xl sm:rounded-2xl overflow-hidden bg-black/40 border border-white/5 mb-2.5">
-                            <img 
-                              src={prod.image || 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&q=80&w=400'} 
-                              alt={prod.name} 
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-                              referrerPolicy="no-referrer"
-                            />
-                            {/* BEST SELLER / HOT BADGE */}
-                            {bestSellerItems.some(item => item.product.id === prod.id) && (
+                  {/* OVERALL BEST SELLERS SECTION */}
+                  {showBestSellers && bestSellerItems.length > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className={`border ${isLight ? 'border-stone-200 bg-white/70' : 'border-white/10 bg-[#121212]'} backdrop-blur-md rounded-3xl p-3.5 sm:p-4 space-y-3 shadow-xl`}
+                      style={{ borderColor: `${primaryColor}40` }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Flame className="w-4 h-4" style={{ color: primaryColor }} />
+                        <h3 className={`text-xs sm:text-sm font-black tracking-wider uppercase ${isLight ? 'text-stone-900' : 'text-white'}`}>OVERALL BEST SELLERS</h3>
+                      </div>
+
+                      <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
+                        {bestSellerItems.map(({ product: prod, soldCount }) => (
+                          <motion.div
+                            key={prod.id}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => handleOpenCustomize(prod)}
+                            className={`min-w-[240px] sm:min-w-[260px] ${isLight ? 'bg-white border-stone-200 hover:border-stone-400' : 'bg-[#18181b] border-white/5 hover:bg-[#202024] hover:border-white/20'} border rounded-2xl p-2.5 sm:p-3 flex gap-3 items-center cursor-pointer transition-all shadow-md group`}
+                          >
+                            <div className="relative w-18 h-18 sm:w-20 sm:h-20 rounded-xl overflow-hidden shrink-0 bg-black/40 border border-white/5">
+                              <img 
+                                src={prod.image || 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&q=80&w=300'} 
+                                alt={prod.name} 
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                                referrerPolicy="no-referrer"
+                              />
                               <div 
-                                className="absolute bottom-2 left-2 flex items-center gap-1 text-[7.5px] sm:text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shadow-md"
+                                className="absolute top-1.5 left-1.5 text-[7.5px] font-black px-1.5 py-0.5 rounded-full flex items-center gap-0.5 shadow-md"
                                 style={{ backgroundColor: primaryColor, color: '#000' }}
                               >
-                                <Flame size={8} fill="currentColor" /> BEST SELLER
+                                <Flame size={7} /> {soldCount} sold
                               </div>
-                            )}
+                            </div>
+                            <div className="flex-1 flex flex-col justify-between min-w-0 py-0.5">
+                              <div>
+                                <span className="text-[8px] font-black uppercase tracking-widest block" style={{ color: primaryColor }}>BEST SELLER</span>
+                                <h4 className={`text-xs sm:text-sm font-bold truncate ${isLight ? 'text-stone-900' : 'text-white'}`}>{prod.name}</h4>
+                                <p className={`text-[9px] uppercase truncate ${isLight ? 'text-stone-500' : 'text-white/40'}`}>{prod.category}</p>
+                              </div>
+                              <div className="flex items-center justify-between mt-1">
+                                <span className="text-sm sm:text-base font-black" style={{ color: primaryColor }}>₱{prod.price}</span>
+                                <span 
+                                  className="text-[9px] font-extrabold px-2 py-1 rounded-lg border transition-all"
+                                  style={{ 
+                                    backgroundColor: `${primaryColor}15`, 
+                                    borderColor: `${primaryColor}40`, 
+                                    color: primaryColor 
+                                  }}
+                                >
+                                  + ADD
+                                </span>
+                              </div>
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* PRODUCT GRID - 2 COLUMNS ON MOBILE MATCHING SCREENSHOT */}
+                  <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 pb-12">
+                    {activeCategories.map(cat => {
+                      const catProducts = filteredProducts.filter(p => {
+                        const pCat = (p.category || '').toLowerCase().trim();
+                        return pCat === cat.id.toLowerCase() || pCat === cat.name.toLowerCase();
+                      });
+                      
+                      if (catProducts.length === 0 || (selectedCategory !== 'all' && selectedCategory !== cat.id)) return null;
+
+                      return catProducts.map(prod => (
+                        <motion.div
+                          key={prod.id}
+                          initial={{ opacity: 0, y: 15 }}
+                          whileInView={{ opacity: 1, y: 0 }}
+                          viewport={{ once: true }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => handleOpenCustomize(prod)}
+                          className={`${isLight ? 'bg-white border-stone-200 hover:bg-stone-50' : 'bg-[#121212] border-white/5 hover:bg-[#18181b]'} border rounded-2xl sm:rounded-3xl p-2.5 sm:p-3 flex flex-col justify-between group cursor-pointer transition-all shadow-xl`}
+                        >
+                          <div>
+                            {/* Product Image Box */}
+                            <div className="relative aspect-[4/3] sm:aspect-square rounded-xl sm:rounded-2xl overflow-hidden bg-black/40 border border-white/5 mb-2.5">
+                              <img 
+                                src={prod.image || 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&q=80&w=400'} 
+                                alt={prod.name} 
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                                referrerPolicy="no-referrer"
+                              />
+                              {/* BEST SELLER / HOT BADGE */}
+                              {bestSellerItems.some(item => item.product.id === prod.id) && (
+                                <div 
+                                  className="absolute bottom-2 left-2 flex items-center gap-1 text-[7.5px] sm:text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shadow-md"
+                                  style={{ backgroundColor: primaryColor, color: '#000' }}
+                                >
+                                  <Flame size={8} fill="currentColor" /> BEST SELLER
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Product Information */}
+                            <div className="space-y-1 px-1">
+                              <h4 className={`text-xs sm:text-sm font-bold leading-tight line-clamp-1 transition-colors ${isLight ? 'text-stone-900 group-hover:text-[var(--color-primary)]' : 'text-white group-hover:text-[var(--color-primary)]'}`}>
+                                {prod.name}
+                              </h4>
+                              <p className={`text-[9.5px] sm:text-[11px] line-clamp-2 leading-snug ${isLight ? 'text-stone-500' : 'text-white/40'}`}>
+                                {prod.description || `${prod.name} freshly brewed with signature recipe`}
+                              </p>
+                            </div>
                           </div>
 
-                          {/* Product Information */}
-                          <div className="space-y-1 px-1">
-                            <h4 className={`text-xs sm:text-sm font-bold leading-tight line-clamp-1 transition-colors ${isLight ? 'text-stone-900 group-hover:text-[var(--color-primary)]' : 'text-white group-hover:text-[var(--color-primary)]'}`}>
-                              {prod.name}
-                            </h4>
-                            <p className={`text-[9.5px] sm:text-[11px] line-clamp-2 leading-snug ${isLight ? 'text-stone-500' : 'text-white/40'}`}>
-                              {prod.description || `${prod.name} freshly brewed with signature recipe`}
-                            </p>
+                          {/* Price & Action Row */}
+                          <div className={`pt-3 px-1 flex items-center justify-between border-t ${isLight ? 'border-stone-100' : 'border-white/5'} mt-2`}>
+                            <div className="flex flex-col">
+                              <span className={`text-[8px] sm:text-[9px] font-black uppercase tracking-widest leading-none ${isLight ? 'text-stone-400' : 'text-white/30'}`}>PRICE</span>
+                              <span className="text-sm sm:text-base font-black mt-0.5" style={{ color: primaryColor }}>₱{prod.price}</span>
+                            </div>
+                            <button 
+                              className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full border flex items-center justify-center transition-all shadow-md ${isLight ? 'bg-stone-100 border-stone-200 text-stone-700 group-hover:bg-[var(--color-primary)] group-hover:text-black group-hover:border-[var(--color-primary)]' : 'bg-white/5 border-white/10 text-white/60 group-hover:bg-[var(--color-primary)] group-hover:text-black group-hover:border-[var(--color-primary)]'}`}
+                            >
+                              <Plus size={14} className="stroke-[2.5]" />
+                            </button>
                           </div>
-                        </div>
-
-                        {/* Price & Action Row */}
-                        <div className={`pt-3 px-1 flex items-center justify-between border-t ${isLight ? 'border-stone-100' : 'border-white/5'} mt-2`}>
-                          <div className="flex flex-col">
-                            <span className={`text-[8px] sm:text-[9px] font-black uppercase tracking-widest leading-none ${isLight ? 'text-stone-400' : 'text-white/30'}`}>PRICE</span>
-                            <span className="text-sm sm:text-base font-black mt-0.5" style={{ color: primaryColor }}>₱{prod.price}</span>
-                          </div>
-                          <button 
-                            className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full border flex items-center justify-center transition-all shadow-md ${isLight ? 'bg-stone-100 border-stone-200 text-stone-700 group-hover:bg-[var(--color-primary)] group-hover:text-black group-hover:border-[var(--color-primary)]' : 'bg-white/5 border-white/10 text-white/60 group-hover:bg-[var(--color-primary)] group-hover:text-black group-hover:border-[var(--color-primary)]'}`}
-                          >
-                            <Plus size={14} className="stroke-[2.5]" />
-                          </button>
-                        </div>
-                      </motion.div>
-                    ));
-                  })}
-                </div>
-              </motion.div>
+                        </motion.div>
+                      ));
+                    })}
+                  </div>
+                </motion.div>
+              )
             )}
             
             {/* OTHER TABS (Orders, Profile) */}
@@ -703,7 +771,7 @@ export const CustomerExperience: React.FC = () => {
                               <div key={idx} className="flex flex-col gap-0.5">
                                 <div className="flex justify-between items-center">
                                   <span className={`font-bold ${isLight ? 'text-stone-900' : 'text-white/90'}`}>
-                                    {it.quantity}x {it.name} <span className="text-[10px] text-[var(--color-primary)] opacity-80">({it.selectedSize})</span>
+                                    {it.quantity}x {it.name} <span className="text-[10px] text-[var(--color-primary)] opacity-80">({typeof it.selectedSize === 'object' ? (it.selectedSize as any)?.name : it.selectedSize})</span>
                                   </span>
                                   <span className="text-[var(--color-primary)] font-black">₱{it.price * it.quantity}</span>
                                 </div>
@@ -1545,7 +1613,7 @@ export const CustomerExperience: React.FC = () => {
                     <div key={idx} className="flex flex-col">
                       <div className="flex justify-between font-semibold">
                         <span>
-                          {it.quantity}x {it.name} <span className="text-stone-600 text-[10px]">({it.selectedSize})</span>
+                          {it.quantity}x {it.name} <span className="text-stone-600 text-[10px]">({typeof it.selectedSize === 'object' ? (it.selectedSize as any)?.name : it.selectedSize})</span>
                         </span>
                         <span>₱{it.price * it.quantity}</span>
                       </div>
@@ -1686,7 +1754,7 @@ export const CustomerExperience: React.FC = () => {
         title="Open Bag"
         className="fixed bottom-20 sm:bottom-24 right-4 sm:right-6 z-40 w-11 h-11 sm:w-12 sm:h-12 rounded-full text-black flex items-center justify-center cursor-pointer border"
         style={{ 
-          background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}dd)`, 
+          backgroundColor: primaryColor, 
           boxShadow: `0 4px 22px ${primaryColor}80`,
           borderColor: `${primaryColor}80` 
         }}
@@ -1717,7 +1785,7 @@ export const CustomerExperience: React.FC = () => {
               onClick={() => setIsCartOpen(true)}
               className="w-full pointer-events-auto text-black font-black py-2 px-3.5 rounded-2xl flex items-center justify-between cursor-pointer border shadow-lg"
               style={{ 
-                background: `linear-gradient(to right, ${primaryColor}, ${primaryColor}ee)`,
+                backgroundColor: primaryColor,
                 boxShadow: `0 6px 20px ${primaryColor}66`,
                 borderColor: `${primaryColor}90`
               }}
@@ -1745,13 +1813,10 @@ export const CustomerExperience: React.FC = () => {
         aria-label="Bottom Navigation"
         className={`fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-40 p-1.5 rounded-full border backdrop-blur-2xl transition-all duration-300 select-none ${
           isLight 
-            ? 'bg-white/90 border-stone-200/90 shadow-[0_16px_36px_-8px_rgba(0,0,0,0.12)]' 
-            : 'bg-[#141416]/90 border-white/15 shadow-[0_16px_40px_-8px_rgba(0,0,0,0.7),0_0_0_1px_rgba(255,255,255,0.08)]'
+            ? 'bg-white/95 border-stone-200 shadow-[0_16px_36px_-8px_rgba(0,0,0,0.12)]' 
+            : 'bg-[#141416] border-white/15 shadow-[0_16px_40px_-8px_rgba(0,0,0,0.7)]'
         }`}
       >
-        {/* Subtle Specular Top Highlight */}
-        <div className="absolute inset-x-6 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/30 to-transparent pointer-events-none" />
-
         <div className="flex items-center gap-1 sm:gap-1.5 relative">
           {[
             { 
@@ -1810,7 +1875,7 @@ export const CustomerExperience: React.FC = () => {
                         : ''
                     }`}
                     style={!isLight ? { 
-                      background: `linear-gradient(to bottom, ${primaryColor}, ${primaryColor}dd)`, 
+                      backgroundColor: primaryColor, 
                       boxShadow: `0 4px 15px ${primaryColor}40` 
                     } : undefined}
                     transition={{ type: 'spring', stiffness: 480, damping: 32 }}

@@ -1191,8 +1191,8 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     // Calculate subtotal
     const subtotal = cart.reduce((acc, item) => {
-      const sizePrice = item.selectedSize.priceAdjustment;
-      const addOnsPrice = item.selectedAddOns.reduce((sum, ad) => sum + ad.price, 0);
+      const sizePrice = typeof item.selectedSize === 'object' ? (item.selectedSize?.priceAdjustment || 0) : 0;
+      const addOnsPrice = item.selectedAddOns.reduce((sum, ad) => sum + (typeof ad === 'object' ? ad.price : 0), 0);
       return acc + ((item.product.price + sizePrice + addOnsPrice) * item.quantity);
     }, 0);
 
@@ -1273,16 +1273,16 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     change?: number,
     receiptUrl?: string
   ): Promise<Order> => {
-    if (settings.storeStatus?.isOpen === false && (orderSource === 'web_app' || (!orderSource && currentUser?.role === 'customer'))) {
-      throw new Error("Store is currently closed. Orders cannot be placed through the mobile app right now.");
-    }
-    const activeCart = (customCart && customCart.length > 0) ? customCart : cart;
-    if (activeCart.length === 0) throw new Error("Your shopping cart is empty.");
-
     // Determine actual order source
     const effectiveOrderSource: 'pos' | 'web_app' = orderSource || (
       (currentUser?.role === 'cashier' || currentUser?.role === 'admin') && customCart ? 'pos' : 'web_app'
     );
+
+    if (settings.storeStatus?.isOpen === false && effectiveOrderSource === 'web_app') {
+      throw new Error("Store is currently closed. Orders cannot be placed right now.");
+    }
+    const activeCart = (customCart && customCart.length > 0) ? customCart : cart;
+    if (activeCart.length === 0) throw new Error("Your shopping cart is empty.");
 
     // Determine cashier info if placed via POS
     const cashierName = (effectiveOrderSource === 'pos' && (currentUser?.role === 'cashier' || currentUser?.role === 'admin')) 
@@ -1305,7 +1305,7 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         orderCustomerName = customerPhone;
       }
     } else if (customCustomerName?.trim()) {
-      // Walk-in customer with specific custom name provided at POS invoice
+      // Walk-in or Online Guest customer with specific custom name provided
       orderCustomerId = 'guest';
       orderCustomerName = customCustomerName.trim();
     } else if (effectiveOrderSource === 'pos') {
@@ -1317,16 +1317,16 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       orderCustomerId = currentUser.uid;
       orderCustomerName = currentUser.name || 'App Customer';
     } else {
-      // Fallback
+      // Fallback for online guest
       orderCustomerId = currentUser?.uid || 'guest';
-      orderCustomerName = 'Walk-in Guest';
+      orderCustomerName = customCustomerName?.trim() || 'Online Guest';
     }
 
     // 1. Calculate and re-verify totals
     let subtotal = 0;
     const itemsList = activeCart.map(item => {
-      const sizePrice = item.selectedSize.priceAdjustment;
-      const addOnsPrice = item.selectedAddOns.reduce((sum, ad) => sum + ad.price, 0);
+      const sizePrice = typeof item.selectedSize === 'object' ? (item.selectedSize?.priceAdjustment || 0) : 0;
+      const addOnsPrice = item.selectedAddOns.reduce((sum, ad) => sum + (typeof ad === 'object' ? ad.price : 0), 0);
       const unitPrice = item.product.price + sizePrice + addOnsPrice;
       const itemSubtotal = unitPrice * item.quantity;
       subtotal += itemSubtotal;
@@ -1336,8 +1336,8 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         name: item.product.name,
         price: unitPrice,
         quantity: item.quantity,
-        selectedSize: item.selectedSize.name,
-        selectedAddOns: item.selectedAddOns.map(a => a.name),
+        selectedSize: typeof item.selectedSize === 'object' ? (item.selectedSize?.name || 'Standard') : (item.selectedSize || 'Standard'),
+        selectedAddOns: item.selectedAddOns.map(a => typeof a === 'object' ? a.name : a),
         notes: item.notes
       };
     });
@@ -1368,8 +1368,8 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         // Look for matching free item in cart
         const freeItem = activeCart.find(item => item.product.name === appliedReward.freeItemName);
         if (freeItem) {
-          const sizePrice = freeItem.selectedSize.priceAdjustment;
-          const addOnsPrice = freeItem.selectedAddOns.reduce((sum, ad) => sum + ad.price, 0);
+          const sizePrice = typeof freeItem.selectedSize === 'object' ? (freeItem.selectedSize?.priceAdjustment || 0) : 0;
+          const addOnsPrice = freeItem.selectedAddOns.reduce((sum, ad) => sum + (typeof ad === 'object' ? ad.price : 0), 0);
           discount = freeItem.product.price + sizePrice + addOnsPrice;
         } else {
           throw new Error(`Your reward requires adding '${appliedReward.freeItemName}' to your cart first.`);

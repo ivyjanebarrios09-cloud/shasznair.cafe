@@ -123,7 +123,7 @@ export const KitchenExperience: React.FC = () => {
                 <strong className={`${isLight ? 'text-[#b08c47]' : 'text-[#c5a059]'} font-mono mr-1`}>{it.quantity}x</strong> {it.name}
               </span>
               <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded border ml-1 ${isLight ? 'text-stone-700 bg-stone-200/80 border-stone-300 font-semibold' : 'text-white/50 bg-white/5 border-white/5'}`}>
-                {it.selectedSize}
+                {typeof it.selectedSize === 'object' ? (it.selectedSize as any)?.name : it.selectedSize}
               </span>
             </div>
             {it.selectedAddOns && it.selectedAddOns.length > 0 && (
@@ -1084,7 +1084,7 @@ export const KitchenExperience: React.FC = () => {
               {printedReceipt.items.map((item, idx) => (
                 <div key={idx} className="flex flex-col">
                   <div className="flex justify-between font-bold">
-                    <span>{item.quantity}x {item.name} ({item.selectedSize})</span>
+                    <span>{item.quantity}x {item.name} ({typeof item.selectedSize === 'object' ? (item.selectedSize as any)?.name : item.selectedSize})</span>
                     <span>₱{item.price * item.quantity}</span>
                   </div>
                   {item.selectedAddOns && item.selectedAddOns.length > 0 && (
