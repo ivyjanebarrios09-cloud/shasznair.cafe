@@ -19,6 +19,7 @@ export const LandingPage: React.FC = () => {
   const { 
     products, 
     categories, 
+    orders,
     settings, 
     cart, 
     addToCart, 
@@ -111,13 +112,29 @@ export const LandingPage: React.FC = () => {
     });
   }, [products, searchQuery]);
 
-  // Best Sellers (Mock / Top Sold)
+  // Best Sellers (Computed from real orders / sales data)
   const bestSellerItems = useMemo(() => {
-    return products.slice(0, 5).map((p, idx) => ({
+    const counts: Record<string, number> = {};
+    orders.forEach(ord => {
+      if (ord.orderStatus === 'cancelled') return;
+      ord.items?.forEach(item => {
+        const id = item.productId || products.find(p => p.name.toLowerCase() === item.name?.toLowerCase())?.id;
+        if (id) {
+          counts[id] = (counts[id] || 0) + (item.quantity || 1);
+        }
+      });
+    });
+
+    const available = products.filter(p => p.available !== false && p.isAvailable !== false);
+    const withSales = available.map(p => ({
       product: p,
-      soldCount: 15 - idx * 2 > 3 ? 15 - idx * 2 : 5
+      soldCount: counts[p.id] || 0
     }));
-  }, [products]);
+
+    // Only show items that have actual verified orders, sorted by highest sold count
+    const orderedOnly = withSales.filter(item => item.soldCount > 0);
+    return orderedOnly.sort((a, b) => b.soldCount - a.soldCount).slice(0, 6);
+  }, [orders, products]);
 
   // Open Customize Sheet
   const handleOpenCustomize = (product: Product) => {

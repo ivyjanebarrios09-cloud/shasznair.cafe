@@ -61,12 +61,16 @@ export const CustomerExperience: React.FC = () => {
   const bestSellerItems = useMemo(() => {
     const counts: Record<string, number> = {};
     orders.forEach(ord => {
+      if (ord.orderStatus === 'cancelled') return;
       ord.items?.forEach(item => {
-        counts[item.productId] = (counts[item.productId] || 0) + item.quantity;
+        const id = item.productId || products.find(p => p.name.toLowerCase() === item.name?.toLowerCase())?.id;
+        if (id) {
+          counts[id] = (counts[id] || 0) + (item.quantity || 1);
+        }
       });
     });
 
-    const available = products.filter(p => p.available);
+    const available = products.filter(p => p.available !== false && (p as any).isAvailable !== false);
     const withSales = available.map(p => ({
       product: p,
       soldCount: counts[p.id] || 0
