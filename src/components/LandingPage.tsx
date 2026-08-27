@@ -27,7 +27,6 @@ export const LandingPage: React.FC = () => {
     placeOrder,
     login, 
     register, 
-    simulateRole,
     dbStatus
   } = useCoffeeApp();
 
@@ -260,7 +259,7 @@ export const LandingPage: React.FC = () => {
 
   return (
     <div 
-      className={`h-full w-full overflow-hidden ${isLight ? 'bg-stone-100 text-stone-900' : 'bg-[#050505] text-[#f2f2f2]'} font-sans flex transition-colors select-none`}
+      className={`h-screen w-full overflow-hidden ${isLight ? 'bg-stone-100 text-stone-900' : 'bg-[#050505] text-[#f2f2f2]'} font-sans flex transition-colors select-none`}
       style={{ 
         '--color-primary': primaryColor,
         '--color-secondary': secondaryColor,
@@ -268,13 +267,13 @@ export const LandingPage: React.FC = () => {
       } as React.CSSProperties}
     >
       {/* 1. SIDEBAR NAVIGATION - MATCHING SCREENSHOT EXACTLY */}
-      <aside className={`w-14 sm:w-16 md:w-20 flex-shrink-0 flex flex-col items-center py-5 border-r ${isLight ? 'bg-white border-stone-200 shadow-sm' : 'bg-[#121212] border-white/10 shadow-2xl'} z-30`}>
-        <div className="flex-1 flex flex-col gap-6 overflow-y-auto scrollbar-none py-2 items-center w-full">
+      <aside className={`w-16 sm:w-20 md:w-24 h-screen flex-shrink-0 flex flex-col items-center py-6 border-r ${isLight ? 'bg-white border-stone-200 shadow-sm' : 'bg-[#121212] border-white/10 shadow-2xl'} z-30`}>
+        <div className="flex-1 flex flex-col gap-8 overflow-y-auto scrollbar-none py-3 items-center w-full">
           {/* "ALL" CATEGORY */}
           <motion.button
             whileTap={{ scale: 0.92 }}
             onClick={() => setSelectedCategory('all')}
-            className="relative group flex flex-col items-center gap-1 cursor-pointer w-full"
+            className="relative group flex flex-col items-center gap-1.5 cursor-pointer w-full"
           >
             {selectedCategory === 'all' && (
               <motion.div 
@@ -284,7 +283,7 @@ export const LandingPage: React.FC = () => {
               />
             )}
             <div 
-              className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center transition-all duration-300 ${
+              className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-all duration-300 ${
                 selectedCategory === 'all'
                   ? 'font-black' 
                   : isLight ? 'bg-stone-100 text-stone-500 hover:bg-stone-200' : 'bg-white/5 text-white/40 hover:bg-white/10 hover:text-white'
@@ -294,7 +293,7 @@ export const LandingPage: React.FC = () => {
               <Coffee className="w-5 h-5" />
             </div>
             <span 
-              className={`text-[8.5px] sm:text-[9.5px] font-black uppercase tracking-[0.2em] [writing-mode:vertical-lr] transition-colors mt-0.5 ${
+              className={`text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] [writing-mode:vertical-lr] transition-colors mt-0.5 ${
                 selectedCategory === 'all' ? '' : isLight ? 'text-stone-400' : 'text-white/30'
               }`}
               style={selectedCategory === 'all' ? { color: primaryColor } : undefined}
@@ -306,13 +305,13 @@ export const LandingPage: React.FC = () => {
           {/* ACTIVE CATEGORIES LIST */}
           {activeCategories.map((cat) => {
             const isSelected = selectedCategory === cat.id;
-            const shortLabel = cat.name.length > 8 ? cat.name.slice(0, 7) + '..' : cat.name;
+            const shortLabel = cat.name.length > 9 ? cat.name.slice(0, 8) + '..' : cat.name;
             return (
               <motion.button
                 key={cat.id}
                 whileTap={{ scale: 0.92 }}
                 onClick={() => setSelectedCategory(cat.id)}
-                className="relative group flex flex-col items-center gap-1 cursor-pointer w-full"
+                className="relative group flex flex-col items-center gap-1.5 cursor-pointer w-full"
               >
                 {isSelected && (
                   <motion.div 
@@ -323,7 +322,7 @@ export const LandingPage: React.FC = () => {
                 )}
 
                 <div 
-                  className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center transition-all duration-300 ${
+                  className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-all duration-300 ${
                     isSelected 
                       ? 'font-black' 
                       : isLight ? 'bg-stone-100 text-stone-500 hover:bg-stone-200' : 'bg-white/5 text-white/40 hover:bg-white/10 hover:text-white'
@@ -334,7 +333,7 @@ export const LandingPage: React.FC = () => {
                 </div>
                 
                 <span 
-                  className={`text-[8.5px] sm:text-[9.5px] font-black uppercase tracking-[0.2em] [writing-mode:vertical-lr] transition-colors mt-0.5 ${
+                  className={`text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] [writing-mode:vertical-lr] transition-colors mt-0.5 ${
                     isSelected ? '' : isLight ? 'text-stone-400' : 'text-white/30'
                   }`}
                   style={isSelected ? { color: primaryColor } : undefined}
@@ -345,19 +344,6 @@ export const LandingPage: React.FC = () => {
             );
           })}
         </div>
-        
-        {/* LOGIN / VIP MODAL TRIGGER AT BOTTOM */}
-        <button 
-          onClick={() => {
-            setAuthMode('login');
-            setIsAuthModalOpen(true);
-          }}
-          title="Sign In / Register"
-          style={{ color: primaryColor, backgroundColor: `${primaryColor}18`, borderColor: `${primaryColor}40` }}
-          className="mt-auto p-2.5 rounded-2xl hover:opacity-80 border transition-all cursor-pointer shadow-sm"
-        >
-          <LogIn size={18} />
-        </button>
       </aside>
 
       {/* 2. MAIN CONTENT CONTAINER */}
@@ -1386,12 +1372,21 @@ export const LandingPage: React.FC = () => {
               {/* Header */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div 
-                    style={{ backgroundColor: `${primaryColor}20`, borderColor: `${primaryColor}40`, color: primaryColor }}
-                    className="w-10 h-10 rounded-2xl border flex items-center justify-center font-serif font-black text-lg"
-                  >
-                    {settings?.branding?.shopName?.charAt(0) || 'C'}
-                  </div>
+                  {settings?.branding?.logoUrl ? (
+                    <img 
+                      src={settings.branding.logoUrl} 
+                      alt={settings?.branding?.shopName || 'Logo'} 
+                      referrerPolicy="no-referrer"
+                      className="w-10 h-10 rounded-2xl object-cover border border-white/10 shadow-md"
+                    />
+                  ) : (
+                    <div 
+                      style={{ backgroundColor: `${primaryColor}20`, borderColor: `${primaryColor}40`, color: primaryColor }}
+                      className="w-10 h-10 rounded-2xl border flex items-center justify-center font-serif font-black text-lg"
+                    >
+                      {settings?.branding?.shopName?.charAt(0) || 'C'}
+                    </div>
+                  )}
                   <div>
                     <h3 className={`text-sm font-black font-serif tracking-wider uppercase ${isLight ? 'text-stone-900' : 'text-white'}`}>
                       {settings?.branding?.shopName || 'CAIDOZ'}
@@ -1534,32 +1529,6 @@ export const LandingPage: React.FC = () => {
                   Or Continue & Order as Guest (Skip Login)
                 </button>
               )}
-
-              {/* Demo Account Quick Buttons */}
-              <div className={`pt-2 border-t space-y-2 ${isLight ? 'border-stone-200' : 'border-white/10'}`}>
-                <p className={`text-[9px] font-bold text-center uppercase tracking-wider ${isLight ? 'text-stone-400' : 'text-white/30'}`}>Quick Switcher</p>
-                <div className="grid grid-cols-3 gap-1.5">
-                  {[
-                    { role: 'customer' as UserRole, label: 'Customer' },
-                    { role: 'cashier' as UserRole, label: 'Cashier' },
-                    { role: 'admin' as UserRole, label: 'Admin' }
-                  ].map((btn) => (
-                    <button
-                      key={btn.role}
-                      type="button"
-                      onClick={() => {
-                        simulateRole(btn.role);
-                        setIsAuthModalOpen(false);
-                      }}
-                      className={`py-1.5 px-2 rounded-lg border text-[10px] font-bold transition-all cursor-pointer text-center ${
-                        isLight ? 'bg-stone-100 hover:bg-stone-200 border-stone-200 text-stone-700' : 'bg-white/5 hover:bg-white/10 border-white/5 text-white/70 hover:text-white'
-                      }`}
-                    >
-                      {btn.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
             </motion.div>
           </div>
         )}
