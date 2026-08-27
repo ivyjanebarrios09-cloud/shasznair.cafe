@@ -18,8 +18,9 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onUploadSuccess, onUpl
 
     setIsUploading(true);
     if (onUploadStart) onUploadStart();
+
     try {
-      // 1. Get signed URL from our backend
+      // 1. Get signed URL from our backend for Cloudflare R2
       let response;
       try {
         response = await fetch('/api/upload-url', {
@@ -28,21 +29,24 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onUploadSuccess, onUpl
           body: JSON.stringify({ filename: file.name, contentType: file.type, folder }),
         });
       } catch (fetchError: any) {
-        throw new Error("Network error or upload service unavailable: " + fetchError.message);
+        throw new Error("Network error connecting to R2 upload service: " + fetchError.message);
       }
 
       if (!response.ok) {
-        let errorMessage = 'Failed to get signed upload URL';
+        let errorMsg = 'Failed to get R2 signed upload URL';
         try {
-          const errorData = await response.json();
-          errorMessage = errorData.error || errorMessage;
-        } catch (parseError) {
-          errorMessage = `Upload service unavailable (${response.status})`;
-        }
-        throw new Error(errorMessage);
+          const errData = await response.json();
+          if (errData && errData.error) errorMsg = errData.error;
+        } catch (e) {}
+        throw new Error(errorMsg);
       }
       
-      const { signedUrl, publicUrl, imageKey } = await response.json();
+      const data = await response.json().catch(() => null);
+      if (!data || !data.signedUrl || !data.publicUrl) {
+        throw new Error("Invalid response from R2 storage endpoint");
+      }
+
+      const { signedUrl, publicUrl, imageKey } = data;
 
       // 2. Upload file directly to Cloudflare R2 via presigned URL
       const uploadResponse = await fetch(signedUrl, {
@@ -51,14 +55,17 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onUploadSuccess, onUpl
         headers: { 'Content-Type': file.type },
       });
 
-      if (!uploadResponse.ok) throw new Error('Failed to upload file to Cloudflare R2 storage bucket');
+      if (!uploadResponse.ok) {
+        throw new Error(`Failed to upload file to Cloudflare R2 bucket (${uploadResponse.status})`);
+      }
 
       // 3. Success - provide the R2 public URL
       onUploadSuccess(publicUrl, imageKey);
     } catch (error: any) {
-      console.error("R2 Upload Error:", error.message);
-      if (onUploadError) onUploadError(error.message);
-      alert("Upload Failed: " + error.message + ". Please ensure Cloudflare R2 is properly configured.");
+      console.error("R2 Upload Error:", error);
+      const msg = error.message || "Failed to upload image to R2 storage";
+      if (onUploadError) onUploadError(msg);
+      alert("R2 Upload Error: " + msg + ". Please ensure Cloudflare R2 credentials are configured.");
     } finally {
       setIsUploading(false);
     }
