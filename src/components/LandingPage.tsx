@@ -60,8 +60,6 @@ export const LandingPage: React.FC = () => {
 
   // Customization State
   const [customSize, setCustomSize] = useState<{ name: string; priceAdjustment: number }>({ name: 'Regular', priceAdjustment: 0 });
-  const [customSugar, setCustomSugar] = useState<string>('100%');
-  const [customTemp, setCustomTemp] = useState<string>('Hot');
   const [customAddons, setCustomAddons] = useState<{ name: string; price: number }[]>([]);
   const [customNotes, setCustomNotes] = useState<string>('');
   const [quantity, setQuantity] = useState<number>(1);
@@ -139,8 +137,6 @@ export const LandingPage: React.FC = () => {
   const handleOpenCustomize = (product: Product) => {
     setSelectedProduct(product);
     setCustomSize(product.sizes?.[0] || { name: 'Regular', priceAdjustment: 0 });
-    setCustomSugar('100%');
-    setCustomTemp(product.category?.toLowerCase().includes('iced') ? 'Iced' : 'Hot');
     setCustomAddons([]);
     setCustomNotes('');
     setQuantity(1);
@@ -149,11 +145,7 @@ export const LandingPage: React.FC = () => {
   // Add customized item to cart
   const handleAddToCart = () => {
     if (!selectedProduct) return;
-    const combinedNotes = [
-      customTemp !== 'Hot' ? `Temp: ${customTemp}` : '',
-      customSugar !== '100%' ? `Sugar: ${customSugar}` : '',
-      customNotes.trim()
-    ].filter(Boolean).join(' | ');
+    const combinedNotes = customNotes.trim();
 
     const item: CartItem = {
       product: selectedProduct,
@@ -794,49 +786,7 @@ export const LandingPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Sweetness */}
-                <div className="space-y-2">
-                  <label className={`text-[10px] font-black uppercase tracking-wider block ${isLight ? 'text-stone-500' : 'text-white/50'}`}>Sweetness Level</label>
-                  <div className="grid grid-cols-4 gap-2">
-                    {['100%', '70%', '50%', '0%'].map((lvl) => (
-                      <button
-                        key={lvl}
-                        type="button"
-                        onClick={() => setCustomSugar(lvl as any)}
-                        style={customSugar === lvl ? { backgroundColor: primaryColor, color: '#000', borderColor: primaryColor } : undefined}
-                        className={`py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                          customSugar === lvl
-                            ? 'font-black'
-                            : isLight ? 'bg-stone-50 border-stone-200 text-stone-700 hover:bg-stone-100' : 'bg-white/5 border-white/10 text-white/60 hover:text-white'
-                        }`}
-                      >
-                        {lvl}
-                      </button>
-                    ))}
-                  </div>
-                </div>
 
-                {/* Temperature */}
-                <div className="space-y-2">
-                  <label className={`text-[10px] font-black uppercase tracking-wider block ${isLight ? 'text-stone-500' : 'text-white/50'}`}>Temperature</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {['Hot', 'Iced'].map((t) => (
-                      <button
-                        key={t}
-                        type="button"
-                        onClick={() => setCustomTemp(t as any)}
-                        style={customTemp === t ? { backgroundColor: primaryColor, color: '#000', borderColor: primaryColor } : undefined}
-                        className={`py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                          customTemp === t
-                            ? 'font-black'
-                            : isLight ? 'bg-stone-50 border-stone-200 text-stone-700 hover:bg-stone-100' : 'bg-white/5 border-white/10 text-white/60 hover:text-white'
-                        }`}
-                      >
-                        {t}
-                      </button>
-                    ))}
-                  </div>
-                </div>
 
                 {/* Quantity & Notes */}
                 <div className="space-y-2 pt-2">
