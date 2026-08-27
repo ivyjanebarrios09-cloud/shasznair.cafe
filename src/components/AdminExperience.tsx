@@ -594,11 +594,11 @@ export const AdminExperience: React.FC = () => {
 
   return (
     <div 
-      className={`min-h-screen ${isLight ? 'bg-stone-100 text-stone-900' : 'bg-[#050505] text-[#f2f2f2]'} flex flex-col lg:flex-row overflow-hidden transition-colors duration-300`}
+      className={`h-full w-full min-h-0 ${isLight ? 'bg-stone-100 text-stone-900' : 'bg-[#050505] text-[#f2f2f2]'} flex flex-col lg:flex-row overflow-hidden transition-colors duration-300`}
       style={{ '--color-primary': settings.branding.primaryColor } as React.CSSProperties}
     >
       {/* MOBILE HEADER */}
-      <header className={`lg:hidden h-14 ${isLight ? 'bg-white border-stone-200 text-stone-900' : 'bg-[#121212] border-white/10 text-white'} border-b px-4 flex items-center justify-between sticky top-0 z-40 transition-colors`}>
+      <header className={`lg:hidden h-14 shrink-0 ${isLight ? 'bg-white border-stone-200 text-stone-900' : 'bg-[#121212] border-white/10 text-white'} border-b px-4 flex items-center justify-between sticky top-0 z-40 transition-colors`}>
         <div className="flex items-center gap-2.5">
           <button 
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -645,7 +645,7 @@ export const AdminExperience: React.FC = () => {
 
       {/* 1. ADMIN SIDEBAR NAVIGATION */}
       <aside className={`
-        fixed lg:relative inset-y-0 left-0 z-50 w-64 lg:w-56 ${isLight ? 'bg-white text-stone-800 border-stone-200' : 'bg-[#121212] text-white/70 border-white/10'} flex flex-col h-full lg:h-[calc(100vh-3rem)] border-r transition-colors duration-300 transform
+        fixed lg:relative inset-y-0 left-0 z-50 w-64 lg:w-56 ${isLight ? 'bg-white text-stone-800 border-stone-200' : 'bg-[#121212] text-white/70 border-white/10'} flex flex-col h-full border-r transition-colors duration-300 transform
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         <div className={`p-4 border-b ${isLight ? 'border-stone-200 bg-stone-50' : 'border-white/10 bg-[#080808]'} flex items-center justify-between gap-3`}>

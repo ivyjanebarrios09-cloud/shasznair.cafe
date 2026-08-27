@@ -220,42 +220,40 @@ export const KitchenExperience: React.FC = () => {
 
   return (
     <div 
-      className={`h-screen ${isLight ? 'bg-stone-100 text-stone-900' : 'bg-[#07080c] text-[#f2f2f2]'} flex flex-col font-sans select-none overflow-hidden transition-colors duration-300`}
+      className={`h-full w-full min-h-0 ${isLight ? 'bg-stone-100 text-stone-900' : 'bg-[#050505] text-[#f2f2f2]'} flex flex-col font-sans select-none overflow-hidden transition-colors duration-300`}
       style={{ '--color-primary': settings.branding.primaryColor } as React.CSSProperties}
     >
       {/* TOP NAVIGATION BAR */}
-      <div className={`${isLight ? 'bg-white border-stone-200 text-stone-900' : 'bg-[#0b0c10] border-white/10 text-white'} border-b px-4 py-3 flex items-center justify-between sticky top-0 z-50 shadow-lg transition-colors`}>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center overflow-hidden shrink-0 border border-stone-200">
-                {settings.branding.logoUrl ? (
-                  <img src={settings.branding.logoUrl} alt="Logo" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full bg-[var(--color-primary)] flex items-center justify-center text-black font-serif font-black">
-                    {settings.branding.shopName.charAt(0)}
-                  </div>
-                )}
-            </div>
-            <h1 className="font-serif font-black tracking-wider text-[var(--color-primary)] text-base">{settings.branding.shopName}</h1>
-            <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border ${isLight ? 'bg-stone-100 border-stone-300' : 'bg-[#12131a] border-white/5'}`}>
-              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className={`text-[10px] font-mono tracking-widest font-bold uppercase ${isLight ? 'text-emerald-700' : 'text-emerald-400'}`}>SYSTEM LIVE</span>
-            </div>
-            <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-              settings?.storeStatus?.isOpen !== false
-                ? isLight ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-emerald-950/80 text-emerald-300 border-emerald-600/40'
-                : isLight ? 'bg-rose-100 text-rose-800 border-rose-300' : 'bg-rose-950/80 text-rose-300 border-rose-600/40'
-            }`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${settings?.storeStatus?.isOpen !== false ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
-              <span>{settings?.storeStatus?.isOpen !== false ? 'OPEN' : 'CLOSED'}</span>
-            </div>
+      <div className={`${isLight ? 'bg-white border-stone-200 text-stone-900' : 'bg-[#121212] border-white/10 text-white'} border-b px-3 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between sticky top-0 z-40 shadow-lg transition-colors shrink-0`}>
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1 mr-2">
+          <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center overflow-hidden shrink-0 border border-stone-200">
+            {settings.branding.logoUrl ? (
+              <img src={settings.branding.logoUrl} alt="Logo" className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full bg-[var(--color-primary)] flex items-center justify-center text-black font-serif font-black">
+                {settings.branding.shopName.charAt(0)}
+              </div>
+            )}
+          </div>
+          <h1 className="font-serif font-black tracking-wider text-[var(--color-primary)] text-sm sm:text-base truncate">{settings.branding.shopName}</h1>
+          <div className={`hidden md:flex items-center gap-1.5 px-2 py-0.5 rounded-full border ${isLight ? 'bg-stone-100 border-stone-300' : 'bg-[#12131a] border-white/5'}`}>
+            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className={`text-[10px] font-mono tracking-widest font-bold uppercase ${isLight ? 'text-emerald-700' : 'text-emerald-400'}`}>SYSTEM LIVE</span>
+          </div>
+          <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border shrink-0 ${
+            settings?.storeStatus?.isOpen !== false
+              ? isLight ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-emerald-950/80 text-emerald-300 border-emerald-600/40'
+              : isLight ? 'bg-rose-100 text-rose-800 border-rose-300' : 'bg-rose-950/80 text-rose-300 border-rose-600/40'
+          }`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${settings?.storeStatus?.isOpen !== false ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
+            <span>{settings?.storeStatus?.isOpen !== false ? 'OPEN' : 'CLOSED'}</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <button
             onClick={() => setIsMuted(!isMuted)}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-mono font-bold transition-all border cursor-pointer ${
+            className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl text-[10px] font-mono font-bold transition-all border cursor-pointer shrink-0 ${
               isMuted 
                 ? isLight ? 'bg-rose-50 text-rose-600 border-rose-200' : 'bg-rose-950/20 text-rose-400 border-rose-800/30'
                 : isLight ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-emerald-950/20 text-emerald-400 border-emerald-800/30'
@@ -264,17 +262,17 @@ export const KitchenExperience: React.FC = () => {
             {isMuted ? (
               <>
                 <VolumeX className="w-3.5 h-3.5" />
-                <span>MUTED</span>
+                <span className="hidden sm:inline">MUTED</span>
               </>
             ) : (
               <>
                 <Volume2 className="w-3.5 h-3.5" />
-                <span>NOTIFS ON</span>
+                <span className="hidden sm:inline">NOTIFS ON</span>
               </>
             )}
           </button>
           <InstallAppButton />
-          <div className={`hidden sm:flex items-center gap-2 text-xs font-mono ${isLight ? 'text-stone-700 font-semibold' : 'text-white/60'}`}>
+          <div className={`hidden lg:flex items-center gap-2 text-xs font-mono ${isLight ? 'text-stone-700 font-semibold' : 'text-white/60'}`}>
             <span>Station: <strong className={`${isLight ? 'text-[#b08c47]' : 'text-[var(--color-primary)]'} uppercase`}>{currentUser?.name || 'KDS-01'}</strong></span>
           </div>
         </div>
@@ -282,7 +280,7 @@ export const KitchenExperience: React.FC = () => {
 
       {/* STORE CLOSED BANNER */}
       {settings.storeStatus?.isOpen === false && (
-        <div className={`border-b text-xs py-2 px-4 sticky top-[57px] z-40 shadow-md flex items-center justify-center gap-2 ${isLight ? 'bg-rose-100 border-rose-300 text-rose-900' : 'bg-rose-950/90 border-rose-900 text-rose-200'}`}>
+        <div className={`border-b text-xs py-2 px-4 shadow-md flex items-center justify-center gap-2 shrink-0 ${isLight ? 'bg-rose-100 border-rose-300 text-rose-900' : 'bg-rose-950/90 border-rose-900 text-rose-200'}`}>
           <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
           <span className="font-bold text-center">Store Operations Status: <strong className="uppercase">CLOSED</strong>. KDS Kitchen Station is in standby mode.</span>
         </div>

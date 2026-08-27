@@ -237,14 +237,14 @@ export const InstallAppButton: React.FC<{ className?: string; variant?: 'inline'
       <button
         onClick={handleInstallApp}
         title="Install Shasznair Cafe PWA App"
-        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-extrabold text-xs shadow-md transition-all cursor-pointer active:scale-95 ${
+        className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl font-extrabold text-xs shadow-md transition-all cursor-pointer active:scale-95 shrink-0 ${
           isLight
             ? 'bg-amber-600 hover:bg-amber-700 text-white'
             : 'bg-[#c5a059] hover:bg-[#b08c47] text-black'
         } ${className}`}
       >
         <SmartphoneSvg className="w-3.5 h-3.5 stroke-[2.5]" />
-        <span>Install App</span>
+        <span className="hidden sm:inline whitespace-nowrap">Install App</span>
       </button>
 
       {/* INSTALL GUIDE MODAL */}

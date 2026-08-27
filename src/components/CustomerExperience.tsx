@@ -157,6 +157,8 @@ export const CustomerExperience: React.FC = () => {
     return matchSearch && matchCat && p.available !== false;
   });
 
+  const activeCategories = categories.filter(c => c.active !== false);
+
   // Calculate cart metrics
   const cartSubtotal = cart.reduce((sum, item) => {
     const sizePrice = item.selectedSize?.priceAdjustment || 0;
@@ -263,6 +265,10 @@ export const CustomerExperience: React.FC = () => {
 
   const isAdmin = currentUser?.role === 'admin';
   const isLight = settings?.branding?.theme === 'light';
+  const primaryColor = settings?.branding?.primaryColor || '#c5a059';
+  const secondaryColor = settings?.branding?.secondaryColor || '#1c1917';
+  const accentColor = settings?.branding?.accentColor || '#10b981';
+
   const stickyHeaderClass = isAdmin ? `${isLight ? 'bg-stone-100 border-stone-200 text-stone-900' : 'bg-[#050505] border-white/10 text-[#f2f2f2]'} border-b sticky top-9 z-40 px-4 py-3 shadow-md flex items-center justify-between transition-colors` : `${isLight ? 'bg-stone-100 border-stone-200 text-stone-900' : 'bg-[#050505] border-white/10 text-[#f2f2f2]'} border-b sticky top-0 z-40 px-4 py-3 shadow-md flex items-center justify-between transition-colors`;
   const stickyBannerClass = isAdmin ? "bg-rose-950 text-rose-200 border-b border-rose-800 text-sm py-2.5 px-4 sticky top-[69px] z-40 shadow-md flex items-center justify-between animate-slide-down" : "bg-rose-950 text-rose-200 border-b border-rose-800 text-sm py-2.5 px-4 sticky top-14 z-40 shadow-md flex items-center justify-between animate-slide-down";
 
@@ -272,1174 +278,618 @@ export const CustomerExperience: React.FC = () => {
 
   return (
     <div 
-      className={`min-h-screen ${isLight ? 'bg-stone-100 text-stone-900' : 'bg-[#050505] text-[#f2f2f2]'} pb-14 font-sans flex flex-col transition-colors duration-300`}
-      style={{ '--color-primary': settings.branding.primaryColor } as React.CSSProperties}
+      className={`h-full w-full overflow-hidden ${isLight ? 'bg-stone-100 text-stone-900' : 'bg-[#050505] text-[#f2f2f2]'} font-sans flex transition-colors duration-300`}
+      style={{ 
+        '--color-primary': primaryColor,
+        '--color-secondary': secondaryColor,
+        '--color-accent': accentColor,
+      } as React.CSSProperties}
     >
-      {/* 1. SHASZNAIR CAFE SHOP BRAND HEADER */}
-      <header className={stickyHeaderClass}>
-        {/* GOLD TOP GLOW LINE */}
-        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[var(--color-primary)] to-transparent opacity-80" />
-
-        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white flex items-center justify-center overflow-hidden shrink-0 border border-[var(--color-primary)]/30">
-            {settings.branding.logoUrl ? (
-              <img src={settings.branding.logoUrl} alt="Logo" className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary)] flex items-center justify-center text-black font-serif font-black text-base sm:text-lg shadow-md shadow-[var(--color-primary)]/20">
-                {settings.branding.shopName.charAt(0)}
-              </div>
-            )}
-          </div>
-          <div className="min-w-0 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2.5">
-            <h1 className={`text-base sm:text-lg font-black font-serif leading-tight tracking-wider flex items-center gap-1.5 truncate ${isLight ? 'text-stone-900' : 'text-white'}`}>
-              <span className="text-[var(--color-primary)]">{settings.branding.shopName}</span>
-            </h1>
-            <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border w-fit ${
-              settings?.storeStatus?.isOpen !== false
-                ? 'bg-emerald-950/80 text-emerald-300 border-emerald-600/40'
-                : 'bg-rose-950/80 text-rose-300 border-rose-600/40'
-            }`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${settings?.storeStatus?.isOpen !== false ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'}`} />
-              <span>{settings?.storeStatus?.isOpen !== false ? 'OPEN' : 'CLOSED'}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* RIGHT SIDE: INSTALL APP + CART FLOATING BUBBLE */}
-        <div className="flex items-center gap-2">
-          <InstallAppButton />
-          <button
-            onClick={() => setIsCartOpen(true)}
-            className="relative p-2 rounded-full hover:bg-white/5 transition-colors flex items-center justify-center cursor-pointer"
+      {/* SIDEBAR NAVIGATION - MATCHING SCREENSHOT EXACTLY */}
+      <aside className={`w-14 sm:w-16 md:w-20 flex-shrink-0 flex flex-col items-center py-5 border-r ${isLight ? 'bg-white border-stone-200 shadow-sm' : 'bg-[#121212] border-white/10 shadow-2xl'} z-30 select-none`}>
+        <div className="flex-1 flex flex-col gap-6 overflow-y-auto scrollbar-none py-2 items-center w-full">
+          {/* "ALL" or Category items */}
+          <motion.button
+            whileTap={{ scale: 0.92 }}
+            onClick={() => setSelectedCategory('all')}
+            className="relative group flex flex-col items-center gap-1 cursor-pointer w-full"
           >
-            <ShoppingBag className="w-5.5 h-5.5 text-[#c5a059]" />
-            {cart.length > 0 && (
-              <span className="absolute -top-1 -right-1 bg-[#c5a059] text-black text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center animate-bounce shadow-md">
-                {cart.reduce((sum, item) => sum + item.quantity, 0)}
-              </span>
+            {selectedCategory === 'all' && (
+              <motion.div 
+                layoutId="sidebarActive"
+                className="absolute left-0 top-1/2 -translate-y-1/2 w-1 sm:w-1.5 h-9 rounded-r-full"
+                style={{ backgroundColor: primaryColor, boxShadow: `0 0 12px ${primaryColor}cc` }}
+              />
             )}
-          </button>
-        </div>
-      </header>
-
-      {/* STORE CLOSED BANNER */}
-      {settings.storeStatus?.isOpen === false && (
-        <div className="bg-rose-950/80 border-b border-rose-900 text-rose-200 text-xs py-2 px-4 sticky top-[56px] z-30 shadow-md flex items-center justify-center gap-2">
-          <AlertCircle className="w-4 h-4 shrink-0" />
-          <span className="font-semibold text-center">The store is currently closed. We are not accepting orders right now.</span>
-        </div>
-      )}
-
-      {/* ERROR BANNER FLOATING */}
-      {errorBanner && (
-        <div className={stickyBannerClass}>
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-400" />
-            <span>{errorBanner}</span>
-          </div>
-          <button onClick={() => setErrorBanner(null)}>
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
-
-      {/* 2. DYNAMIC TAB INTERFACES */}
-      <main className="flex-1 max-w-md sm:max-w-lg mx-auto w-full px-3.5 sm:px-4 pt-4">
-        <AnimatePresence mode="wait">
-          {activeTab === 'menu' && (
-            <motion.div 
-              key="menu"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-              className="space-y-4"
+            <div 
+              className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center transition-all duration-300 ${
+                selectedCategory === 'all'
+                  ? 'font-black' 
+                  : isLight ? 'bg-stone-100 text-stone-500 hover:bg-stone-200' : 'bg-white/5 text-white/40 hover:bg-white/10 hover:text-white'
+              }`}
+              style={selectedCategory === 'all' ? { backgroundColor: primaryColor, color: '#000', boxShadow: `0 0 20px ${primaryColor}66` } : undefined}
             >
-              {/* SEARCH PRODUCTS BAR */}
-              <div className="relative">
-                <Search className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 ${isLight ? 'text-stone-400' : 'text-white/35'}`} />
-                <input
-                  type="text"
-                  placeholder="Search products..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className={`w-full pl-10 pr-4 py-2.5 text-sm rounded-2xl border outline-none focus:border-[#c5a059] focus:ring-2 focus:ring-[#c5a059]/20 shadow-inner transition-all ${
-                    isLight 
-                      ? 'bg-white text-stone-900 border-stone-300 placeholder-stone-400 shadow-stone-100' 
-                      : 'bg-[#121212] text-white border-white/10 placeholder-white/35'
-                  }`}
-                />
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery('')}
-                    className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full transition-colors ${
-                      isLight ? 'text-stone-400 hover:text-stone-800 hover:bg-stone-200' : 'text-white/40 hover:text-white hover:bg-white/10'
-                    }`}
-                    aria-label="Clear search"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
+              <Coffee className="w-5 h-5" />
+            </div>
+            <span 
+              className={`text-[8.5px] sm:text-[9.5px] font-black uppercase tracking-[0.2em] [writing-mode:vertical-lr] transition-colors mt-0.5 ${
+                selectedCategory === 'all' ? '' : isLight ? 'text-stone-400' : 'text-white/30'
+              }`}
+              style={selectedCategory === 'all' ? { color: primaryColor } : undefined}
+            >
+              ALL
+            </span>
+          </motion.button>
 
-              {/* BEST SELLER DROPDOWN TOGGLE */}
-              {selectedCategory === 'all' && (
-                <div className="flex items-center justify-end -mt-1">
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setShowBestSellers(!showBestSellers)}
-                    className={`inline-flex items-center gap-1.5 text-xs font-bold cursor-pointer py-1 px-2 rounded-lg transition-colors ${
-                      isLight ? 'text-stone-700 hover:text-stone-900 hover:bg-stone-200/60' : 'text-white/80 hover:text-white hover:bg-white/5'
-                    }`}
-                  >
-                    <Flame className="w-3.5 h-3.5 text-amber-500 fill-amber-500/20" />
-                    <span className={`text-[11px] font-black uppercase tracking-wider ${isLight ? 'text-stone-800' : 'text-white/90'}`}>BEST SELLER</span>
-                    {showBestSellers ? (
-                      <ChevronUp className={`w-3.5 h-3.5 ${isLight ? 'text-stone-500' : 'text-white/50'}`} />
-                    ) : (
-                      <ChevronDown className={`w-3.5 h-3.5 ${isLight ? 'text-stone-500' : 'text-white/50'}`} />
-                    )}
-                  </motion.button>
+          {activeCategories.map((cat) => {
+            const isSelected = selectedCategory === cat.id;
+            // Short category display label for vertical sidebar
+            const shortLabel = cat.name.length > 8 ? cat.name.slice(0, 7) + '..' : cat.name;
+            return (
+              <motion.button
+                key={cat.id}
+                whileTap={{ scale: 0.92 }}
+                onClick={() => setSelectedCategory(cat.id)}
+                className="relative group flex flex-col items-center gap-1 cursor-pointer w-full"
+              >
+                {/* ACTIVE INDICATOR LINE */}
+                {isSelected && (
+                  <motion.div 
+                    layoutId="sidebarActive"
+                    className="absolute left-0 top-1/2 -translate-y-1/2 w-1 sm:w-1.5 h-9 rounded-r-full"
+                    style={{ backgroundColor: primaryColor, boxShadow: `0 0 12px ${primaryColor}cc` }}
+                  />
+                )}
+
+                <div 
+                  className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center transition-all duration-300 ${
+                    isSelected 
+                      ? 'font-black' 
+                      : isLight ? 'bg-stone-100 text-stone-500 hover:bg-stone-200' : 'bg-white/5 text-white/40 hover:bg-white/10 hover:text-white'
+                  }`}
+                  style={isSelected ? { backgroundColor: primaryColor, color: '#000', boxShadow: `0 0 20px ${primaryColor}66` } : undefined}
+                >
+                  <CategoryIcon iconId={cat.icon} categoryName={cat.name} className="w-5 h-5" />
+                </div>
+                
+                {/* VERTICAL TEXT FOR CATEGORY */}
+                <span 
+                  className={`text-[8.5px] sm:text-[9.5px] font-black uppercase tracking-[0.2em] [writing-mode:vertical-lr] transition-colors mt-0.5 ${
+                    isSelected ? '' : isLight ? 'text-stone-400' : 'text-white/30'
+                  }`}
+                  style={isSelected ? { color: primaryColor } : undefined}
+                >
+                  {shortLabel}
+                </span>
+              </motion.button>
+            );
+          })}
+        </div>
+      </aside>
+
+      {/* MAIN CONTENT AREA */}
+      <div className="flex-1 min-h-0 flex flex-col h-full overflow-hidden relative grid-bg">
+        {/* 1. BRAND HEADER (NO BURGER MENU, CLEAN IOS BRAND IDENTITY) */}
+        <header className={`${isLight ? 'bg-white/90 border-stone-200 text-stone-900' : 'bg-[#121212]/95 border-white/10 text-white'} backdrop-blur-xl shrink-0 z-30 px-3 sm:px-6 py-2.5 sm:py-3.5 flex items-center justify-between border-b transition-colors`}>
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1 mr-2">
+            {/* Branding Logo */}
+            <div 
+              className="w-8 h-8 sm:w-10 sm:h-10 rounded-2xl overflow-hidden bg-black/40 border flex items-center justify-center shrink-0"
+              style={{ borderColor: `${primaryColor}66`, boxShadow: `0 0 15px ${primaryColor}33` }}
+            >
+              {settings?.branding?.logoUrl ? (
+                <img 
+                  src={settings.branding.logoUrl} 
+                  alt={settings.branding.shopName} 
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <div 
+                  className="w-full h-full flex items-center justify-center text-black font-serif font-black text-sm sm:text-lg"
+                  style={{ background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)` }}
+                >
+                  {settings?.branding?.shopName?.charAt(0) || 'C'}
                 </div>
               )}
+            </div>
+            
+            {/* Shop Name & Status */}
+            <div className="flex flex-col min-w-0">
+              <h1 className={`text-xs sm:text-base font-black font-serif tracking-widest ${isLight ? 'text-stone-900' : 'text-white'} uppercase truncate`}>
+                {settings?.branding?.shopName || 'CAIDOZ'}
+              </h1>
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${settings?.storeStatus?.isOpen !== false ? 'bg-emerald-400 shadow-[0_0_6px_#34d399] animate-pulse' : 'bg-rose-400'}`} />
+                <span className={`text-[8.5px] sm:text-[9px] font-extrabold ${isLight ? 'text-stone-500' : 'text-white/50'} tracking-wider uppercase truncate`}>
+                  • SYSTEM {settings?.storeStatus?.isOpen !== false ? 'LIVE' : 'OFFLINE'}
+                </span>
+              </div>
+            </div>
+          </div>
 
-              {/* OVERALL BEST SELLERS CAROUSEL / CONTAINER */}
-              <AnimatePresence>
-                {selectedCategory === 'all' && showBestSellers && bestSellerItems.length > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0, scale: 0.98 }}
-                    animate={{ opacity: 1, height: 'auto', scale: 1 }}
-                    exit={{ opacity: 0, height: 0, scale: 0.98 }}
-                    transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-                    className="overflow-hidden"
+          {/* Right Header Actions: Download / Install App + Cart */}
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+            <InstallAppButton />
+
+            <button
+              onClick={() => setIsCartOpen(true)}
+              className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-xl border flex items-center justify-center transition-all cursor-pointer shadow-sm shrink-0"
+              style={{ 
+                backgroundColor: `${primaryColor}15`, 
+                borderColor: `${primaryColor}50`, 
+                color: primaryColor 
+              }}
+              title="Cart Tray"
+            >
+              <ShoppingBag className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+              {cart.length > 0 && (
+                <span 
+                  className="absolute -top-1 -right-1 text-black text-[9px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center shadow-lg"
+                  style={{ backgroundColor: primaryColor, boxShadow: `0 0 10px ${primaryColor}80` }}
+                >
+                  {cartCount}
+                </span>
+              )}
+            </button>
+          </div>
+        </header>
+
+        <main className="flex-1 overflow-y-auto scrollbar-none px-3.5 sm:px-6 py-4 space-y-6 pb-28">
+          <AnimatePresence mode="wait">
+            {activeTab === 'menu' && (
+              <motion.div 
+                key="menu"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="space-y-5 max-w-5xl"
+              >
+                {/* CATEGORY TITLE WITH ACCENT */}
+                <div className="flex items-center gap-2 pt-1">
+                  <div 
+                    className="w-1.5 h-5 rounded-full" 
+                    style={{ backgroundColor: primaryColor, boxShadow: `0 0 8px ${primaryColor}cc` }}
+                  />
+                  <h2 className={`text-base sm:text-lg font-black uppercase tracking-wider ${isLight ? 'text-stone-900' : 'text-white'}`}>
+                    {selectedCategory === 'all' ? 'FULL CATALOG' : (categories.find(c => c.id === selectedCategory)?.name || selectedCategory)}
+                  </h2>
+                </div>
+
+                {/* SEARCH BAR & BEST SELLER DROPDOWN ROW */}
+                <div className="flex items-center gap-3">
+                  <div className="relative flex-1">
+                    <Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 ${isLight ? 'text-stone-400' : 'text-white/30'}`} />
+                    <input
+                      type="text"
+                      placeholder="Search products..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className={`w-full pl-11 pr-4 py-3 ${isLight ? 'bg-white border-stone-200 text-stone-900 placeholder:text-stone-400' : 'bg-[#121212] border-white/10 text-white placeholder:text-white/30'} border rounded-2xl text-xs sm:text-sm outline-none transition-all`}
+                    />
+                    {searchQuery && (
+                      <button 
+                        onClick={() => setSearchQuery('')}
+                        className={`absolute right-3.5 top-1/2 -translate-y-1/2 text-xs ${isLight ? 'text-stone-400 hover:text-stone-700' : 'text-white/40 hover:text-white'} cursor-pointer`}
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={() => setShowBestSellers(!showBestSellers)}
+                    className={`shrink-0 px-3.5 py-3 rounded-2xl ${isLight ? 'bg-white border-stone-200 text-stone-800 hover:text-stone-950' : 'bg-[#121212] border-white/10 text-white/80 hover:text-white'} border text-[11px] font-bold flex items-center gap-1.5 cursor-pointer transition-all`}
+                    style={showBestSellers ? { borderColor: `${primaryColor}80` } : undefined}
                   >
-                    <div className="bg-[#fff9f0] border border-[#f5d9a6] rounded-3xl p-3.5 sm:p-4 shadow-lg space-y-3 relative overflow-hidden">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5">
-                          <div className="w-6 h-6 rounded-lg bg-amber-500/15 flex items-center justify-center text-amber-600">
-                            <Flame className="w-4 h-4 fill-amber-500/20" />
+                    <Flame className="w-3.5 h-3.5" style={{ color: primaryColor }} />
+                    <span className="hidden xs:inline">BEST SELLER</span>
+                    <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showBestSellers ? 'rotate-180' : ''}`} style={showBestSellers ? { color: primaryColor } : undefined} />
+                  </button>
+                </div>
+
+                {/* OVERALL BEST SELLERS SECTION */}
+                {showBestSellers && bestSellerItems.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className={`border ${isLight ? 'border-stone-200 bg-white/70' : 'border-white/10 bg-[#121212]'} backdrop-blur-md rounded-3xl p-3.5 sm:p-4 space-y-3 shadow-xl`}
+                    style={{ borderColor: `${primaryColor}40` }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Flame className="w-4 h-4" style={{ color: primaryColor }} />
+                      <h3 className={`text-xs sm:text-sm font-black tracking-wider uppercase ${isLight ? 'text-stone-900' : 'text-white'}`}>OVERALL BEST SELLERS</h3>
+                    </div>
+
+                    <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
+                      {bestSellerItems.map(({ product: prod, soldCount }) => (
+                        <motion.div
+                          key={prod.id}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => handleOpenCustomize(prod)}
+                          className={`min-w-[240px] sm:min-w-[260px] ${isLight ? 'bg-white border-stone-200 hover:border-stone-400' : 'bg-[#18181b] border-white/5 hover:bg-[#202024] hover:border-white/20'} border rounded-2xl p-2.5 sm:p-3 flex gap-3 items-center cursor-pointer transition-all shadow-md group`}
+                        >
+                          <div className="relative w-18 h-18 sm:w-20 sm:h-20 rounded-xl overflow-hidden shrink-0 bg-black/40 border border-white/5">
+                            <img 
+                              src={prod.image || 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&q=80&w=300'} 
+                              alt={prod.name} 
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                              referrerPolicy="no-referrer"
+                            />
+                            <div 
+                              className="absolute top-1.5 left-1.5 text-[7.5px] font-black px-1.5 py-0.5 rounded-full flex items-center gap-0.5 shadow-md"
+                              style={{ backgroundColor: primaryColor, color: '#000' }}
+                            >
+                              <Flame size={7} /> {soldCount} sold
+                            </div>
                           </div>
-                          <h3 className="font-black text-xs sm:text-sm text-stone-900 tracking-wider uppercase">
-                            OVERALL BEST SELLERS
-                          </h3>
-                        </div>
-                      </div>
-
-                      {/* BEST SELLER CARDS LIST */}
-                      <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none touch-pan-x">
-                        {bestSellerItems.map(({ product: prod, soldCount }) => (
-                          <motion.div
-                            key={prod.id}
-                            whileHover={{ y: -3 }}
-                            whileTap={{ scale: 0.97 }}
-                            onClick={() => handleOpenCustomize(prod)}
-                            className="bg-white rounded-2xl p-2.5 sm:p-3 border border-[#f5e6d0] shadow-sm hover:shadow-md hover:border-[#e8caa3] transition-shadow flex gap-3 items-center relative min-w-[245px] sm:min-w-[260px] max-w-[280px] shrink-0 cursor-pointer group select-none"
-                          >
-                            {/* PRODUCT THUMBNAIL WITH FLAME SOLD BADGE */}
-                            <div className="relative w-20 h-20 sm:w-22 sm:h-22 rounded-xl overflow-hidden bg-stone-100 shrink-0 border border-stone-100">
-                              <img
-                                src={prod.image || 'https://images.unsplash.com/photo-1541658016709-82535e94bc69?auto=format&fit=crop&q=80&w=400'}
-                                alt={prod.name}
-                                referrerPolicy="no-referrer"
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                              />
-                              <div className="absolute top-1.5 left-1.5 bg-[#ff5722] text-white text-[9px] font-black px-1.5 py-0.5 rounded-md flex items-center gap-1 shadow-sm">
-                                <Flame className="w-2.5 h-2.5 fill-white/30" />
-                                <span>{soldCount} sold</span>
-                              </div>
+                          <div className="flex-1 flex flex-col justify-between min-w-0 py-0.5">
+                            <div>
+                              <span className="text-[8px] font-black uppercase tracking-widest block" style={{ color: primaryColor }}>BEST SELLER</span>
+                              <h4 className={`text-xs sm:text-sm font-bold truncate ${isLight ? 'text-stone-900' : 'text-white'}`}>{prod.name}</h4>
+                              <p className={`text-[9px] uppercase truncate ${isLight ? 'text-stone-500' : 'text-white/40'}`}>{prod.category}</p>
                             </div>
-
-                            {/* DETAILS & + ADD BUTTON */}
-                            <div className="flex-1 min-w-0 flex flex-col justify-between self-stretch py-0.5">
-                              <div>
-                                <span className="text-[9px] font-black text-amber-600 tracking-wider uppercase block">
-                                  BEST SELLER
-                                </span>
-                                <h4 className="font-extrabold text-sm text-stone-900 truncate leading-snug mt-0.5">
-                                  {prod.name}
-                                </h4>
-                                <p className="text-[10px] font-bold text-stone-400 uppercase tracking-wider mt-0.5">
-                                  {prod.category}
-                                </p>
-                              </div>
-
-                              <div className="flex items-center justify-between mt-2 pt-1 border-t border-stone-100">
-                                <span className="text-sm sm:text-base font-black text-[#c5a059]">
-                                  ₱{prod.price}
-                                </span>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleOpenCustomize(prod);
-                                  }}
-                                  className="bg-[#fff1e0] hover:bg-[#ffe3c2] active:scale-95 text-[#d97706] font-black text-xs px-3 py-1 rounded-full border border-[#fbd38d]/70 transition-all flex items-center gap-1 shadow-xs cursor-pointer"
-                                >
-                                  + ADD
-                                </button>
-                              </div>
+                            <div className="flex items-center justify-between mt-1">
+                              <span className="text-sm sm:text-base font-black" style={{ color: primaryColor }}>₱{prod.price}</span>
+                              <span 
+                                className="text-[9px] font-extrabold px-2 py-1 rounded-lg border transition-all"
+                                style={{ 
+                                  backgroundColor: `${primaryColor}15`, 
+                                  borderColor: `${primaryColor}40`, 
+                                  color: primaryColor 
+                                }}
+                              >
+                                + ADD
+                              </span>
                             </div>
-                          </motion.div>
-                        ))}
-                      </div>
+                          </div>
+                        </motion.div>
+                      ))}
                     </div>
                   </motion.div>
                 )}
-              </AnimatePresence>
 
-              {/* CATEGORY BAR */}
-              <div className="flex gap-2 overflow-x-auto pb-1 -mx-3.5 sm:-mx-4 px-3.5 sm:px-4 scrollbar-none items-center">
-                <motion.button
-                  whileTap={{ scale: 0.94 }}
-                  onClick={() => setSelectedCategory('all')}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
-                    selectedCategory === 'all'
-                      ? 'bg-[#c5a059] text-black shadow-[0_0_8px_rgba(197,160,89,0.3)] font-bold'
-                      : isLight
-                        ? 'bg-white border border-stone-300 text-stone-700 hover:text-stone-900 shadow-xs'
-                        : 'bg-[#121212] border border-white/10 text-white/70 hover:text-white'
-                  }`}
-                >
-                  <Layers className="w-3.5 h-3.5" />
-                  <span>All Menu</span>
-                </motion.button>
-                {categories.filter(c => c.active !== false).map(cat => (
-                  <motion.button
-                    whileTap={{ scale: 0.94 }}
-                    key={cat.id}
-                    onClick={() => setSelectedCategory(cat.id)}
-                    className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
-                      selectedCategory === cat.id
-                        ? 'bg-[#c5a059] text-black shadow-[0_0_8px_rgba(197,160,89,0.3)] font-bold'
-                        : isLight
-                          ? 'bg-white border border-stone-300 text-stone-700 hover:text-stone-900 shadow-xs'
-                          : 'bg-[#121212] border border-white/10 text-white/70 hover:text-white'
-                    }`}
-                  >
-                    <CategoryIcon iconId={cat.icon} categoryName={cat.name} className="w-3.5 h-3.5 shrink-0" />
-                    <span>{cat.name}</span>
-                  </motion.button>
-                ))}
-              </div>
-
-              {/* PROMOTION CARD HERO */}
-              {selectedCategory === 'all' && (
-                <motion.div 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className={`rounded-2xl p-4 border shadow-lg relative overflow-hidden text-white ${
-                    isLight 
-                      ? 'bg-gradient-to-br from-amber-950 via-stone-900 to-amber-900 border-amber-900/30' 
-                      : 'bg-gradient-to-br from-[#121212] to-[#080808] border-white/10'
-                  }`}
-                >
-                  <div className="relative z-10 space-y-1.5 max-w-[65%]">
-                    <span className="bg-[#c5a059]/20 text-[#c5a059] border border-[#c5a059]/30 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider inline-flex items-center gap-1">
-                      <Tag className="w-2.5 h-2.5" />
-                      <span>Exclusive Promo</span>
-                    </span>
-                    <h3 className="text-base font-bold font-serif leading-tight text-white tracking-wide">Welcome to SHASZNAIR CAFE</h3>
-                    <p className="text-xs text-white/75">Apply voucher <strong className="text-[#c5a059]">WELCOME10</strong> on your checkout for 10% off!</p>
-                  </div>
-                  <Coffee className="absolute -right-2 -bottom-2 w-28 h-28 stroke-[1] select-none opacity-10 text-[#c5a059] pointer-events-none" />
-                </motion.div>
-              )}
-
-              {/* PRODUCT CARD LIST - SQUARE GRID */}
-              <div className="space-y-8 pb-12">
-                
-                {/* Loop Categories */}
-                {(() => {
-                  const activeCats = categories.filter(c => c.active !== false);
-                  
-                  // If a specific category is selected, just show that single category section
-                  const renderedCats = selectedCategory === 'all' 
-                    ? activeCats 
-                    : activeCats.filter(c => c.id === selectedCategory);
-                    
-                  // Gather products that don't match any active category
-                  const uncategorized = filteredProducts.filter(p => {
-                    return !activeCats.some(cat => {
+                {/* PRODUCT GRID - 2 COLUMNS ON MOBILE MATCHING SCREENSHOT */}
+                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 pb-12">
+                  {activeCategories.map(cat => {
+                    const catProducts = filteredProducts.filter(p => {
                       const pCat = (p.category || '').toLowerCase().trim();
-                      const cId = (cat.id || '').toLowerCase().trim();
-                      const cName = (cat.name || '').toLowerCase().trim();
-                      return pCat === cId || pCat === cName;
+                      return pCat === cat.id.toLowerCase() || pCat === cat.name.toLowerCase();
                     });
-                  });
+                    
+                    if (catProducts.length === 0 || (selectedCategory !== 'all' && selectedCategory !== cat.id)) return null;
 
-                  // We check if we have any matching products inside selected categories
-                  const totalMatchedCount = renderedCats.reduce((sum, cat) => {
-                    const countForCat = filteredProducts.filter(p => {
-                      const pCat = (p.category || '').toLowerCase().trim();
-                      const cId = (cat.id || '').toLowerCase().trim();
-                      const cName = (cat.name || '').toLowerCase().trim();
-                      return pCat === cId || pCat === cName;
-                    }).length;
-                    return sum + countForCat;
-                  }, 0);
-
-                  if (totalMatchedCount === 0 && uncategorized.length === 0) {
-                    return (
-                      <div className={`rounded-2xl p-8 border text-center space-y-2 ${isLight ? 'bg-white border-stone-200 text-stone-700 shadow-sm' : 'bg-[#121212] border-white/10 text-white/50'}`}>
-                        <p className={`text-sm font-bold ${isLight ? 'text-stone-900' : 'text-white'}`}>No results found matching your selection.</p>
-                        <p className={`text-xs ${isLight ? 'text-stone-500' : 'text-white/30'}`}>Try adjusting your search filters.</p>
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <>
-                      {renderedCats.map(cat => {
-                        const catProducts = filteredProducts.filter(p => {
-                          const pCat = (p.category || '').toLowerCase().trim();
-                          const cId = (cat.id || '').toLowerCase().trim();
-                          const cName = (cat.name || '').toLowerCase().trim();
-                          return pCat === cId || pCat === cName;
-                        });
-
-                        if (catProducts.length === 0) {
-                          if (selectedCategory === cat.id) {
-                            return (
-                              <div key={cat.id} className={`rounded-2xl p-8 border text-center space-y-2 ${isLight ? 'bg-white border-stone-200 text-stone-700 shadow-sm' : 'bg-[#121212] border-white/10 text-white/50'}`}>
-                                <p className={`text-sm font-bold ${isLight ? 'text-stone-900' : 'text-white'}`}>No products found in "{cat.name}".</p>
-                              </div>
-                            );
-                          }
-                          return null;
-                        }
-
-                        return (
-                          <div key={cat.id} className="space-y-3">
-                            <div className="flex items-center justify-between border-b pb-1.5 px-1 border-stone-200/50 dark:border-white/5">
-                              <div className="flex items-center gap-1.5">
-                                <CategoryIcon iconId={cat.icon} categoryName={cat.name} className="w-3.5 h-3.5 text-[#c5a059]" />
-                                <h3 className={`text-xs font-black uppercase tracking-widest ${isLight ? 'text-stone-800' : 'text-white/90'}`}>
-                                  {cat.name}
-                                </h3>
-                              </div>
-                              <span className={`text-[9px] font-mono font-medium ${isLight ? 'text-stone-500' : 'text-white/40'}`}>
-                                {catProducts.length} {catProducts.length === 1 ? 'item' : 'items'}
-                              </span>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-2.5 sm:gap-3.5">
-                              {catProducts.map(prod => {
-                                const isOutOfStock = prod.stockTracking && prod.stockQuantity === 0;
-                                const isLowStock = prod.stockTracking && prod.stockQuantity <= 10 && prod.stockQuantity > 0;
-                                const prodCat = categories.find(c => c.id === prod.category)?.name || prod.category;
-
-                                return (
-                                  <motion.div
-                                    key={prod.id}
-                                    whileHover={{ y: -2 }}
-                                    whileTap={{ scale: 0.98 }}
-                                    onClick={() => !isOutOfStock && handleOpenCustomize(prod)}
-                                    className={`rounded-2xl border transition-all flex flex-col justify-between overflow-hidden relative group select-none cursor-pointer ${
-                                      isLight 
-                                        ? 'bg-white border-stone-200/90 shadow-sm hover:shadow-md hover:border-[#c5a059]' 
-                                        : 'bg-[#121212] border-white/10 shadow-md hover:border-[#c5a059]/40'
-                                    } ${
-                                      isOutOfStock ? 'opacity-70 cursor-not-allowed border-rose-500/30' : ''
-                                    }`}
-                                  >
-                                    {/* Square Thumbnail */}
-                                    <div className={`w-full aspect-square relative overflow-hidden border-b ${isLight ? 'bg-stone-100 border-stone-200' : 'bg-[#080808] border-white/5'}`}>
-                                      <img
-                                        src={prod.image || 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&q=80&w=300'}
-                                        alt={prod.name}
-                                        referrerPolicy="no-referrer"
-                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                      />
-
-                                      {/* Status Overlay / Badge */}
-                                      {isOutOfStock ? (
-                                        <div className="absolute inset-0 bg-black/65 backdrop-blur-[1px] flex items-center justify-center">
-                                          <span className="bg-rose-600 text-white font-extrabold text-[8px] px-2 py-0.5 rounded-full uppercase tracking-wider shadow">
-                                            Sold Out
-                                          </span>
-                                        </div>
-                                      ) : isLowStock ? (
-                                        <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded bg-amber-500 text-black font-extrabold text-[8px] uppercase tracking-wider shadow">
-                                          {prod.stockQuantity} left
-                                        </span>
-                                      ) : null}
-                                    </div>
-
-                                    {/* Product Details & Actions */}
-                                    <div className="p-2.5 flex-1 flex flex-col justify-between space-y-2">
-                                      <div className="space-y-0.5">
-                                        <h3 className={`font-bold text-xs truncate leading-tight ${isLight ? 'text-stone-900' : 'text-white'}`} title={prod.name}>
-                                          {prod.name}
-                                        </h3>
-                                        {prod.description && (
-                                          <p className={`text-[10px] line-clamp-1 leading-snug ${isLight ? 'text-stone-600' : 'text-white/50'}`}>
-                                            {prod.description}
-                                          </p>
-                                        )}
-                                      </div>
-
-                                      <div className={`flex items-center justify-between pt-1 border-t ${isLight ? 'border-stone-200' : 'border-white/5'}`}>
-                                        <span className="text-xs sm:text-sm font-extrabold text-[#c5a059]">
-                                          ₱{prod.price}
-                                        </span>
-
-                                        <button
-                                          type="button"
-                                          disabled={isOutOfStock}
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            if (!isOutOfStock) handleOpenCustomize(prod);
-                                          }}
-                                          className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition-all flex items-center gap-1 shadow-sm cursor-pointer active:scale-95 ${
-                                            isOutOfStock 
-                                              ? isLight ? 'bg-stone-200 text-stone-400 cursor-not-allowed' : 'bg-white/5 text-white/30 cursor-not-allowed'
-                                              : 'bg-[#c5a059] text-black hover:bg-[#b08c47]'
-                                          }`}
-                                        >
-                                          <Plus size={11} className="stroke-[3]" />
-                                          <span>Add</span>
-                                        </button>
-                                      </div>
-                                    </div>
-                                  </motion.div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        );
-                      })}
-
-                      {/* Render Uncategorized items if any and selectedCategory is all */}
-                      {selectedCategory === 'all' && uncategorized.length > 0 && (
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between border-b pb-1.5 px-1 border-stone-200/50 dark:border-white/5">
-                            <div className="flex items-center gap-1.5">
-                              <Sparkles className="w-3.5 h-3.5 text-[#c5a059]" />
-                              <h3 className={`text-xs font-black uppercase tracking-widest ${isLight ? 'text-stone-800' : 'text-white/90'}`}>
-                                Other Creations
-                              </h3>
-                            </div>
-                            <span className={`text-[9px] font-mono font-medium ${isLight ? 'text-stone-500' : 'text-white/40'}`}>
-                              {uncategorized.length} {uncategorized.length === 1 ? 'item' : 'items'}
-                            </span>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-2.5 sm:gap-3.5">
-                            {uncategorized.map(prod => {
-                              const isOutOfStock = prod.stockTracking && prod.stockQuantity === 0;
-                              const isLowStock = prod.stockTracking && prod.stockQuantity <= 10 && prod.stockQuantity > 0;
-
-                              return (
-                                  <motion.div
-                                    key={prod.id}
-                                    whileHover={{ y: -2 }}
-                                    whileTap={{ scale: 0.98 }}
-                                    onClick={() => !isOutOfStock && handleOpenCustomize(prod)}
-                                    className={`rounded-2xl border transition-all flex flex-col justify-between overflow-hidden relative group select-none cursor-pointer ${
-                                      isLight 
-                                        ? 'bg-white border-stone-200/90 shadow-sm hover:shadow-md hover:border-[#c5a059]' 
-                                        : 'bg-[#121212] border-white/10 shadow-md hover:border-[#c5a059]/40'
-                                    } ${
-                                      isOutOfStock ? 'opacity-70 cursor-not-allowed border-rose-500/30' : ''
-                                    }`}
-                                  >
-                                    {/* Square Thumbnail */}
-                                    <div className={`w-full aspect-square relative overflow-hidden border-b ${isLight ? 'bg-stone-100 border-stone-200' : 'bg-[#080808] border-white/5'}`}>
-                                      <img
-                                        src={prod.image || 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&q=80&w=300'}
-                                        alt={prod.name}
-                                        referrerPolicy="no-referrer"
-                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                      />
-
-                                      {/* Status Overlay / Badge */}
-                                      {isOutOfStock ? (
-                                        <div className="absolute inset-0 bg-black/65 backdrop-blur-[1px] flex items-center justify-center">
-                                          <span className="bg-rose-600 text-white font-extrabold text-[8px] px-2 py-0.5 rounded-full uppercase tracking-wider shadow">
-                                            Sold Out
-                                          </span>
-                                        </div>
-                                      ) : isLowStock ? (
-                                        <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded bg-amber-500 text-black font-extrabold text-[8px] uppercase tracking-wider shadow">
-                                          {prod.stockQuantity} left
-                                        </span>
-                                      ) : null}
-                                    </div>
-
-                                    {/* Product Details & Actions */}
-                                    <div className="p-2.5 flex-1 flex flex-col justify-between space-y-2">
-                                      <div className="space-y-0.5">
-                                        <h3 className={`font-bold text-xs truncate leading-tight ${isLight ? 'text-stone-900' : 'text-white'}`} title={prod.name}>
-                                          {prod.name}
-                                        </h3>
-                                        {prod.description && (
-                                          <p className={`text-[10px] line-clamp-1 leading-snug ${isLight ? 'text-stone-600' : 'text-white/50'}`}>
-                                            {prod.description}
-                                          </p>
-                                        )}
-                                      </div>
-
-                                      <div className={`flex items-center justify-between pt-1 border-t ${isLight ? 'border-stone-200' : 'border-white/5'}`}>
-                                        <span className="text-xs sm:text-sm font-extrabold text-[#c5a059]">
-                                          ₱{prod.price}
-                                        </span>
-
-                                        <button
-                                          type="button"
-                                          disabled={isOutOfStock}
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            if (!isOutOfStock) handleOpenCustomize(prod);
-                                          }}
-                                          className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition-all flex items-center gap-1 shadow-sm cursor-pointer active:scale-95 ${
-                                            isOutOfStock 
-                                              ? isLight ? 'bg-stone-200 text-stone-400 cursor-not-allowed' : 'bg-white/5 text-white/30 cursor-not-allowed'
-                                              : 'bg-[#c5a059] text-black hover:bg-[#b08c47]'
-                                          }`}
-                                        >
-                                          <Plus size={11} className="stroke-[3]" />
-                                          <span>Add</span>
-                                        </button>
-                                      </div>
-                                    </div>
-                                  </motion.div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  );
-                })()}
-              </div>
-            </motion.div>
-          )}
-
-          {activeTab === 'orders' && (
-            <motion.div 
-              key="orders"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-              className="space-y-4 pb-8"
-            >
-              <h2 className={`text-base font-bold font-serif tracking-wide ${isLight ? 'text-stone-900' : 'text-white'}`}>Order History & Tracking</h2>
-
-              {customerOrders.length === 0 ? (
-                <div className={`rounded-2xl p-8 border text-center space-y-3 shadow-md ${isLight ? 'bg-white border-stone-200 text-stone-600' : 'bg-[#121212] border-white/10 text-white/50'}`}>
-                  <div className="w-12 h-12 bg-[#c5a059]/10 text-[#c5a059] rounded-2xl flex items-center justify-center mx-auto border border-[#c5a059]/20 shadow-inner">
-                    <ReceiptText className="w-6 h-6" />
-                  </div>
-                  <div className="space-y-1">
-                    <p className={`text-sm font-bold ${isLight ? 'text-stone-900' : 'text-white'}`}>No orders placed yet</p>
-                    <p className={`text-xs ${isLight ? 'text-stone-500' : 'text-white/40'}`}>Head over to the menu to order your first brew!</p>
-                  </div>
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setActiveTab('menu')}
-                    className="bg-[#c5a059] hover:bg-[#b08c47] text-black text-xs font-bold px-4 py-2 rounded-xl transition-colors cursor-pointer inline-flex items-center gap-1.5 shadow-sm"
-                  >
-                    <Coffee className="w-3.5 h-3.5" />
-                    <span>Browse Menu</span>
-                  </motion.button>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {customerOrders.map(ord => {
-                    const isActive = ['pending', 'preparing', 'ready'].includes(ord.orderStatus);
-                    return (
+                    return catProducts.map(prod => (
                       <motion.div
-                        key={ord.id}
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className={`rounded-xl p-4 border shadow-md space-y-3 ${
-                          isLight ? 'bg-white' : 'bg-[#121212]'
-                        } ${
-                          isActive ? 'border-[#c5a059]/60 ring-1 ring-[#c5a059]/20' : isLight ? 'border-stone-200' : 'border-white/10'
-                        }`}
+                        key={prod.id}
+                        initial={{ opacity: 0, y: 15 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => handleOpenCustomize(prod)}
+                        className={`${isLight ? 'bg-white border-stone-200 hover:bg-stone-50' : 'bg-[#121212] border-white/5 hover:bg-[#18181b]'} border rounded-2xl sm:rounded-3xl p-2.5 sm:p-3 flex flex-col justify-between group cursor-pointer transition-all shadow-xl`}
                       >
-                        <div className={`flex justify-between items-start text-xs pb-2 border-b ${isLight ? 'border-stone-100' : 'border-white/5'}`}>
-                          <div>
-                            <div className="flex items-center gap-1.5">
-                              <p className={`font-mono font-semibold ${isLight ? 'text-stone-700' : 'text-white/50'}`}>{ord.orderNumber}</p>
-                              <span className={`inline-flex items-center gap-0.5 text-[8px] font-bold px-1.5 py-0.5 rounded ${
-                                ord.orderSource === 'pos' ? 'bg-blue-950/70 text-blue-300 border border-blue-800/40' : 'bg-purple-950/70 text-purple-300 border border-purple-800/40'
-                              }`}>
-                                {ord.orderSource === 'pos' ? <Store className="w-2.5 h-2.5" /> : <Smartphone className="w-2.5 h-2.5" />}
-                                {ord.orderSource === 'pos' ? 'POS Counter' : 'Online App'}
-                              </span>
-                            </div>
-                            <p className={`${isLight ? 'text-stone-500' : 'text-white/30'} mt-0.5 text-[10px]`}>
-                              {ord.createdAt instanceof Date ? ord.createdAt.toLocaleString() : 'Just now'}
+                        <div>
+                          {/* Product Image Box */}
+                          <div className="relative aspect-[4/3] sm:aspect-square rounded-xl sm:rounded-2xl overflow-hidden bg-black/40 border border-white/5 mb-2.5">
+                            <img 
+                              src={prod.image || 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&q=80&w=400'} 
+                              alt={prod.name} 
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                              referrerPolicy="no-referrer"
+                            />
+                            {/* BEST SELLER / HOT BADGE */}
+                            {bestSellerItems.some(item => item.product.id === prod.id) && (
+                              <div 
+                                className="absolute bottom-2 left-2 flex items-center gap-1 text-[7.5px] sm:text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shadow-md"
+                                style={{ backgroundColor: primaryColor, color: '#000' }}
+                              >
+                                <Flame size={8} fill="currentColor" /> BEST SELLER
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Product Information */}
+                          <div className="space-y-1 px-1">
+                            <h4 className={`text-xs sm:text-sm font-bold leading-tight line-clamp-1 transition-colors ${isLight ? 'text-stone-900 group-hover:text-[var(--color-primary)]' : 'text-white group-hover:text-[var(--color-primary)]'}`}>
+                              {prod.name}
+                            </h4>
+                            <p className={`text-[9.5px] sm:text-[11px] line-clamp-2 leading-snug ${isLight ? 'text-stone-500' : 'text-white/40'}`}>
+                              {prod.description || `${prod.name} freshly brewed with signature recipe`}
                             </p>
                           </div>
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                            ord.orderStatus === 'completed' ? 'bg-emerald-950 text-emerald-300 border border-emerald-900/30' :
-                            ord.orderStatus === 'cancelled' ? 'bg-rose-950 text-rose-300 border border-rose-900/30' :
-                            ord.orderStatus === 'ready' ? 'bg-indigo-950 text-indigo-300 border border-indigo-900/30 animate-pulse' :
-                            ord.orderStatus === 'preparing' ? 'bg-amber-950 text-amber-300 border border-amber-900/30' :
-                            isLight ? 'bg-stone-100 text-stone-800 border border-stone-300' : 'bg-white/5 text-white/70 border border-white/10'
-                          }`}>
-                            {ord.orderStatus}
-                          </span>
                         </div>
 
-                        {/* Item summaries */}
-                        <div className={`text-xs space-y-2 max-h-32 overflow-y-auto pr-2 ${isLight ? 'text-stone-800' : 'text-white/80'}`}>
-                          {ord.items.map((it, idx) => (
-                            <div key={idx} className="flex flex-col">
-                              <div className="flex justify-between">
-                                <span className={`font-medium ${isLight ? 'text-stone-900' : 'text-white/90'}`}>{it.quantity}x {it.name} <span className={isLight ? 'text-stone-500' : 'text-white/40'}>({it.selectedSize})</span></span>
-                                <span className="text-[#c5a059] font-bold">₱{it.price * it.quantity}</span>
-                              </div>
-                              {it.selectedAddOns && it.selectedAddOns.length > 0 && (
-                                <span className={`text-[10px] pl-4 mt-0.5 ${isLight ? 'text-stone-600' : 'text-white/40'}`}>+ {it.selectedAddOns.join(', ')}</span>
-                              )}
-                              {it.notes && (
-                                <span className={`text-[10px] pl-4 italic mt-0.5 ${isLight ? 'text-stone-500' : 'text-white/30'}`}>"{it.notes}"</span>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-
-                        {/* Status Tracker step indicators if order is active */}
-                        {isActive && (
-                          <div className={`rounded-lg p-2.5 space-y-2 border ${isLight ? 'bg-amber-50/70 border-amber-200' : 'bg-[#080808] border-white/5'}`}>
-                            <p className="text-[10px] font-bold uppercase text-amber-800 flex items-center gap-1">
-                              <Clock className="w-3 h-3 animate-spin text-amber-700" /> Live Order Status Progress
-                            </p>
-                            <div className="grid grid-cols-4 gap-1 relative pt-2">
-                              {/* Lines connecting steps */}
-                              <div className={`absolute top-4 left-[12%] right-[12%] h-0.5 z-0 ${isLight ? 'bg-stone-300' : 'bg-white/10'}`}>
-                                <div 
-                                  className="h-full bg-[#c5a059] transition-all duration-500 shadow-[0_0_8px_rgba(197,160,89,0.5)]" 
-                                  style={{
-                                    width: ord.orderStatus === 'ready' ? '100%' :
-                                           ord.orderStatus === 'preparing' ? '66%' :
-                                           ord.orderStatus === 'pending' ? '33%' : '0%'
-                                  }}
-                                />
-                              </div>
-
-                              {['Submitted', 'Confirmed', 'Preparing', 'Ready'].map((step, idx) => {
-                                const stepMap: Record<OrderStatus, number> = {
-                                  pending: 1,
-                                  preparing: 2,
-                                  ready: 3,
-                                  completed: 4,
-                                  cancelled: 0
-                                };
-                                const currentStep = stepMap[ord.orderStatus];
-                                const isPastOrCurrent = (idx + 1) <= currentStep;
-                                
-                                return (
-                                  <div key={step} className="flex flex-col items-center z-10">
-                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold transition-colors ${
-                                      isPastOrCurrent 
-                                        ? 'bg-[#c5a059] text-black shadow' 
-                                        : isLight ? 'bg-stone-200 text-stone-500' : 'bg-white/10 text-white/40'
-                                    }`}>
-                                      {isPastOrCurrent ? '✓' : idx + 1}
-                                    </div>
-                                    <span className={`text-[9px] mt-1 font-semibold ${
-                                      isPastOrCurrent ? 'text-amber-800 font-bold' : isLight ? 'text-stone-500' : 'text-white/30'
-                                    }`}>{step}</span>
-                                  </div>
-                                );
-                              })}
-                            </div>
+                        {/* Price & Action Row */}
+                        <div className={`pt-3 px-1 flex items-center justify-between border-t ${isLight ? 'border-stone-100' : 'border-white/5'} mt-2`}>
+                          <div className="flex flex-col">
+                            <span className={`text-[8px] sm:text-[9px] font-black uppercase tracking-widest leading-none ${isLight ? 'text-stone-400' : 'text-white/30'}`}>PRICE</span>
+                            <span className="text-sm sm:text-base font-black mt-0.5" style={{ color: primaryColor }}>₱{prod.price}</span>
                           </div>
-                        )}
-
-                        <div className="flex justify-between items-center text-xs pt-1">
-                          <div>
-                            <p className={`${isLight ? 'text-stone-500' : 'text-white/40'} text-[10px]`}>Total Charged</p>
-                            <p className="text-sm font-extrabold text-[#c5a059]">₱{ord.total}</p>
-                          </div>
-                          <motion.button
-                            whileTap={{ scale: 0.94 }}
-                            onClick={() => setSelectedOrderDetails(ord)}
-                            className={`px-3 py-1 rounded text-xs font-semibold flex items-center gap-1 cursor-pointer border transition-all ${
-                              isLight 
-                                ? 'bg-stone-100 hover:bg-stone-200 border-stone-300 text-stone-800' 
-                                : 'bg-white/5 hover:border-[#c5a059] border-white/10 text-white/80 hover:text-white'
-                            }`}
+                          <button 
+                            className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full border flex items-center justify-center transition-all shadow-md ${isLight ? 'bg-stone-100 border-stone-200 text-stone-700 group-hover:bg-[var(--color-primary)] group-hover:text-black group-hover:border-[var(--color-primary)]' : 'bg-white/5 border-white/10 text-white/60 group-hover:bg-[var(--color-primary)] group-hover:text-black group-hover:border-[var(--color-primary)]'}`}
                           >
-                            <Eye className="w-3.5 h-3.5" /> Details
-                          </motion.button>
+                            <Plus size={14} className="stroke-[2.5]" />
+                          </button>
                         </div>
                       </motion.div>
-                    );
+                    ));
                   })}
                 </div>
-              )}
-            </motion.div>
-          )}
+              </motion.div>
+            )}
+            
+            {/* OTHER TABS (Orders, Profile) */}
+            {activeTab === 'orders' && (
+              <motion.div 
+                key="orders"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                className="space-y-4 pb-12"
+              >
+                <div className="flex items-center justify-between">
+                  <h2 className={`text-base font-bold font-serif tracking-wide ${isLight ? 'text-stone-900' : 'text-white'}`}>Order History & Tracking</h2>
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Real-time Sync</span>
+                  </div>
+                </div>
 
-          {activeTab === 'profile' && (
-            <motion.div 
-              key="profile"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-              className="space-y-4 pb-12"
-            >
-              <div className="flex items-center justify-between">
-                <h2 className={`text-base font-bold font-serif tracking-wide ${isLight ? 'text-stone-900' : 'text-white'}`}>Customer Account Profile</h2>
-                <button
-                  onClick={handleOpenEditProfile}
-                  className="px-3 py-1.5 rounded-xl bg-[#c5a059]/15 border border-[#c5a059]/30 text-[#c5a059] hover:bg-[#c5a059]/25 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 shadow-xs"
-                >
-                  <Edit2 className="w-3.5 h-3.5" />
-                  <span>Edit Profile</span>
-                </button>
-              </div>
-
-              {/* PROFILE CARD */}
-              <div className={`rounded-2xl p-5 border shadow-lg space-y-4 text-center ${isLight ? 'bg-white border-stone-200' : 'bg-[#121212] border-white/10'}`}>
-                {/* AVATAR & HEADER */}
-                <div className="flex flex-col items-center gap-2">
-                  <div className="relative group">
-                    <div className={`w-20 h-20 rounded-full overflow-hidden border-2 border-[#c5a059]/50 shadow-md flex items-center justify-center ${isLight ? 'bg-stone-100' : 'bg-[#080808]'}`}>
-                      {currentUser?.avatar || currentUser?.photoURL ? (
-                        <img 
-                          src={currentUser.avatar || currentUser.photoURL} 
-                          alt={currentUser.name || 'User Profile'} 
-                          referrerPolicy="no-referrer"
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className={`w-full h-full flex items-center justify-center font-serif text-2xl font-black ${isLight ? 'bg-stone-100 text-[#c5a059]' : 'bg-[#1c1c1c] text-[#c5a059]'}`}>
-                          {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : <User className="w-8 h-8 opacity-60" />}
-                        </div>
-                      )}
+                {customerOrders.length === 0 ? (
+                  <div className={`rounded-2xl p-8 border text-center space-y-3 shadow-md ${isLight ? 'bg-white border-stone-200 text-stone-600' : 'bg-[#121212] border-white/10 text-white/50'}`}>
+                    <div className="w-12 h-12 bg-[#c5a059]/10 text-[#c5a059] rounded-2xl flex items-center justify-center mx-auto border border-[#c5a059]/20 shadow-inner">
+                      <ReceiptText className="w-6 h-6" />
                     </div>
-                    <button
-                      onClick={handleOpenEditProfile}
-                      className={`absolute bottom-0 right-0 w-7 h-7 rounded-full bg-[#c5a059] text-black border-2 flex items-center justify-center shadow hover:bg-[#b08c47] transition-all cursor-pointer ${isLight ? 'border-white' : 'border-[#121212]'}`}
-                      title="Change Profile Photo"
-                      aria-label="Change Profile Photo"
+                    <div className="space-y-1">
+                      <p className={`text-sm font-bold ${isLight ? 'text-stone-900' : 'text-white'}`}>No orders placed yet</p>
+                      <p className={`text-xs ${isLight ? 'text-stone-500' : 'text-white/40'}`}>Head over to the menu to order your first brew!</p>
+                    </div>
+                    <motion.button
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => setActiveTab('menu')}
+                      className="bg-[#c5a059] hover:bg-[#b08c47] text-black text-xs font-bold px-4 py-2 rounded-xl transition-colors cursor-pointer inline-flex items-center gap-1.5 shadow-sm"
                     >
-                      <Camera className="w-3.5 h-3.5" />
-                    </button>
+                      <Coffee className="w-3.5 h-3.5" />
+                      <span>Browse Menu</span>
+                    </motion.button>
                   </div>
-
-                  <div className="space-y-0.5">
-                    <h3 className={`text-base font-bold tracking-wide leading-tight ${isLight ? 'text-stone-900' : 'text-white'}`}>
-                      {currentUser?.name || currentUser?.displayName || "Guest Customer"}
-                    </h3>
-                    <p className="text-xs text-[#c5a059] font-medium">{currentUser?.email}</p>
-                  </div>
-                </div>
-
-                {/* COMPACT DIGITAL LOYALTY PASS (QR CODE) */}
-                <div className={`p-3.5 rounded-xl border space-y-2 flex flex-col items-center ${isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#080808] border-white/5'}`}>
-                  <div className="flex items-center gap-1.5 text-[9.5px] font-bold uppercase text-amber-800 tracking-widest">
-                    <ShieldCheck className="w-3.5 h-3.5" />
-                    <span>Digital Loyalty Pass</span>
-                  </div>
-                  
-                  {/* COMPACT QR IMAGE */}
-                  <div className="w-28 h-28 sm:w-32 sm:h-32 bg-white p-2 rounded-xl flex items-center justify-center shadow-md relative border border-stone-200">
-                    <img
-                      src={getQRCodeUrl(currentUser?.uid || 'guest_unregistered')}
-                      alt="Customer QR Identifier"
-                      referrerPolicy="no-referrer"
-                      className="w-full h-full object-contain"
-                    />
-                  </div>
-
-                  <div className="text-center space-y-0.5">
-                    <p className={`text-[9.5px] font-mono ${isLight ? 'text-stone-500' : 'text-white/40'}`}>ID: {currentUser?.uid.slice(0, 12)}...</p>
-                    <p className={`text-[10px] max-w-[90%] leading-tight mx-auto ${isLight ? 'text-stone-600' : 'text-white/60'}`}>
-                      Scan at checkout to earn points and claim rewards.
-                    </p>
-                  </div>
-                </div>
-
-                {/* STATS ROW */}
-                <div className={`grid grid-cols-3 gap-2 text-center border-t border-b py-3 ${isLight ? 'border-stone-200' : 'border-white/5'}`}>
-                  <div className="space-y-0.5">
-                    <span className={`text-[10px] font-semibold block ${isLight ? 'text-stone-500' : 'text-white/40'}`}>Total Visited</span>
-                    <strong className="text-xs sm:text-sm font-extrabold text-[#c5a059]">{currentUser?.orderCount || 0} Orders</strong>
-                  </div>
-                  <div className={`space-y-0.5 border-l border-r ${isLight ? 'border-stone-200' : 'border-white/5'}`}>
-                    <span className={`text-[10px] font-semibold block ${isLight ? 'text-stone-500' : 'text-white/40'}`}>Total Spent</span>
-                    <strong className="text-xs sm:text-sm font-extrabold text-[#c5a059]">₱{currentUser?.lifetimeSpending || 0}</strong>
-                  </div>
-                  <div className="space-y-0.5">
-                    <span className={`text-[10px] font-semibold block ${isLight ? 'text-stone-500' : 'text-white/40'}`}>Points Balance</span>
-                    <strong className="text-xs sm:text-sm font-extrabold text-[#c5a059]">{currentUser?.loyaltyPoints || 0} pts</strong>
-                  </div>
-                </div>
-
-                {/* POINTS HISTORY */}
-                <div className="space-y-2">
-                  <button 
-                    onClick={() => setIsHistoryExpanded(!isHistoryExpanded)}
-                    className="flex items-center justify-between w-full"
-                  >
-                    <h4 className={`text-xs font-bold ${isLight ? 'text-stone-900' : 'text-white'}`}>Points History</h4>
-                    {isHistoryExpanded ? <ChevronUp size={16} className={isLight ? 'text-stone-900' : 'text-white'} /> : <ChevronDown size={16} className={isLight ? 'text-stone-900' : 'text-white'} />}
-                  </button>
-                  {isHistoryExpanded && (
-                    <div className={`rounded-xl border ${isLight ? 'bg-white border-stone-200' : 'bg-[#121212] border-white/10'}`}>
-                      {loyaltyTransactions.length === 0 ? (
-                        <p className="p-4 text-center text-xs text-stone-500">No points history yet.</p>
-                      ) : (
-                        loyaltyTransactions.map((tx) => (
-                          <div key={tx.id} className={`p-3 border-b last:border-0 ${isLight ? 'border-stone-100' : 'border-white/5'} flex justify-between`}>
-                            <div>
-                              <p className={`text-xs font-bold ${isLight ? 'text-stone-900' : 'text-white'}`}>{tx.description}</p>
-                              <p className="text-[10px] text-stone-400">{new Date(tx.createdAt).toLocaleDateString()}</p>
-                            </div>
-                            <span className={`text-xs font-bold ${tx.pointsChanged > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                              {tx.pointsChanged > 0 ? '+' : ''}{tx.pointsChanged}
-                            </span>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* PERSONAL INFO DETAILS */}
-                <div className="text-left space-y-2 text-xs">
-                  <div className={`flex justify-between border-b pb-1.5 ${isLight ? 'border-stone-200' : 'border-white/5'}`}>
-                    <span className={isLight ? 'text-stone-500' : 'text-white/40'}>Full Name</span>
-                    <span className={`font-bold ${isLight ? 'text-stone-900' : 'text-white/90'}`}>{currentUser?.name || currentUser?.displayName || 'Not Specified'}</span>
-                  </div>
-                  <div className={`flex justify-between border-b pb-1.5 ${isLight ? 'border-stone-200' : 'border-white/5'}`}>
-                    <span className={isLight ? 'text-stone-500' : 'text-white/40'}>Email Address</span>
-                    <span className={`font-bold ${isLight ? 'text-stone-900' : 'text-white/90'}`}>{currentUser?.email}</span>
-                  </div>
-                  <div className={`flex justify-between border-b pb-1.5 ${isLight ? 'border-stone-200' : 'border-white/5'}`}>
-                    <span className={isLight ? 'text-stone-500' : 'text-white/40'}>Mobile Phone</span>
-                    <span className={`font-bold ${isLight ? 'text-stone-900' : 'text-white/90'}`}>{currentUser?.phone || currentUser?.phoneNumber || 'Not Specified'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className={isLight ? 'text-stone-500' : 'text-white/40'}>Member Since</span>
-                    <span className={`font-bold ${isLight ? 'text-stone-900' : 'text-white/90'}`}>
-                      {currentUser?.createdAt 
-                        ? (currentUser.createdAt instanceof Date 
-                            ? currentUser.createdAt.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
-                            : new Date(currentUser.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }))
-                        : 'Active Member'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Quick Edit Profile Action */}
-                <button
-                  onClick={handleOpenEditProfile}
-                  className={`w-full font-bold py-2 px-4 rounded-xl text-xs transition-all flex items-center justify-center gap-2 cursor-pointer mt-2 border ${
-                    isLight ? 'bg-stone-100 hover:bg-stone-200 border-stone-300 text-stone-800' : 'bg-white/5 hover:bg-white/10 border-white/10 text-white/90'
-                  }`}
-                >
-                  <Edit2 className="w-3.5 h-3.5 text-[#c5a059]" />
-                  <span>Update Name, Phone & Photo</span>
-                </button>
-
-                {/* Secure logout button for regular users */}
-                <motion.button
-                  whileTap={{ scale: 0.96 }}
-                  onClick={() => logout()}
-                  id="customer-logout-btn"
-                  className={`w-full font-bold py-2.5 px-4 rounded-xl text-xs transition-all flex items-center justify-center gap-2 cursor-pointer mt-2 ${
-                    isLight ? 'bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700' : 'bg-rose-950/20 hover:bg-rose-950/40 border border-rose-500/20 hover:border-rose-500/30 text-rose-300'
-                  }`}
-                >
-                  Sign Out of Account
-                </motion.button>
-              </div>
-
-              {/* LOYALTY REWARDS / VOUCHERS CLAIM SECTION */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 px-1">
-                  <Gift className="w-4 h-4 text-[#c5a059]" />
-                  <h3 className={`font-serif font-bold text-sm ${isLight ? 'text-stone-900' : 'text-white'}`}>Available Loyalty Rewards</h3>
-                </div>
-
-                <div className="grid grid-cols-1 gap-3">
-                  {vouchers.filter(v => v.active && v.claimableViaPoints).length === 0 ? (
-                    <div className={`p-8 text-center rounded-2xl border border-dashed ${isLight ? 'bg-stone-50 border-stone-200' : 'bg-white/5 border-white/10'}`}>
-                      <p className={`text-xs ${isLight ? 'text-stone-400' : 'text-white/30'}`}>No point-based rewards available at the moment.</p>
-                    </div>
-                  ) : (
-                    vouchers.filter(v => v.active && v.claimableViaPoints).map(v => {
-                      const canAfford = (currentUser?.loyaltyPoints || 0) >= (v.pointCost || 0);
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {customerOrders.map(ord => {
+                      const isActive = ['pending', 'preparing', 'ready'].includes(ord.orderStatus);
                       return (
-                        <div key={v.id} className={`p-4 rounded-2xl border flex items-center justify-between gap-4 ${isLight ? 'bg-white border-stone-200 shadow-sm' : 'bg-[#121212] border-white/10 shadow-md'}`}>
-                          <div className="flex-1 space-y-1">
-                            <div className="flex items-center gap-2">
-                              <span className="font-mono text-[10px] font-bold bg-[#c5a059]/10 text-[#c5a059] px-2 py-0.5 rounded border border-[#c5a059]/20">
-                                {v.code}
-                              </span>
-                              <h4 className={`text-xs font-bold ${isLight ? 'text-stone-900' : 'text-white'}`}>{v.name}</h4>
-                            </div>
-                            <p className={`text-[10px] ${isLight ? 'text-stone-500' : 'text-white/40'}`}>{v.description}</p>
-                            <div className="flex items-center gap-2 mt-2">
-                              <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded ${
-                                v.discountType === 'free_item' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-[#c5a059]/10 text-[#c5a059]'
-                              }`}>
-                                {v.discountType === 'free_item' ? `Free ${v.freeItemName}` : v.discountType === 'percentage' ? `${v.discountValue}% OFF` : `₱${v.discountValue} OFF`}
-                              </span>
-                              <span className="text-[10px] font-bold text-stone-400">• {v.pointCost} points</span>
-                            </div>
-                          </div>
-
-                          <button
-                            disabled={!canAfford || isClaiming === v.id}
-                            onClick={async () => {
-                              if (window.confirm(`Confirm redemption: Spend ${v.pointCost} points for "${v.name}"?`)) {
-                                setIsClaiming(v.id);
-                                try {
-                                  await claimVoucher(v.id);
-                                  alert("Success! Your reward has been added to your account.");
-                                } catch (err: any) {
-                                  alert(err.message || "Failed to claim voucher.");
-                                } finally {
-                                  setIsClaiming(null);
-                                }
-                              }
-                            }}
-                            className={`px-4 py-2 rounded-xl text-[10px] font-bold transition-all cursor-pointer ${
-                              canAfford 
-                                ? 'bg-amber-900 hover:bg-amber-950 text-white shadow-sm active:scale-95' 
-                                : 'bg-stone-200 text-stone-400 cursor-not-allowed'
-                            }`}
-                          >
-                            {isClaiming === v.id ? 'Claiming...' : canAfford ? 'Claim Reward' : 'Not Enough Points'}
-                          </button>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-
-              {/* MY CLAIMED VOUCHERS */}
-              {userVouchers.length > 0 && (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 px-1">
-                    <Ticket className="w-4 h-4 text-emerald-600" />
-                    <h3 className={`font-serif font-bold text-sm ${isLight ? 'text-stone-900' : 'text-white'}`}>My Claimed Vouchers</h3>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 gap-3">
-                    {userVouchers.map(uv => (
-                      <div key={uv.id} className={`p-4 rounded-2xl border relative overflow-hidden ${isLight ? 'bg-white border-stone-200' : 'bg-[#121212] border-white/10'}`}>
-                        <div className="absolute top-0 right-0 p-2 opacity-5">
-                          <Ticket className="w-12 h-12 -rotate-12" />
-                        </div>
-                        <div className="space-y-2">
-                          <div className="flex justify-between items-start">
-                            <h4 className={`text-xs font-bold ${isLight ? 'text-stone-900' : 'text-white'}`}>{uv.name}</h4>
-                            <span className="text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-600 px-2 py-0.5 rounded border border-emerald-500/20">
-                              {uv.instanceCode}
-                            </span>
-                          </div>
-                          <p className={`text-[10px] ${isLight ? 'text-stone-500' : 'text-white/40'}`}>{uv.description}</p>
-                          <div className="pt-2 border-t border-stone-100 flex justify-between items-center">
-                            <span className="text-[9px] text-stone-400 italic">Valid until {uv.expirationDate}</span>
-                            <button
-                              onClick={() => {
-                                setVoucherCodeInput(uv.instanceCode);
-                                setIsCartOpen(true);
-                                setActiveTab('menu');
-                              }}
-                              className="text-[#c5a059] text-[10px] font-bold hover:underline cursor-pointer"
-                            >
-                              Use in Cart
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* EDIT PROFILE MODAL */}
-              <AnimatePresence>
-                {isEditingProfile && (
-                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      onClick={() => !isSavingProfile && setIsEditingProfile(false)}
-                      className="absolute inset-0 bg-black/80 backdrop-blur-xs cursor-pointer"
-                    />
-
-                    <motion.div
-                      initial={{ scale: 0.95, opacity: 0, y: 15 }}
-                      animate={{ scale: 1, opacity: 1, y: 0 }}
-                      exit={{ scale: 0.95, opacity: 0, y: 15 }}
-                      className={`relative z-10 border w-full max-w-sm rounded-2xl shadow-2xl p-5 space-y-4 overflow-hidden text-left ${
-                        isLight ? 'bg-white border-stone-200' : 'bg-[#141414] border-white/15'
-                      }`}
-                    >
-                      <div className={`flex items-center justify-between border-b pb-3 ${isLight ? 'border-stone-200' : 'border-white/10'}`}>
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-xl bg-[#c5a059]/20 text-[#c5a059] flex items-center justify-center border border-[#c5a059]/30">
-                            <UserCheck className="w-4 h-4" />
-                          </div>
-                          <div>
-                            <h3 className={`font-bold text-sm ${isLight ? 'text-stone-900' : 'text-white'}`}>Edit Profile Details</h3>
-                            <p className={`text-[10px] ${isLight ? 'text-stone-500' : 'text-white/40'}`}>Update your account information</p>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => setIsEditingProfile(false)}
-                          disabled={isSavingProfile}
-                          className={`p-1 rounded-lg transition-colors ${
-                            isLight ? 'text-stone-400 hover:text-stone-700 hover:bg-stone-100' : 'text-white/40 hover:text-white hover:bg-white/10'
+                        <motion.div
+                          key={ord.id}
+                          initial={{ opacity: 0, y: 6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className={`rounded-2xl p-5 border shadow-lg space-y-4 ${
+                            isLight ? 'bg-white' : 'bg-[#121212]'
+                          } ${
+                            isActive ? 'border-[#c5a059]/60 ring-1 ring-[#c5a059]/20' : isLight ? 'border-stone-200' : 'border-white/10'
                           }`}
                         >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-
-                      {profileSuccessMsg && (
-                        <div className="bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-xs px-3 py-2 rounded-xl flex items-center gap-2">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                          <span>{profileSuccessMsg}</span>
-                        </div>
-                      )}
-
-                      {profileErrorMsg && (
-                        <div className="bg-rose-950/40 border border-rose-500/30 text-rose-300 text-xs px-3 py-2 rounded-xl flex items-center gap-2">
-                          <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-                          <span>{profileErrorMsg}</span>
-                        </div>
-                      )}
-
-                      <form onSubmit={handleSaveProfile} className="space-y-3.5">
-                        {/* PROFILE PHOTO EDIT / UPLOAD */}
-                        <div className="space-y-1.5">
-                          <label className={`text-[10px] font-extrabold uppercase tracking-wider block ${isLight ? 'text-stone-600' : 'text-white/60'}`}>
-                            Profile Photo
-                          </label>
-                          <div className="flex items-center gap-3">
-                            <div className={`w-14 h-14 rounded-full overflow-hidden border flex items-center justify-center shrink-0 ${
-                              isLight ? 'border-stone-300 bg-stone-100' : 'border-white/20 bg-[#080808]'
+                          <div className={`flex justify-between items-start text-xs pb-3 border-b ${isLight ? 'border-stone-100' : 'border-white/5'}`}>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <p className={`font-mono font-black text-sm tracking-tighter ${isLight ? 'text-stone-900' : 'text-white'}`}>#{ord.orderNumber}</p>
+                                <span className={`inline-flex items-center gap-1 text-[9px] font-black px-2 py-0.5 rounded-full ${
+                                  ord.orderSource === 'pos' ? 'bg-blue-950/70 text-blue-300 border border-blue-800/40' : 'bg-purple-950/70 text-purple-300 border border-purple-800/40'
+                                }`}>
+                                  {ord.orderSource === 'pos' ? <Store size={10} /> : <Smartphone size={10} />}
+                                  {ord.orderSource === 'pos' ? 'STORE' : 'APP'}
+                                </span>
+                              </div>
+                              <p className={`${isLight ? 'text-stone-500' : 'text-white/30'} mt-1 text-[10px] font-bold`}>
+                                {ord.createdAt instanceof Date ? ord.createdAt.toLocaleString() : 'JUST NOW'}
+                              </p>
+                            </div>
+                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.1em] ${
+                              ord.orderStatus === 'completed' ? 'bg-emerald-950 text-emerald-300 border border-emerald-900/30' :
+                              ord.orderStatus === 'cancelled' ? 'bg-rose-950 text-rose-300 border border-rose-900/30' :
+                              ord.orderStatus === 'ready' ? 'bg-indigo-950 text-indigo-300 border border-indigo-900/30 animate-pulse' :
+                              ord.orderStatus === 'preparing' ? 'bg-amber-950 text-amber-300 border border-amber-900/30' :
+                              isLight ? 'bg-stone-100 text-stone-800 border border-stone-300' : 'bg-white/5 text-white/70 border border-white/10'
                             }`}>
-                              {editAvatar ? (
-                                <img 
-                                  src={editAvatar} 
-                                  alt="Preview" 
-                                  referrerPolicy="no-referrer"
-                                  className="w-full h-full object-cover" 
-                                />
-                              ) : (
-                                <User className={`w-6 h-6 ${isLight ? 'text-stone-400' : 'text-white/30'}`} />
-                              )}
-                            </div>
-
-                            <div className="flex-1">
-                              <ImageUpload
-                                label="Update Photo"
-                                folder="avatars"
-                                onUploadSuccess={(url, _key) => setEditAvatar(url)}
-                                onUploadError={(err) => setProfileErrorMsg(err)}
-                              />
-                              {editAvatar && (
-                                <button
-                                  type="button"
-                                  onClick={() => setEditAvatar('')}
-                                  className="text-[10px] text-rose-500 hover:text-rose-600 block font-semibold mt-1"
-                                >
-                                  Remove photo
-                                </button>
-                              )}
-                            </div>
+                              {ord.orderStatus}
+                            </span>
                           </div>
 
-                          {/* Image URL fallback input */}
-                          <div className="pt-1">
-                            <input
-                              type="url"
-                              value={editAvatar}
-                              onChange={(e) => setEditAvatar(e.target.value)}
-                              placeholder="Or paste image URL (e.g. https://...)"
-                              className={`w-full border text-xs px-3 py-1.5 rounded-xl focus:outline-none focus:border-[#c5a059]/60 ${
-                                isLight ? 'bg-stone-50 border-stone-300 text-stone-900 placeholder-stone-400' : 'bg-[#0a0a0a] border-white/10 text-white placeholder-white/30'
-                              }`}
-                            />
+                          <div className={`text-xs space-y-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar ${isLight ? 'text-stone-800' : 'text-white/80'}`}>
+                            {ord.items.map((it, idx) => (
+                              <div key={idx} className="flex flex-col gap-0.5">
+                                <div className="flex justify-between items-center">
+                                  <span className={`font-bold ${isLight ? 'text-stone-900' : 'text-white/90'}`}>
+                                    {it.quantity}x {it.name} <span className="text-[10px] text-[var(--color-primary)] opacity-80">({it.selectedSize})</span>
+                                  </span>
+                                  <span className="text-[var(--color-primary)] font-black">₱{it.price * it.quantity}</span>
+                                </div>
+                              </div>
+                            ))}
                           </div>
-                        </div>
 
-                        {/* NAME INPUT */}
-                        <div className="space-y-1">
-                          <label className={`text-[10px] font-extrabold uppercase tracking-wider block ${isLight ? 'text-stone-600' : 'text-white/60'}`}>
-                            Full Name
-                          </label>
-                          <input
-                            type="text"
-                            required
-                            value={editName}
-                            onChange={(e) => setEditName(e.target.value)}
-                            placeholder="e.g. Maria Santos"
-                            className={`w-full border text-xs px-3 py-2 rounded-xl focus:outline-none focus:border-[#c5a059]/60 font-medium ${
-                              isLight ? 'bg-stone-50 border-stone-300 text-stone-900 placeholder-stone-400' : 'bg-[#0a0a0a] border-white/10 text-white placeholder-white/30'
-                            }`}
-                          />
-                        </div>
+                          {isActive && (
+                            <div className={`rounded-xl p-3 space-y-3 border ${isLight ? 'bg-amber-50/70 border-amber-200' : 'bg-white/[0.03] border-white/5'}`}>
+                              <p className="text-[9px] font-black uppercase tracking-widest text-[var(--color-primary)] flex items-center gap-2">
+                                <Clock className="w-3.5 h-3.5 animate-spin" /> Live Status
+                              </p>
+                              <div className="grid grid-cols-4 gap-1 relative pt-1">
+                                <div className={`absolute top-3.5 left-[12%] right-[12%] h-1 z-0 rounded-full ${isLight ? 'bg-stone-200' : 'bg-white/10'}`}>
+                                  <motion.div 
+                                    className="h-full bg-[var(--color-primary)] shadow-[0_0_15px_rgba(197,160,89,0.5)] rounded-full" 
+                                    initial={{ width: 0 }}
+                                    animate={{ 
+                                      width: ord.orderStatus === 'ready' ? '100%' :
+                                             ord.orderStatus === 'preparing' ? '66%' :
+                                             ord.orderStatus === 'pending' ? '33%' : '0%'
+                                    }}
+                                  />
+                                </div>
+                                {['Sent', 'Confirmed', 'Cooking', 'Ready'].map((step, idx) => {
+                                  const stepMap: Record<OrderStatus, number> = { pending: 1, preparing: 2, ready: 3, completed: 4, cancelled: 0 };
+                                  const isPastOrCurrent = (idx + 1) <= stepMap[ord.orderStatus];
+                                  return (
+                                    <div key={step} className="flex flex-col items-center z-10">
+                                      <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black transition-all ${
+                                        isPastOrCurrent ? 'bg-[var(--color-primary)] text-black shadow-lg scale-110' : isLight ? 'bg-stone-200 text-stone-500' : 'bg-white/10 text-white/40'
+                                      }`}>
+                                        {isPastOrCurrent ? <Check size={12} strokeWidth={4} /> : idx + 1}
+                                      </div>
+                                      <span className={`text-[8px] mt-2 font-black uppercase tracking-tighter ${isPastOrCurrent ? 'text-white' : 'text-white/20'}`}>{step}</span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
 
-                        {/* PHONE NUMBER INPUT */}
-                        <div className="space-y-1">
-                          <label className={`text-[10px] font-extrabold uppercase tracking-wider block ${isLight ? 'text-stone-600' : 'text-white/60'}`}>
-                            Mobile Phone Number
-                          </label>
-                          <input
-                            type="tel"
-                            value={editPhone}
-                            onChange={(e) => setEditPhone(e.target.value)}
-                            placeholder="e.g. +63 912 345 6789"
-                            className={`w-full border text-xs px-3 py-2 rounded-xl focus:outline-none focus:border-[#c5a059]/60 font-medium ${
-                              isLight ? 'bg-stone-50 border-stone-300 text-stone-900 placeholder-stone-400' : 'bg-[#0a0a0a] border-white/10 text-white placeholder-white/30'
-                            }`}
-                          />
-                        </div>
-
-                        {/* FORM ACTIONS */}
-                        <div className={`flex items-center gap-2 pt-2 border-t ${isLight ? 'border-stone-200' : 'border-white/10'}`}>
-                          <button
-                            type="button"
-                            disabled={isSavingProfile}
-                            onClick={() => setIsEditingProfile(false)}
-                            className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                              isLight ? 'bg-stone-100 hover:bg-stone-200 text-stone-700' : 'bg-white/5 hover:bg-white/10 text-white/70'
-                            }`}
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            type="submit"
-                            disabled={isSavingProfile}
-                            className="flex-1 py-2 rounded-xl bg-[#c5a059] hover:bg-[#b08c47] text-black text-xs font-extrabold transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
-                          >
-                            {isSavingProfile ? (
-                              <span>Saving...</span>
-                            ) : (
-                              <>
-                                <Save className="w-3.5 h-3.5" />
-                                <span>Save Changes</span>
-                              </>
-                            )}
-                          </button>
-                        </div>
-                      </form>
-                    </motion.div>
+                          <div className="flex justify-between items-center pt-2">
+                            <div>
+                              <p className="text-white/20 text-[9px] font-black uppercase tracking-widest">Grand Total</p>
+                              <p className="text-lg font-black text-[var(--color-primary)] tracking-tighter">₱{ord.total}</p>
+                            </div>
+                            <motion.button
+                              whileTap={{ scale: 0.94 }}
+                              onClick={() => setSelectedOrderDetails(ord)}
+                              className="px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest bg-white/5 border border-white/10 hover:border-[var(--color-primary)] transition-all cursor-pointer"
+                            >
+                              Ticket details
+                            </motion.button>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
                   </div>
                 )}
-              </AnimatePresence>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </main>
+              </motion.div>
+            )}
+
+            {activeTab === 'profile' && (
+              <motion.div 
+                key="profile"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                className="space-y-6 pb-12"
+              >
+                <div className="flex items-center justify-between">
+                  <h2 className={`text-base font-bold font-serif tracking-wide ${isLight ? 'text-stone-900' : 'text-white'}`}>Customer Profile</h2>
+                  <button onClick={handleOpenEditProfile} className="text-[var(--color-primary)] text-[10px] font-black uppercase tracking-widest hover:underline cursor-pointer">
+                    Edit Settings
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* LEFT: MAIN PROFILE CARD */}
+                  <div className="lg:col-span-1 space-y-6">
+                    <div className={`rounded-[2.5rem] p-8 border shadow-2xl text-center space-y-6 ${isLight ? 'bg-white border-stone-200' : 'bg-[#121212] border-white/10'}`}>
+                      <div className="flex flex-col items-center gap-4">
+                        <div className="relative">
+                          <div className={`w-24 h-24 rounded-[2rem] overflow-hidden border-2 border-[var(--color-primary)]/50 shadow-2xl flex items-center justify-center ${isLight ? 'bg-stone-100' : 'bg-[#080808]'}`}>
+                            {currentUser?.avatar || currentUser?.photoURL ? (
+                              <img src={currentUser.avatar || currentUser.photoURL} alt={currentUser.name} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center font-serif text-3xl font-black text-[var(--color-primary)]">
+                                {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : <User size={40} />}
+                              </div>
+                            )}
+                          </div>
+                          <button onClick={handleOpenEditProfile} className="absolute -bottom-2 -right-2 w-10 h-10 rounded-2xl bg-[var(--color-primary)] text-black border-4 border-[#121212] flex items-center justify-center shadow-xl hover:scale-110 transition-all cursor-pointer">
+                            <Camera size={16} strokeWidth={3} />
+                          </button>
+                        </div>
+                        <div className="space-y-1">
+                          <h3 className="text-xl font-black tracking-tight text-white">{currentUser?.name || "Guest Customer"}</h3>
+                          <p className="text-[10px] font-black text-[var(--color-primary)] uppercase tracking-widest">{currentUser?.email}</p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-white/5 p-4 rounded-3xl border border-white/5">
+                          <p className="text-white/20 text-[9px] font-black uppercase tracking-widest mb-1">Orders</p>
+                          <p className="text-lg font-black text-white">{currentUser?.orderCount || 0}</p>
+                        </div>
+                        <div className="bg-white/5 p-4 rounded-3xl border border-white/5">
+                          <p className="text-white/20 text-[9px] font-black uppercase tracking-widest mb-1">Points</p>
+                          <p className="text-lg font-black text-[var(--color-primary)]">{currentUser?.loyaltyPoints || 0}</p>
+                        </div>
+                      </div>
+
+                      <motion.button
+                        whileTap={{ scale: 0.96 }}
+                        onClick={() => logout()}
+                        className="w-full font-black py-4 px-6 rounded-2xl text-[10px] uppercase tracking-widest bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500 hover:text-white transition-all cursor-pointer"
+                      >
+                        Secure Sign Out
+                      </motion.button>
+                    </div>
+                  </div>
+
+                  {/* RIGHT: LOYALTY PASS & REWARDS */}
+                  <div className="lg:col-span-2 space-y-6">
+                    <div className="bg-[var(--color-primary)] text-black p-8 rounded-[3rem] shadow-2xl relative overflow-hidden group">
+                      <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:rotate-12 transition-transform duration-700">
+                        <Award size={160} strokeWidth={1} />
+                      </div>
+                      <div className="relative z-10 flex flex-col md:flex-row items-center gap-8">
+                        <div className="bg-white p-3 rounded-[2rem] shadow-2xl">
+                          <img src={getQRCodeUrl(currentUser?.uid || 'guest')} alt="QR" className="w-32 h-32" />
+                        </div>
+                        <div className="flex-1 text-center md:text-left space-y-4">
+                          <div>
+                            <span className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60">Digital Member Pass</span>
+                            <h3 className="text-3xl font-black font-serif tracking-tight leading-none mt-1">Exclusive Loyalty Pass</h3>
+                          </div>
+                          <p className="text-xs font-bold opacity-70 max-w-sm">Present this digital identifier at any of our physical branches to accumulate beans and unlock premium rewards instantly.</p>
+                          <div className="pt-2">
+                            <span className="text-[10px] font-mono font-black bg-black/10 px-3 py-1.5 rounded-full border border-black/10">ID: {currentUser?.uid.slice(0, 16)}...</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <Gift className="w-5 h-5 text-[var(--color-primary)]" />
+                        <h3 className="text-sm font-black uppercase tracking-widest text-white">Unlockable Rewards</h3>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {vouchers.filter(v => v.active && v.claimableViaPoints).map(v => {
+                          const canAfford = (currentUser?.loyaltyPoints || 0) >= (v.pointCost || 0);
+                          return (
+                            <div key={v.id} className="bg-white/5 border border-white/5 rounded-[2rem] p-6 flex flex-col justify-between gap-4 group hover:bg-white/[0.08] transition-all">
+                              <div className="space-y-2">
+                                <div className="flex justify-between items-start">
+                                  <h4 className="font-bold text-white group-hover:text-[var(--color-primary)] transition-colors">{v.name}</h4>
+                                  <span className="bg-[var(--color-primary)] text-black text-[9px] font-black px-2 py-0.5 rounded-full">{v.pointCost} PTS</span>
+                                </div>
+                                <p className="text-[10px] text-white/30 uppercase tracking-tighter leading-relaxed">{v.description}</p>
+                              </div>
+                              <button
+                                disabled={!canAfford}
+                                onClick={() => claimVoucher(v.id)}
+                                className={`w-full py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
+                                  canAfford ? 'bg-white text-black hover:bg-[var(--color-primary)]' : 'bg-white/5 text-white/20 cursor-not-allowed border border-white/5'
+                                }`}
+                              >
+                                {canAfford ? 'Redeem now' : 'Insufficient balance'}
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </main>
+      </div>
 
       {/* 3. PRODUCT CUSTOMIZATION BOTTOM SHEET / MODAL */}
       <AnimatePresence>
@@ -1497,9 +947,14 @@ export const CustomerExperience: React.FC = () => {
                           onClick={() => setCustomSize(size)}
                           className={`py-2 px-3 border rounded-xl text-xs font-semibold text-center transition-all cursor-pointer ${
                             customSize?.name === size.name
-                              ? 'bg-amber-50 border-amber-800 text-amber-950 ring-1 ring-amber-800/30 shadow-xs'
+                              ? 'border-2 shadow-xs font-bold'
                               : 'bg-white border-stone-200 text-stone-700 hover:bg-stone-50'
                           }`}
+                          style={customSize?.name === size.name ? {
+                            backgroundColor: `${primaryColor}15`,
+                            borderColor: primaryColor,
+                            color: isLight ? '#000' : '#fff'
+                          } : undefined}
                         >
                           <p className="font-bold">{size.name}</p>
                           <p className="text-[10px] text-stone-400 mt-0.5">
@@ -1525,17 +980,24 @@ export const CustomerExperience: React.FC = () => {
                             onClick={() => toggleAddOn(addon)}
                             className={`w-full flex items-center justify-between p-2.5 border rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                               isSelected
-                                ? 'bg-amber-50/50 border-amber-800/40 text-amber-950'
+                                ? 'border-2'
                                 : 'bg-white border-stone-100 hover:border-stone-200'
                             }`}
+                            style={isSelected ? {
+                              backgroundColor: `${primaryColor}10`,
+                              borderColor: primaryColor,
+                            } : undefined}
                           >
                             <div className="flex items-center gap-2">
-                              <div className={`w-4.5 h-4.5 rounded border flex items-center justify-center transition-colors ${
-                                isSelected ? 'bg-amber-900 border-amber-900 text-white' : 'border-stone-300'
-                              }`}>
+                              <div 
+                                className={`w-4.5 h-4.5 rounded border flex items-center justify-center transition-colors ${
+                                  isSelected ? 'text-black' : 'border-stone-300'
+                                }`}
+                                style={isSelected ? { backgroundColor: primaryColor, borderColor: primaryColor } : undefined}
+                              >
                                 {isSelected && <Check className="w-3.5 h-3.5" />}
                               </div>
-                              <span>{addon.name}</span>
+                              <span className={isSelected ? 'font-bold' : ''}>{addon.name}</span>
                             </div>
                             <span className="text-stone-500 font-extrabold">+₱{addon.price}</span>
                           </motion.button>
@@ -1553,7 +1015,7 @@ export const CustomerExperience: React.FC = () => {
                     value={customNotes}
                     onChange={(e) => setCustomNotes(e.target.value)}
                     rows={2}
-                    className="w-full text-xs p-2.5 rounded-xl bg-stone-50 border border-stone-200 outline-none focus:border-amber-700 focus:bg-white resize-none"
+                    className="w-full text-xs p-2.5 rounded-xl bg-stone-50 border border-stone-200 outline-none focus:border-[var(--color-primary)] focus:bg-white resize-none"
                   />
                 </div>
               </div>
@@ -1582,10 +1044,14 @@ export const CustomerExperience: React.FC = () => {
                   whileTap={settings.storeStatus?.isOpen === false ? {} : { scale: 0.96 }}
                   onClick={settings.storeStatus?.isOpen === false ? undefined : handleAddToCart}
                   disabled={settings.storeStatus?.isOpen === false}
-                  className={`flex-1 text-white text-xs font-bold py-3 px-4 rounded-xl flex justify-between items-center transition-all shadow-sm ${settings.storeStatus?.isOpen === false ? 'bg-stone-400 cursor-not-allowed opacity-75' : 'bg-amber-900 hover:bg-amber-950 cursor-pointer'}`}
+                  className={`flex-1 text-white text-xs font-bold py-3 px-4 rounded-xl flex justify-between items-center transition-all shadow-sm ${settings.storeStatus?.isOpen === false ? 'bg-stone-400 cursor-not-allowed opacity-75' : 'cursor-pointer'}`}
+                  style={settings.storeStatus?.isOpen !== false ? { backgroundColor: primaryColor, color: '#000' } : undefined}
                 >
-                  <span>{settings.storeStatus?.isOpen === false ? 'Store Closed' : 'Add Item to Bag'}</span>
-                  <span className={`${settings.storeStatus?.isOpen === false ? 'bg-stone-500' : 'bg-amber-800'} py-0.5 px-2 rounded-md font-extrabold`}>
+                  <span className="font-extrabold">{settings.storeStatus?.isOpen === false ? 'Store Closed' : 'Add Item to Bag'}</span>
+                  <span 
+                    className="py-0.5 px-2 rounded-md font-extrabold"
+                    style={{ backgroundColor: settings.storeStatus?.isOpen === false ? undefined : 'rgba(0,0,0,0.15)', color: '#000' }}
+                  >
                     ₱{((selectedProduct.price + (customSize?.priceAdjustment || 0) + customAddOns.reduce((sum, a) => sum + a.price, 0)) * customQuantity)}
                   </span>
                 </motion.button>
@@ -1615,7 +1081,7 @@ export const CustomerExperience: React.FC = () => {
             >
               <div className="p-4 border-b border-stone-100 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <ShoppingBag className="w-5 h-5 text-amber-950" />
+                  <ShoppingBag className="w-5 h-5" style={{ color: primaryColor }} />
                   <h3 className="text-base font-bold text-stone-900">Your Coffee Bag</h3>
                 </div>
                 <button onClick={() => setIsCartOpen(false)} className="p-1 hover:bg-stone-100 rounded-full cursor-pointer">
@@ -1627,7 +1093,10 @@ export const CustomerExperience: React.FC = () => {
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {cart.length === 0 ? (
                   <div className="text-center py-20 space-y-3 text-stone-500">
-                    <div className="w-16 h-16 rounded-3xl bg-amber-50 border border-amber-200/50 flex items-center justify-center mx-auto text-amber-800 shadow-inner">
+                    <div 
+                      className="w-16 h-16 rounded-3xl flex items-center justify-center mx-auto shadow-inner border"
+                      style={{ backgroundColor: `${primaryColor}15`, borderColor: `${primaryColor}30`, color: primaryColor }}
+                    >
                       <ShoppingBag className="w-8 h-8 stroke-[1.5]" />
                     </div>
                     <p className="text-sm font-bold text-stone-800">Your bag is currently empty</p>
@@ -1659,7 +1128,7 @@ export const CustomerExperience: React.FC = () => {
                                   <Trash2 className="w-4 h-4" />
                                 </button>
                               </div>
-                              <p className="text-[10px] text-amber-800 font-semibold mt-0.5">
+                              <p className="text-[10px] font-semibold mt-0.5" style={{ color: primaryColor }}>
                                 Size: {item.selectedSize?.name || 'Standard'}
                               </p>
                               {item.selectedAddOns.length > 0 && (
@@ -1698,7 +1167,7 @@ export const CustomerExperience: React.FC = () => {
                                 </button>
                               </div>
 
-                              <span className="text-xs font-extrabold text-amber-950">₱{unitPrice * item.quantity}</span>
+                              <span className="text-xs font-extrabold" style={{ color: primaryColor }}>₱{unitPrice * item.quantity}</span>
                             </div>
                           </div>
                         </div>
@@ -1718,7 +1187,7 @@ export const CustomerExperience: React.FC = () => {
                         value={voucherCodeInput}
                         onChange={(e) => setVoucherCodeInput(e.target.value)}
                         disabled={!!appliedVoucher}
-                        className="flex-1 text-xs bg-white border border-stone-200 outline-none py-2 px-3 rounded-xl uppercase font-mono focus:border-amber-800 disabled:bg-stone-100 disabled:text-stone-400"
+                        className="flex-1 text-xs bg-white border border-stone-200 outline-none py-2 px-3 rounded-xl uppercase font-mono focus:border-[var(--color-primary)] disabled:bg-stone-100 disabled:text-stone-400"
                       >
                         <option value="">Select a voucher</option>
                         {vouchers.filter(v => v.active).map(v => (
@@ -1735,7 +1204,8 @@ export const CustomerExperience: React.FC = () => {
                       ) : (
                         <button
                           onClick={handleApplyVoucher}
-                          className="bg-amber-900 hover:bg-amber-950 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all cursor-pointer"
+                          className="text-black text-xs font-bold px-4 py-2 rounded-xl transition-all cursor-pointer"
+                          style={{ backgroundColor: primaryColor }}
                         >
                           Apply
                         </button>
@@ -1769,7 +1239,7 @@ export const CustomerExperience: React.FC = () => {
                     )}
                     <div className="flex justify-between border-t border-stone-200/80 pt-2 text-sm font-extrabold text-stone-900">
                       <span>Est. Total To Pay</span>
-                      <span className="text-amber-950">₱{cartTotal}</span>
+                      <span style={{ color: primaryColor }}>₱{cartTotal}</span>
                     </div>
                   </div>
 
@@ -1779,7 +1249,8 @@ export const CustomerExperience: React.FC = () => {
                       setIsCartOpen(false);
                       setIsCheckoutOpen(true);
                     }}
-                    className="w-full bg-amber-900 hover:bg-amber-950 text-white text-xs font-bold py-3 px-4 rounded-xl flex justify-between items-center transition-all shadow-md cursor-pointer"
+                    className="w-full text-black text-xs font-bold py-3 px-4 rounded-xl flex justify-between items-center transition-all shadow-md cursor-pointer"
+                    style={{ backgroundColor: primaryColor }}
                   >
                     <span>Proceed to Checkout</span>
                     <ArrowRight className="w-4 h-4" />
@@ -1835,13 +1306,15 @@ export const CustomerExperience: React.FC = () => {
                           onClick={() => setOrderType(t.id as OrderType)}
                           className={`py-2 px-1.5 border rounded-xl text-center cursor-pointer transition-all flex flex-col items-center justify-center ${
                             orderType === t.id
-                              ? 'bg-amber-50 border-amber-800 text-amber-950 shadow-xs'
+                              ? 'border-2 shadow-xs font-bold'
                               : 'bg-white border-stone-200 text-stone-700 hover:bg-stone-50'
                           }`}
+                          style={orderType === t.id ? { backgroundColor: `${primaryColor}15`, borderColor: primaryColor } : undefined}
                         >
-                          <div className={`w-6 h-6 rounded-lg flex items-center justify-center mb-1 ${
-                            orderType === t.id ? 'bg-amber-800/10 text-amber-900' : 'bg-stone-100 text-stone-500'
-                          }`}>
+                          <div 
+                            className="w-6 h-6 rounded-lg flex items-center justify-center mb-1"
+                            style={orderType === t.id ? { backgroundColor: `${primaryColor}20`, color: primaryColor } : undefined}
+                          >
                             <Icon className="w-3.5 h-3.5" />
                           </div>
                           <p className="text-[11px] font-bold leading-tight">{t.label}</p>
@@ -1867,7 +1340,7 @@ export const CustomerExperience: React.FC = () => {
                       placeholder="Enter table number (e.g. TABLE-04)"
                       value={tableNo}
                       onChange={(e) => setTableNo(e.target.value)}
-                      className="w-full text-xs p-2.5 rounded-xl bg-stone-50 border border-stone-200 outline-none focus:border-amber-700 focus:bg-white"
+                      className="w-full text-xs p-2.5 rounded-xl bg-stone-50 border border-stone-200 outline-none focus:border-[var(--color-primary)] focus:bg-white"
                     />
                   </motion.div>
                 )}
@@ -1883,19 +1356,21 @@ export const CustomerExperience: React.FC = () => {
                         onClick={() => setPaymentMethod(p.id)}
                         className={`p-2.5 border rounded-xl flex items-center gap-2.5 cursor-pointer text-left transition-all ${
                           paymentMethod === p.id
-                            ? 'bg-amber-50 border-amber-800 text-amber-950 shadow-xs'
+                            ? 'border-2 shadow-xs font-bold'
                             : 'bg-white border-stone-200 text-stone-700 hover:bg-stone-50'
                         }`}
+                        style={paymentMethod === p.id ? { backgroundColor: `${primaryColor}15`, borderColor: primaryColor } : undefined}
                       >
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                          paymentMethod === p.id ? 'bg-amber-800/10 text-amber-900' : 'bg-stone-100 text-stone-600'
-                        }`}>
+                        <div 
+                          className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-stone-100 text-stone-600"
+                          style={paymentMethod === p.id ? { backgroundColor: `${primaryColor}20`, color: primaryColor } : undefined}
+                        >
                           {p.type === 'cash' ? (
                             <Banknote className="w-4.5 h-4.5 text-emerald-600" />
                           ) : p.type === 'card' ? (
                             <CreditCard className="w-4.5 h-4.5 text-indigo-600" />
                           ) : p.type === 'qr' ? (
-                            <QrCode className="w-4.5 h-4.5 text-amber-600" />
+                            <QrCode className="w-4.5 h-4.5" style={{ color: primaryColor }} />
                           ) : (
                             <Smartphone className="w-4.5 h-4.5 text-blue-600" />
                           )}
@@ -1922,13 +1397,16 @@ export const CustomerExperience: React.FC = () => {
                       const qrUrl = selectedMethod.qrCodeUrl;
                       
                       return (
-                        <div className="mt-3 p-4 bg-amber-50/40 border border-stone-200 rounded-xl flex flex-col items-center text-center space-y-3 animate-fade-in">
+                        <div className="mt-3 p-4 bg-stone-50 border border-stone-200 rounded-xl flex flex-col items-center text-center space-y-3 animate-fade-in">
                           <p className="text-xs font-extrabold text-stone-800">Payment Instructions for {selectedMethod.name}</p>
                           
                           {accountNumber && (
-                            <div className="bg-amber-950/10 text-amber-950 font-mono font-bold text-xs py-1.5 px-3 rounded-lg border border-amber-900/10 flex items-center gap-1.5">
+                            <div 
+                              className="font-mono font-bold text-xs py-1.5 px-3 rounded-lg border flex items-center gap-1.5"
+                              style={{ backgroundColor: `${primaryColor}15`, borderColor: `${primaryColor}30`, color: primaryColor }}
+                            >
                               <span>No./Account:</span>
-                              <span className="text-amber-900 tracking-wider select-all">{accountNumber}</span>
+                              <span className="tracking-wider select-all">{accountNumber}</span>
                             </div>
                           )}
                           
@@ -1953,7 +1431,7 @@ export const CustomerExperience: React.FC = () => {
                                 />
                               </div>
                             </div>
-                            {uploadingReceipt && <p className="text-[9px] text-amber-800 animate-pulse mt-1 font-semibold">Uploading proof of payment...</p>}
+                            {uploadingReceipt && <p className="text-[9px] animate-pulse mt-1 font-semibold" style={{ color: primaryColor }}>Uploading proof of payment...</p>}
                           </div>
                         </div>
                       );
@@ -1970,7 +1448,7 @@ export const CustomerExperience: React.FC = () => {
                     value={checkoutNotes}
                     onChange={(e) => setCheckoutNotes(e.target.value)}
                     rows={2}
-                    className="w-full text-xs p-2.5 rounded-xl bg-stone-50 text-stone-900 border border-stone-300 outline-none focus:border-amber-700 focus:bg-white resize-none placeholder-stone-500 font-medium"
+                    className="w-full text-xs p-2.5 rounded-xl bg-stone-50 text-stone-900 border border-stone-300 outline-none focus:border-[var(--color-primary)] focus:bg-white resize-none placeholder-stone-500 font-medium"
                   />
                 </div>
 
@@ -1990,7 +1468,7 @@ export const CustomerExperience: React.FC = () => {
                     )}
                     <div className="flex justify-between border-t border-stone-200/80 pt-1.5 text-xs font-bold text-stone-900">
                       <span>Total To Settle</span>
-                      <span>₱{cartTotal}</span>
+                      <span style={{ color: primaryColor }}>₱{cartTotal}</span>
                     </div>
                   </div>
                 </div>
@@ -2002,10 +1480,14 @@ export const CustomerExperience: React.FC = () => {
                   whileTap={settings.storeStatus?.isOpen === false ? {} : { scale: 0.97 }}
                   onClick={settings.storeStatus?.isOpen === false ? undefined : handlePlaceOrder}
                   disabled={settings.storeStatus?.isOpen === false}
-                  className={`w-full text-white text-xs font-bold py-3 px-4 rounded-xl flex justify-between items-center transition-all shadow-md ${settings.storeStatus?.isOpen === false ? 'bg-stone-400 cursor-not-allowed opacity-75' : 'bg-amber-900 hover:bg-amber-950 cursor-pointer'}`}
+                  className={`w-full text-black text-xs font-bold py-3 px-4 rounded-xl flex justify-between items-center transition-all shadow-md ${settings.storeStatus?.isOpen === false ? 'bg-stone-400 cursor-not-allowed opacity-75' : 'cursor-pointer'}`}
+                  style={settings.storeStatus?.isOpen !== false ? { backgroundColor: primaryColor } : undefined}
                 >
-                  <span>{settings.storeStatus?.isOpen === false ? 'Store Closed' : 'Confirm & Send Order'}</span>
-                  <span className={`font-extrabold font-mono text-[11px] ${settings.storeStatus?.isOpen === false ? 'bg-stone-500' : 'bg-amber-800'} py-0.5 px-2 rounded-md`}>
+                  <span className="font-extrabold">{settings.storeStatus?.isOpen === false ? 'Store Closed' : 'Confirm & Send Order'}</span>
+                  <span 
+                    className="font-extrabold font-mono text-[11px] py-0.5 px-2 rounded-md"
+                    style={{ backgroundColor: 'rgba(0,0,0,0.15)', color: '#000' }}
+                  >
                     ₱{cartTotal}
                   </span>
                 </motion.button>
@@ -2041,7 +1523,7 @@ export const CustomerExperience: React.FC = () => {
               </div>
 
               <div className="text-center font-mono space-y-1 text-xs text-stone-900">
-                <h2 className="text-base font-black tracking-tight text-amber-950 uppercase">{settings.branding.shopName}</h2>
+                <h2 className="text-base font-black tracking-tight uppercase" style={{ color: primaryColor }}>{settings.branding.shopName}</h2>
                 <p className="text-stone-700 font-medium">{settings.businessInfo.address}</p>
                 <p className="text-stone-700 font-medium">{settings.businessInfo.contactNumber}</p>
                 <div className="border-t border-dashed border-stone-300 my-2" />
@@ -2090,7 +1572,7 @@ export const CustomerExperience: React.FC = () => {
                     </>
                   )}
                   {selectedOrderDetails.pointsEarned > 0 && (
-                    <p className="text-amber-900 font-extrabold mt-1">Points Earned: +{selectedOrderDetails.pointsEarned} pts</p>
+                    <p className="font-extrabold mt-1" style={{ color: primaryColor }}>Points Earned: +{selectedOrderDetails.pointsEarned} pts</p>
                   )}
                 </div>
               </div>
@@ -2101,12 +1583,15 @@ export const CustomerExperience: React.FC = () => {
                   const selectedMethod = (settings.paymentMethods || []).find(m => m.id === selectedOrderDetails.paymentMethod || m.name.toLowerCase() === selectedOrderDetails.paymentMethod.toLowerCase());
                   if (selectedMethod && (selectedMethod.type === 'qr' || selectedMethod.type === 'other' || !!selectedMethod.qrCodeUrl)) {
                     return (
-                      <div className="bg-amber-50/50 border border-stone-200 p-3.5 rounded-xl space-y-2.5 text-center text-xs">
+                      <div className="bg-stone-50 border border-stone-200 p-3.5 rounded-xl space-y-2.5 text-center text-xs">
                         <p className="font-extrabold text-stone-850">Payment Instructions ({selectedMethod.name})</p>
                         {selectedMethod.accountNumber && (
-                          <div className="bg-amber-900/10 text-amber-950 font-mono font-bold text-[11px] py-1.5 px-3 rounded-lg border border-amber-900/10 flex items-center justify-center gap-1.5">
+                          <div 
+                            className="font-mono font-bold text-[11px] py-1.5 px-3 rounded-lg border flex items-center justify-center gap-1.5"
+                            style={{ backgroundColor: `${primaryColor}15`, borderColor: `${primaryColor}30`, color: primaryColor }}
+                          >
                             <span>No./Account:</span>
-                            <span className="text-amber-900 tracking-wider select-all">{selectedMethod.accountNumber}</span>
+                            <span className="tracking-wider select-all">{selectedMethod.accountNumber}</span>
                           </div>
                         )}
                         {selectedMethod.qrCodeUrl && (
@@ -2191,6 +1676,32 @@ export const CustomerExperience: React.FC = () => {
         )}
       </AnimatePresence>
 
+      {/* FLOATING ACTION BUTTON (FAB) */}
+      <motion.button
+        whileHover={{ scale: 1.08 }}
+        whileTap={{ scale: 0.92 }}
+        onClick={() => {
+          setIsCartOpen(true);
+        }}
+        title="Open Bag"
+        className="fixed bottom-20 sm:bottom-24 right-4 sm:right-6 z-40 w-11 h-11 sm:w-12 sm:h-12 rounded-full text-black flex items-center justify-center cursor-pointer border"
+        style={{ 
+          background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}dd)`, 
+          boxShadow: `0 4px 22px ${primaryColor}80`,
+          borderColor: `${primaryColor}80` 
+        }}
+      >
+        <ShoppingBag className="w-5 h-5 stroke-[2.5]" />
+        {cartCount > 0 && (
+          <span 
+            className="absolute -top-1 -right-1 bg-black text-[9px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center border shadow-md"
+            style={{ color: primaryColor, borderColor: primaryColor }}
+          >
+            {cartCount}
+          </span>
+        )}
+      </motion.button>
+
       {/* FLOATING CART NOTIFICATION PILL ABOVE BOTTOM BAR */}
       <AnimatePresence>
         {cart.length > 0 && !isCartOpen && !isCheckoutOpen && (
@@ -2199,18 +1710,26 @@ export const CustomerExperience: React.FC = () => {
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: 40, opacity: 0, scale: 0.9 }}
             transition={{ type: 'spring', stiffness: 450, damping: 28 }}
-            className="fixed bottom-14 left-0 right-0 z-40 max-w-sm mx-auto px-3 pointer-events-none"
+            className="fixed bottom-20 sm:bottom-24 left-4 right-16 sm:right-20 z-40 max-w-xs mx-auto pointer-events-none"
           >
             <motion.button
               whileTap={{ scale: 0.96 }}
               onClick={() => setIsCartOpen(true)}
-              className="w-full pointer-events-auto bg-gradient-to-r from-[#c5a059] to-[#dfba73] hover:from-[#b8934c] hover:to-[#d2ad65] text-black font-extrabold py-2 px-3.5 rounded-xl shadow-[0_6px_20px_rgba(197,160,89,0.35)] flex items-center justify-between cursor-pointer border border-[#f5d9a6]/50"
+              className="w-full pointer-events-auto text-black font-black py-2 px-3.5 rounded-2xl flex items-center justify-between cursor-pointer border shadow-lg"
+              style={{ 
+                background: `linear-gradient(to right, ${primaryColor}, ${primaryColor}ee)`,
+                boxShadow: `0 6px 20px ${primaryColor}66`,
+                borderColor: `${primaryColor}90`
+              }}
             >
               <div className="flex items-center gap-2">
-                <div className="bg-black text-[#c5a059] text-[11px] font-black w-5 h-5 rounded-full flex items-center justify-center">
+                <div 
+                  className="bg-black text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center"
+                  style={{ color: primaryColor }}
+                >
                   {cartCount}
                 </div>
-                <span className="text-[11px] tracking-wide">View Bag Items</span>
+                <span className="text-[11px] uppercase tracking-wider font-extrabold">View Order Tray</span>
               </div>
               <div className="flex items-center gap-1 text-[11px] font-black">
                 <span>₱{cartTotal}</span>
@@ -2221,16 +1740,19 @@ export const CustomerExperience: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* 7. PERSISTENT MOBILE NAVIGATION BAR (COMPACT) */}
-      <nav className={`fixed bottom-0 left-0 right-0 z-40 backdrop-blur-xl border-t px-2 py-1 max-w-sm sm:max-w-md mx-auto transition-colors ${
-        isLight 
-          ? 'bg-white/95 border-stone-200 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]' 
-          : 'bg-[#0d0e14]/95 border-[#c5a059]/20 shadow-[0_-8px_25px_rgba(0,0,0,0.8)]'
-      }`}>
-        {/* Subtle Ambient Gold Glow Top Edge */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-[1px] bg-gradient-to-r from-transparent via-[#c5a059]/60 to-transparent" />
+      {/* 7. FLOATING iOS-STYLE BOTTOM NAVIGATION BAR */}
+      <nav 
+        aria-label="Bottom Navigation"
+        className={`fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-40 p-1.5 rounded-full border backdrop-blur-2xl transition-all duration-300 select-none ${
+          isLight 
+            ? 'bg-white/90 border-stone-200/90 shadow-[0_16px_36px_-8px_rgba(0,0,0,0.12)]' 
+            : 'bg-[#141416]/90 border-white/15 shadow-[0_16px_40px_-8px_rgba(0,0,0,0.7),0_0_0_1px_rgba(255,255,255,0.08)]'
+        }`}
+      >
+        {/* Subtle Specular Top Highlight */}
+        <div className="absolute inset-x-6 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/30 to-transparent pointer-events-none" />
 
-        <div className="flex items-center justify-around">
+        <div className="flex items-center gap-1 sm:gap-1.5 relative">
           {[
             { 
               id: 'menu', 
@@ -2243,99 +1765,250 @@ export const CustomerExperience: React.FC = () => {
               label: 'Orders', 
               icon: ReceiptText,
               badge: activeOrdersCount > 0 ? (
-                <span className="absolute -top-0.5 -right-1 bg-amber-500 text-black text-[7.5px] font-black w-3 h-3 rounded-full flex items-center justify-center shadow-xs animate-pulse">
+                <span 
+                  className="ml-1 text-black text-[9px] font-black px-1.5 py-0.2 rounded-full leading-tight shadow-sm"
+                  style={{ backgroundColor: primaryColor }}
+                >
                   {activeOrdersCount}
                 </span>
               ) : null
             },
             { 
               id: 'profile', 
-              label: 'VIP Pass', 
-              icon: QrCode,
+              label: 'Profile', 
+              icon: User,
               badge: null
             }
-          ].map((tab, idx) => {
+          ].map((tab) => {
             const Icon = tab.icon;
             const isSelected = activeTab === tab.id;
             return (
               <motion.button
                 key={tab.id}
-                whileTap={{ scale: 0.88 }}
-                whileHover={{ y: -1 }}
+                whileTap={{ scale: 0.93 }}
                 onClick={() => {
                   setActiveTab(tab.id as any);
                   setIsCartOpen(false);
                 }}
-                className={`relative flex flex-col items-center gap-0 py-0.5 px-2 rounded-xl cursor-pointer group select-none ${
+                className={`relative flex items-center justify-center gap-1.5 py-2 px-3.5 sm:px-4.5 rounded-full text-xs font-bold transition-colors duration-200 cursor-pointer ${
                   isSelected 
-                    ? isLight ? 'text-stone-900' : 'text-white'
-                    : isLight ? 'text-stone-500 hover:text-stone-800' : 'text-white/40 hover:text-white/80'
+                    ? isLight 
+                      ? 'text-white' 
+                      : 'text-black font-black'
+                    : isLight 
+                      ? 'text-stone-600 hover:text-stone-950 hover:bg-stone-100/60' 
+                      : 'text-white/60 hover:text-white hover:bg-white/[0.08]'
                 }`}
               >
-                {/* FLOATING ICON DOCK CONTAINER */}
-                <motion.div 
-                  className="relative"
-                  animate={
-                    isSelected 
-                      ? { y: [-0.5, -3, -0.5] } 
-                      : { y: [0, -1.5, 0] }
-                  }
-                  transition={{
-                    repeat: Infinity,
-                    duration: isSelected ? 2.4 : 3.2,
-                    ease: "easeInOut",
-                    delay: isSelected ? 0 : idx * 0.3
-                  }}
-                >
-                  {/* Subtle Glowing Aura for Active Tab */}
-                  {isSelected && (
-                    <motion.div
-                      animate={{ scale: [0.9, 1.15, 0.9], opacity: [0.25, 0.5, 0.25] }}
-                      transition={{ repeat: Infinity, duration: 2.4, ease: "easeInOut" }}
-                      className="absolute inset-0 bg-[#c5a059]/35 rounded-lg blur-xs -z-10"
-                    />
-                  )}
-
-                  {isSelected && (
-                    <motion.div
-                      layoutId="activeDockPill"
-                      className="absolute inset-0 bg-gradient-to-b from-[#c5a059] to-[#8f6d2b] rounded-lg shadow-sm shadow-[#c5a059]/30 ring-1 ring-[#f5d9a6]/50"
-                      transition={{ type: 'spring', stiffness: 500, damping: 35 }}
-                    />
-                  )}
-
-                  <div className={`relative z-10 p-1 w-6.5 h-6.5 rounded-lg transition-all duration-150 flex items-center justify-center ${
-                    isSelected
-                      ? 'text-black font-extrabold'
-                      : isLight 
-                        ? 'bg-stone-100 text-stone-600 group-hover:bg-stone-200 group-hover:text-stone-900' 
-                        : 'bg-white/[0.04] text-white/50 group-hover:bg-white/[0.08] group-hover:text-white/90'
-                  }`}>
-                    <Icon className={`w-3 h-3 transition-transform ${isSelected ? 'stroke-[2.5px] scale-105' : 'stroke-[1.8px]'}`} />
-                    {tab.badge}
-                  </div>
-                </motion.div>
-
-                {/* LABEL */}
-                <span className={`text-[8.5px] tracking-wider uppercase font-bold mt-0.5 leading-none transition-colors ${
-                  isSelected ? 'text-[#c5a059] font-black' : isLight ? 'text-stone-500 group-hover:text-stone-800' : 'text-white/40 group-hover:text-white/70'
-                }`}>
-                  {tab.label}
-                </span>
-
-                {/* ACTIVE GLOW DOT */}
+                {/* iOS ANIMATED ACTIVE SLIDING PILL */}
                 {isSelected && (
-                  <motion.span 
-                    layoutId="activeDockDot"
-                    className="w-0.5 h-0.5 rounded-full bg-[#c5a059] shadow-[0_0_4px_#c5a059] mt-0.5"
-                    transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                  <motion.div
+                    layoutId="iosDockActivePill"
+                    className={`absolute inset-0 rounded-full shadow-md ${
+                      isLight 
+                        ? 'bg-stone-900 shadow-stone-900/30' 
+                        : ''
+                    }`}
+                    style={!isLight ? { 
+                      background: `linear-gradient(to bottom, ${primaryColor}, ${primaryColor}dd)`, 
+                      boxShadow: `0 4px 15px ${primaryColor}40` 
+                    } : undefined}
+                    transition={{ type: 'spring', stiffness: 480, damping: 32 }}
                   />
                 )}
+
+                {/* ICON & LABEL */}
+                <div className="relative z-10 flex items-center gap-1.5">
+                  <Icon className={`w-4 h-4 transition-transform ${isSelected ? 'stroke-[2.5px] scale-105' : 'stroke-[1.8px]'}`} />
+                  <span className="text-[11px] tracking-wide font-extrabold uppercase whitespace-nowrap">
+                    {tab.label}
+                  </span>
+                  {tab.badge}
+                </div>
               </motion.button>
             );
           })}
         </div>
       </nav>
+      
+      {/* EDIT PROFILE MODAL */}
+      <AnimatePresence>
+        {isEditingProfile && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => !isSavingProfile && setIsEditingProfile(false)}
+              className="absolute inset-0 bg-black/80 backdrop-blur-xs cursor-pointer"
+            />
+
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 15 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 15 }}
+              className={`relative z-10 border w-full max-w-sm rounded-2xl shadow-2xl p-5 space-y-4 overflow-hidden text-left ${
+                isLight ? 'bg-white border-stone-200' : 'bg-[#141414] border-white/15'
+              }`}
+            >
+              <div className={`flex items-center justify-between border-b pb-3 ${isLight ? 'border-stone-200' : 'border-white/10'}`}>
+                <div className="flex items-center gap-2">
+                  <div 
+                    className="w-8 h-8 rounded-xl flex items-center justify-center border"
+                    style={{ backgroundColor: `${primaryColor}20`, borderColor: `${primaryColor}30`, color: primaryColor }}
+                  >
+                    <UserCheck className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className={`font-bold text-sm ${isLight ? 'text-stone-900' : 'text-white'}`}>Edit Profile Details</h3>
+                    <p className={`text-[10px] ${isLight ? 'text-stone-500' : 'text-white/40'}`}>Update your account information</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsEditingProfile(false)}
+                  disabled={isSavingProfile}
+                  className={`p-1 rounded-lg transition-colors ${
+                    isLight ? 'text-stone-400 hover:text-stone-700 hover:bg-stone-100' : 'text-white/40 hover:text-white hover:bg-white/10'
+                  }`}
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {profileSuccessMsg && (
+                <div className="bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-xs px-3 py-2 rounded-xl flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>{profileSuccessMsg}</span>
+                </div>
+              )}
+
+              {profileErrorMsg && (
+                <div className="bg-rose-950/40 border border-rose-500/30 text-rose-300 text-xs px-3 py-2 rounded-xl flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                  <span>{profileErrorMsg}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleSaveProfile} className="space-y-3.5">
+                {/* PROFILE PHOTO EDIT / UPLOAD */}
+                <div className="space-y-1.5">
+                  <label className={`text-[10px] font-extrabold uppercase tracking-wider block ${isLight ? 'text-stone-600' : 'text-white/60'}`}>
+                    Profile Photo
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <div className={`w-14 h-14 rounded-full overflow-hidden border flex items-center justify-center shrink-0 ${
+                      isLight ? 'border-stone-300 bg-stone-100' : 'border-white/20 bg-[#080808]'
+                    }`}>
+                      {editAvatar ? (
+                        <img 
+                          src={editAvatar} 
+                          alt="Preview" 
+                          referrerPolicy="no-referrer"
+                          className="w-full h-full object-cover" 
+                        />
+                      ) : (
+                        <User className={`w-6 h-6 ${isLight ? 'text-stone-400' : 'text-white/30'}`} />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <ImageUpload
+                        label="Update Photo"
+                        folder="avatars"
+                        onUploadSuccess={(url, _key) => setEditAvatar(url)}
+                        onUploadError={(err) => setProfileErrorMsg(err)}
+                      />
+                      {editAvatar && (
+                        <button
+                          type="button"
+                          onClick={() => setEditAvatar('')}
+                          className="text-[10px] text-rose-500 hover:text-rose-600 block font-semibold mt-1"
+                        >
+                          Remove photo
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Image URL fallback input */}
+                  <div className="pt-1">
+                    <input
+                      type="url"
+                      value={editAvatar}
+                      onChange={(e) => setEditAvatar(e.target.value)}
+                      placeholder="Or paste image URL (e.g. https://...)"
+                      className={`w-full border text-xs px-3 py-1.5 rounded-xl focus:outline-none focus:border-[var(--color-primary)] ${
+                        isLight ? 'bg-stone-50 border-stone-300 text-stone-900 placeholder-stone-400' : 'bg-[#0a0a0a] border-white/10 text-white placeholder-white/30'
+                      }`}
+                    />
+                  </div>
+                </div>
+
+                {/* NAME INPUT */}
+                <div className="space-y-1">
+                  <label className={`text-[10px] font-extrabold uppercase tracking-wider block ${isLight ? 'text-stone-600' : 'text-white/60'}`}>
+                    Full Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    placeholder="e.g. Maria Santos"
+                    className={`w-full border text-xs px-3 py-2 rounded-xl focus:outline-none focus:border-[var(--color-primary)] font-medium ${
+                      isLight ? 'bg-stone-50 border-stone-300 text-stone-900 placeholder-stone-400' : 'bg-[#0a0a0a] border-white/10 text-white placeholder-white/30'
+                    }`}
+                  />
+                </div>
+
+                {/* PHONE NUMBER INPUT */}
+                <div className="space-y-1">
+                  <label className={`text-[10px] font-extrabold uppercase tracking-wider block ${isLight ? 'text-stone-600' : 'text-white/60'}`}>
+                    Mobile Phone Number
+                  </label>
+                  <input
+                    type="tel"
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(e.target.value)}
+                    placeholder="e.g. +63 912 345 6789"
+                    className={`w-full border text-xs px-3 py-2 rounded-xl focus:outline-none focus:border-[var(--color-primary)] font-medium ${
+                      isLight ? 'bg-stone-50 border-stone-300 text-stone-900 placeholder-stone-400' : 'bg-[#0a0a0a] border-white/10 text-white placeholder-white/30'
+                    }`}
+                  />
+                </div>
+
+                {/* FORM ACTIONS */}
+                <div className={`flex items-center gap-2 pt-2 border-t ${isLight ? 'border-stone-200' : 'border-white/10'}`}>
+                  <button
+                    type="button"
+                    disabled={isSavingProfile}
+                    onClick={() => setIsEditingProfile(false)}
+                    className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      isLight ? 'bg-stone-100 hover:bg-stone-200 text-stone-700' : 'bg-white/5 hover:bg-white/10 text-white/70'
+                    }`}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSavingProfile}
+                    className="flex-1 py-2 rounded-xl text-black text-xs font-extrabold transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    style={{ backgroundColor: primaryColor }}
+                  >
+                    {isSavingProfile ? (
+                      <span>Saving...</span>
+                    ) : (
+                      <>
+                        <Save className="w-3.5 h-3.5" />
+                        <span>Save Changes</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

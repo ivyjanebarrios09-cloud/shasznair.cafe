@@ -587,15 +587,15 @@ export const PosExperience: React.FC = () => {
 
   return (
     <div 
-      className={`min-h-screen ${isLight ? 'bg-stone-100 text-stone-900' : 'bg-[#07080c] text-[#f2f2f2]'} flex flex-col font-sans select-none overflow-x-hidden pb-20 lg:pb-6 transition-colors duration-300`}
+      className={`h-full w-full ${isLight ? 'bg-stone-100 text-stone-900' : 'bg-[#050505] text-[#f2f2f2]'} flex flex-col font-sans select-none overflow-x-hidden pb-20 lg:pb-6 transition-colors duration-300`}
       style={{ '--color-primary': settings.branding.primaryColor } as React.CSSProperties}
     >
       {/* TOP NAVIGATION & PRODUCTION HEADER BANNER */}
-      <header className={`${isLight ? 'bg-white/95 border-stone-200 text-stone-900' : 'bg-[#0b0c10]/95 border-white/10 text-white'} backdrop-blur-md border-b px-3 sm:px-6 py-2.5 sm:py-3.5 flex items-center justify-between sticky top-0 z-40 shadow-xl relative transition-colors`}>
+      <header className={`${isLight ? 'bg-white/95 border-stone-200 text-stone-900' : 'bg-[#121212]/95 border-white/10 text-white'} backdrop-blur-md border-b px-3 sm:px-6 py-2.5 sm:py-3.5 flex items-center justify-between sticky top-0 z-40 shadow-xl relative transition-colors shrink-0`}>
         {/* GOLD ACCENT ACCENT LINE */}
         <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[var(--color-primary)] to-transparent opacity-80" />
 
-        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+        <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1 mr-2">
           <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-white flex items-center justify-center overflow-hidden shrink-0 shadow-sm border border-stone-200">
             {settings.branding.logoUrl ? (
               <img src={settings.branding.logoUrl} alt="Logo" className="w-full h-full object-cover" />
@@ -643,7 +643,7 @@ export const PosExperience: React.FC = () => {
         </div>
 
         {/* RIGHT SIDE: INSTALL APP + CASHIER PROFILE & LOGOUT */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <InstallAppButton />
 
           {/* CASHIER PROFILE & LOGOUT */}
@@ -674,7 +674,7 @@ export const PosExperience: React.FC = () => {
 
       {/* STORE CLOSED BANNER */}
       {settings.storeStatus?.isOpen === false && (
-        <div className={`border-b text-xs py-2 px-4 sticky top-[49px] sm:top-[57px] z-35 shadow-md flex items-center justify-center gap-2 ${
+        <div className={`border-b text-xs py-2 px-4 shadow-md flex items-center justify-center gap-2 shrink-0 ${
           isLight
             ? 'bg-rose-100 border-rose-300 text-rose-900'
             : 'bg-rose-950/90 border-rose-900 text-rose-200'
@@ -685,7 +685,7 @@ export const PosExperience: React.FC = () => {
       )}
 
       {/* SELECTION BAR AFTER TOP BAR (MENU ITEMS, REGISTER, TRANSACTIONS) */}
-      <div className={`border-b px-3 sm:px-6 py-2 sticky top-[49px] sm:top-[57px] z-30 shadow-md ${
+      <div className={`border-b px-3 sm:px-6 py-2 shadow-md shrink-0 ${
         isLight ? 'bg-white border-stone-200' : 'bg-[#0b0c10] border-white/10'
       }`}>
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">

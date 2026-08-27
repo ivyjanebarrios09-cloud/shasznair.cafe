@@ -6,6 +6,7 @@ import { PosExperience } from './components/PosExperience';
 import { KitchenExperience } from './components/KitchenExperience';
 import { AdminExperience } from './components/AdminExperience';
 import { AuthScreen } from './components/AuthScreen';
+import { LandingPage } from './components/LandingPage';
 import { FloatingInstallAppButton } from './components/InstallAppButton';
 import { Home, Sparkles, Coffee, ShieldCheck, Database } from 'lucide-react';
 import appletConfig from '../firebase-applet-config.json';
@@ -26,9 +27,9 @@ const AppContent: React.FC = () => {
     );
   }
 
-  // If not logged in, present the sign in / log in screen directly
+  // If not logged in, present the iOS guest landing & ordering experience directly
   if (!currentUser) {
-    return <AuthScreen />;
+    return <LandingPage />;
   }
 
   const isAdmin = currentUser.role === 'admin';
@@ -53,12 +54,12 @@ const AppContent: React.FC = () => {
   };
 
   return (
-    <div className={`min-h-screen ${isLight ? 'bg-stone-100 text-stone-900' : 'bg-[#050505] text-[#f2f2f2]'} flex flex-col font-sans transition-colors duration-300`}>
+    <div className={`h-screen w-full overflow-hidden ${isLight ? 'bg-stone-100 text-stone-900' : 'bg-[#050505] text-[#f2f2f2]'} flex flex-col font-sans transition-colors duration-300`}>
       {/* ONLY RENDER ADMIN WORKSPACE CONTROLS FOR ADMIN ACCOUNTS */}
       {isAdmin && <RoleSwitcher />}
 
       {/* MASTER SCREEN ROUTE PORT - PERMITTED PAGE PER ROLE */}
-      <div className={`flex-1 ${isLight ? 'bg-stone-100 text-stone-900' : 'bg-[#050505] text-[#f2f2f2]'} flex flex-col`}>
+      <div className={`flex-1 min-h-0 ${isLight ? 'bg-stone-100 text-stone-900' : 'bg-[#050505] text-[#f2f2f2]'} flex flex-col overflow-hidden relative`}>
         {renderRoleViewport()}
       </div>
 

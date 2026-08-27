@@ -32,7 +32,7 @@ export const RoleSwitcher: React.FC = () => {
 
   return (
     <>
-      <div className="bg-[#080808] border-b border-white/10 text-[10px] py-1 px-3 flex flex-wrap gap-1.5 items-center justify-between z-50 sticky top-0 shadow-md">
+      <div className="bg-[#080808] border-b border-white/10 text-[10px] py-1 px-3 flex flex-wrap gap-1.5 items-center justify-between z-50 sticky top-0 shadow-md shrink-0">
         <div className="flex items-center gap-2 text-white/90 font-medium select-none">
           <div className="w-6 h-6 rounded-full overflow-hidden border border-[var(--color-primary)]/60 flex items-center justify-center shadow bg-white">
             {settings.branding.logoUrl ? (
