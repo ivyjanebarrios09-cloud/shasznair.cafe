@@ -1230,7 +1230,7 @@ export const AuthScreen: React.FC = () => {
                 
                 if (requiresProof && selectedMethod) {
                   const accountNumber = selectedMethod.accountNumber || "0917 123 4567";
-                  const qrUrl = selectedMethod.qrCodeUrl || `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=GCash-Transfer-${accountNumber.replace(/\s+/g, '')}`;
+                  const qrUrl = selectedMethod.qrCodeUrl;
                   
                   return (
                     <div className="p-4 rounded-2xl bg-stone-950 border border-white/10 flex flex-col items-center text-center space-y-3 animate-fade-in">

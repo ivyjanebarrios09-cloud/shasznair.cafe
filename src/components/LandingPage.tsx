@@ -1143,16 +1143,11 @@ export const LandingPage: React.FC = () => {
                   </motion.div>
                 )}
 
-                {/* Payment Method Selector */}
+                {/* Payment Method Selector - Dynamic from Admin Settings */}
                 <div className="space-y-2 pt-1">
                   <label className={`text-[10px] font-black uppercase tracking-wider block ${isLight ? 'text-stone-500' : 'text-white/40'}`}>Payment Option</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[
-                      { id: 'cash' as PaymentMethod, label: 'Cash', icon: Banknote },
-                      { id: 'gcash' as PaymentMethod, label: 'GCash / QR', icon: QrCode },
-                      { id: 'card' as PaymentMethod, label: 'Card / POS', icon: CreditCard }
-                    ].map(p => {
-                      const Icon = p.icon;
+                  <div className="grid grid-cols-2 gap-2">
+                    {(settings.paymentMethods || []).filter(m => m.active).map(p => {
                       const isSelected = guestPaymentMethod === p.id;
                       return (
                         <button
@@ -1166,50 +1161,63 @@ export const LandingPage: React.FC = () => {
                           }`}
                           style={isSelected ? { backgroundColor: `${primaryColor}18`, borderColor: primaryColor, color: isLight ? '#000' : '#fff' } : undefined}
                         >
-                          <Icon size={16} style={isSelected ? { color: primaryColor } : undefined} />
-                          <span className="text-[11px] font-bold">{p.label}</span>
+                          {p.type === 'qr' ? <QrCode size={16} style={isSelected ? { color: primaryColor } : undefined} /> :
+                           p.type === 'cash' ? <Banknote size={16} style={isSelected ? { color: primaryColor } : undefined} /> :
+                           <CreditCard size={16} style={isSelected ? { color: primaryColor } : undefined} />}
+                          <span className="text-[11px] font-bold">{p.name}</span>
                         </button>
                       );
                     })}
+                    {(settings.paymentMethods || []).filter(m => m.active).length === 0 && (
+                      <p className="col-span-2 text-xs text-stone-400 italic p-2 text-center">No payment methods configured by admin.</p>
+                    )}
                   </div>
 
-                  {/* QR Code / GCash Notice */}
-                  {guestPaymentMethod === 'gcash' && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className={`p-3.5 rounded-2xl border text-center space-y-2.5 ${isLight ? 'bg-stone-50 border-stone-200' : 'bg-white/5 border-white/10'}`}
-                    >
-                      <div className="flex flex-col items-center gap-1.5">
-                        <div className="p-2 bg-white rounded-xl shadow-md inline-block">
-                          <img 
-                            src={getQRCodeUrl(`GCASH:${settings?.businessInfo?.contactNumber || '09123456789'}`)} 
-                            alt="Payment QR" 
-                            className="w-28 h-28 object-contain"
-                          />
-                        </div>
-                        <p className={`text-[10px] font-bold ${isLight ? 'text-stone-700' : 'text-white/80'}`}>
-                          Scan with GCash • Pay to: <span style={{ color: primaryColor }}>{settings?.businessInfo?.contactNumber || '0912 345 6789'}</span>
-                        </p>
-                      </div>
-
-                      <div className="text-left space-y-1 pt-1 border-t border-white/5">
-                        <label className={`text-[9px] font-black uppercase tracking-wider block ${isLight ? 'text-stone-600' : 'text-white/50'}`}>Upload Payment Screenshot (Optional)</label>
-                        <div className="flex items-center gap-2">
-                          {guestReceiptUrl && (
-                            <img src={guestReceiptUrl} alt="Receipt" className="w-10 h-10 rounded-lg object-cover border border-stone-300 bg-white shrink-0" />
+                  {/* QR Code / Admin Payment Method Notice */}
+                  {(() => {
+                    const selectedMethod = (settings.paymentMethods || []).find(m => m.id === guestPaymentMethod);
+                    if (!selectedMethod || selectedMethod.type === 'cash') return null;
+                    return (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className={`p-3.5 rounded-2xl border text-center space-y-2.5 ${isLight ? 'bg-stone-50 border-stone-200' : 'bg-white/5 border-white/10'}`}
+                      >
+                        <div className="flex flex-col items-center gap-1.5">
+                          {selectedMethod.qrCodeUrl ? (
+                            <div className="p-2 bg-white rounded-xl shadow-md inline-block">
+                              <img 
+                                src={selectedMethod.qrCodeUrl} 
+                                alt={selectedMethod.name} 
+                                className="w-28 h-28 object-contain"
+                              />
+                            </div>
+                          ) : (
+                            <p className="text-xs text-amber-600 font-medium">Please transfer to account below:</p>
                           )}
-                          <div className="flex-1">
-                            <ImageUpload
-                              label="Attach Proof"
-                              folder="receipts"
-                              onUploadSuccess={(url) => setGuestReceiptUrl(url)}
-                            />
+                          <p className={`text-[10px] font-bold ${isLight ? 'text-stone-700' : 'text-white/80'}`}>
+                            {selectedMethod.name} • Account: <span style={{ color: primaryColor }} className="font-mono text-xs">{selectedMethod.accountNumber || 'N/A'}</span> ({selectedMethod.accountName || 'Store Account'})
+                          </p>
+                        </div>
+
+                        <div className="text-left space-y-1 pt-1 border-t border-white/5">
+                          <label className={`text-[9px] font-black uppercase tracking-wider block ${isLight ? 'text-stone-600' : 'text-white/50'}`}>Upload Payment Screenshot (Required for verification)</label>
+                          <div className="flex items-center gap-2">
+                            {guestReceiptUrl && (
+                              <img src={guestReceiptUrl} alt="Receipt" className="w-10 h-10 rounded-lg object-cover border border-stone-300 bg-white shrink-0" />
+                            )}
+                            <div className="flex-1">
+                              <ImageUpload
+                                label="Attach Proof"
+                                folder="receipts"
+                                onUploadSuccess={(url) => setGuestReceiptUrl(url)}
+                              />
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </motion.div>
-                  )}
+                      </motion.div>
+                    );
+                  })()}
                 </div>
 
                 {/* Special Instructions */}
