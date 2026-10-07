@@ -9,11 +9,13 @@ import {
   Coffee, Tag, Settings, Plus, Edit2, Trash2, Check, 
   X, AlertTriangle, Download, ArrowRight, RotateCcw,
   Sparkles, ShieldCheck, Store, Smartphone, User,
-  Palette, Building2, Phone, Mail, Clock, Save, RefreshCw, Layers, Menu, Power
+  Palette, Building2, Phone, Mail, Clock, Save, RefreshCw, Layers, Menu, Power,
+  Bell, BellRing, BellOff, Volume2, VolumeX, Music, Play
 } from 'lucide-react';
 import { ImageUpload } from './ImageUpload';
 import { CategoryIcon, FOOD_ICON_OPTIONS } from '../utils/categoryIcons';
 import { AdminReportsTab } from './AdminReportsTab';
+import { NOTIFICATION_SOUNDS } from '../firebase/messaging';
 
 export const AdminExperience: React.FC = () => {
   const {
@@ -44,7 +46,16 @@ export const AdminExperience: React.FC = () => {
     resetDatabase,
     updateDocument,
     addDocument,
-    deleteDocument
+    deleteDocument,
+    notificationPermission,
+    isFcmEnabled,
+    notificationSound,
+    notificationVolume,
+    setNotificationSound,
+    setNotificationVolume,
+    previewNotificationSound,
+    enablePosNotifications,
+    testPosNotification
   } = useCoffeeApp();
 
   // Navigation Panel Tab: 'dashboard' | 'products' | 'categories' | 'vouchers' | 'customers' | 'reports' | 'audit' | 'settings'
@@ -65,6 +76,39 @@ export const AdminExperience: React.FC = () => {
   const [settingsForm, setSettingsForm] = useState<SystemSettings>(settings);
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [settingsSuccessMsg, setSettingsSuccessMsg] = useState<string | null>(null);
+
+  // FCM Push Notification testing state
+  const [adminTestingNotification, setAdminTestingNotification] = useState(false);
+  const [adminNotificationFeedback, setAdminNotificationFeedback] = useState<string | null>(null);
+
+  const handleAdminTestNotification = async () => {
+    setAdminTestingNotification(true);
+    setAdminNotificationFeedback('Dispatching test alert to registered cashier and admin devices...');
+    try {
+      const res = await testPosNotification();
+      if (res.success) {
+        setAdminNotificationFeedback('✅ Test push alert sent! Check your phone/tablet lockscreen.');
+      } else {
+        setAdminNotificationFeedback(`⚠️ ${res.error || 'Failed to dispatch alert'}`);
+      }
+    } catch (err: any) {
+      setAdminNotificationFeedback(`⚠️ ${err.message}`);
+    } finally {
+      setAdminTestingNotification(false);
+      setTimeout(() => setAdminNotificationFeedback(null), 5000);
+    }
+  };
+
+  const handleAdminEnableNotifications = async () => {
+    setAdminNotificationFeedback('Requesting notification permission...');
+    const res = await enablePosNotifications();
+    if (res.success) {
+      setAdminNotificationFeedback('✅ Push alerts are now active for this device!');
+    } else {
+      setAdminNotificationFeedback(`⚠️ ${res.error || 'Could not enable'}`);
+    }
+    setTimeout(() => setAdminNotificationFeedback(null), 5000);
+  };
 
   // Firestore Staff/Terminal User Modals & Forms
   const [editingStaffUser, setEditingStaffUser] = useState<UserProfile | null>(null);
@@ -632,7 +676,29 @@ export const AdminExperience: React.FC = () => {
           </div>
         </div>
 
-        <div />
+        <div className="flex items-center gap-1.5">
+          {notificationPermission === 'granted' ? (
+            <button
+              onClick={handleAdminTestNotification}
+              disabled={adminTestingNotification}
+              title="Test push alerts"
+              className={`p-2 rounded-xl border flex items-center gap-1 transition-all cursor-pointer ${
+                isLight ? 'bg-emerald-50 text-emerald-800 border-emerald-300' : 'bg-emerald-950/60 text-emerald-300 border-emerald-500/40'
+              }`}
+            >
+              <BellRing size={16} className={`text-emerald-400 ${adminTestingNotification ? 'animate-bounce' : ''}`} />
+            </button>
+          ) : (
+            <button
+              onClick={handleAdminEnableNotifications}
+              title="Enable order push alerts"
+              className="px-2.5 py-1 rounded-xl border border-[#c5a059]/60 bg-[#c5a059] text-black text-[10px] font-bold flex items-center gap-1 shadow-sm"
+            >
+              <Bell size={13} />
+              <span>Alerts</span>
+            </button>
+          )}
+        </div>
       </header>
 
       {/* MOBILE MENU OVERLAY */}
@@ -2497,6 +2563,233 @@ export const AdminExperience: React.FC = () => {
                   {settingsSaving ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
                   Save Threshold Settings
                 </button>
+              </div>
+            </div>
+
+            {/* 5. PUSH NOTIFICATIONS & LOCKSCREEN ALERTS (FCM) */}
+            <div className={`${isLight ? 'bg-white border-stone-200 text-stone-900 shadow-sm' : 'bg-[#121212] border-white/10 text-white shadow-lg'} p-5 rounded-2xl border space-y-4`}>
+              <div className={`flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b ${isLight ? 'border-stone-200' : 'border-white/5'} pb-3`}>
+                <div className="flex items-center gap-2.5 text-[#c5a059]">
+                  <div className="p-2 rounded-xl bg-[#c5a059]/10 text-[#c5a059]">
+                    <BellRing className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className={`font-bold ${isLight ? 'text-stone-900' : 'text-white'} text-sm font-serif uppercase tracking-wider`}>
+                      Order Push Notifications &amp; Lockscreen Alerts (FCM)
+                    </h3>
+                    <p className={`text-[11px] ${isLight ? 'text-stone-500' : 'text-white/40'}`}>
+                      Instantly alerts Cashier and Admin devices with audio chimes and vibration patterns even when the screen is locked or the app is minimized.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Device Status Badge */}
+                <div className="flex items-center gap-2">
+                  {notificationPermission === 'granted' ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/15 border border-emerald-500/30 text-emerald-400">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                      Alerts Active
+                    </span>
+                  ) : notificationPermission === 'denied' ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-500/15 border border-rose-500/30 text-rose-400">
+                      <BellOff className="w-3.5 h-3.5" />
+                      Blocked in Browser
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/15 border border-amber-500/30 text-amber-400">
+                      <Bell className="w-3.5 h-3.5" />
+                      Permission Needed
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Feedback toast if active */}
+              {adminNotificationFeedback && (
+                <div className={`p-3 rounded-xl border text-xs flex items-center gap-2 transition-all ${
+                  adminNotificationFeedback.startsWith('✅')
+                    ? isLight ? 'bg-emerald-50 border-emerald-300 text-emerald-900 font-bold' : 'bg-emerald-950/60 border-emerald-500/30 text-emerald-300 font-bold'
+                    : adminNotificationFeedback.startsWith('⚠️')
+                    ? isLight ? 'bg-amber-50 border-amber-300 text-amber-900 font-bold' : 'bg-amber-950/60 border-amber-500/30 text-amber-300 font-bold'
+                    : isLight ? 'bg-blue-50 border-blue-300 text-blue-900 font-bold' : 'bg-blue-950/60 border-blue-500/30 text-blue-300 font-bold'
+                }`}>
+                  <Volume2 className="w-4 h-4 shrink-0 animate-pulse" />
+                  <span>{adminNotificationFeedback}</span>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                <div className={`p-4 rounded-xl border ${isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#080808] border-white/5'} space-y-2`}>
+                  <div className="flex items-center gap-2 font-bold text-[#c5a059]">
+                    <Smartphone className="w-4 h-4" />
+                    <span>This Device Registration</span>
+                  </div>
+                  <p className={`text-[11px] ${isLight ? 'text-stone-600' : 'text-white/60'}`}>
+                    Registers your phone, tablet, or cashier monitor token in Firestore (<code>fcm_tokens</code>) to receive background push notifications when customers order.
+                  </p>
+                  <div className="pt-2 flex flex-wrap gap-2">
+                    {notificationPermission !== 'granted' ? (
+                      <button
+                        type="button"
+                        onClick={handleAdminEnableNotifications}
+                        className="bg-gradient-to-r from-[#c5a059] to-[#dfb86c] text-black font-extrabold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-[#c5a059]/20 hover:opacity-95 transition-all cursor-pointer animate-pulse"
+                      >
+                        <Bell className="w-3.5 h-3.5 fill-black" />
+                        Enable Notifications on This Device
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleAdminEnableNotifications}
+                        className={`border font-bold px-3.5 py-1.5 rounded-xl text-xs flex items-center gap-1.5 cursor-pointer transition-colors ${
+                          isLight ? 'border-stone-300 bg-stone-100 hover:bg-stone-200 text-stone-800' : 'border-white/15 bg-white/5 hover:bg-white/10 text-white/80'
+                        }`}
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" /> Re-sync Device Token
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className={`p-4 rounded-xl border ${isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#080808] border-white/5'} space-y-2`}>
+                  <div className="flex items-center gap-2 font-bold text-[#c5a059]">
+                    <Volume2 className="w-4 h-4" />
+                    <span>Live Notification &amp; Vibration Diagnostic</span>
+                  </div>
+                  <p className={`text-[11px] ${isLight ? 'text-stone-600' : 'text-white/60'}`}>
+                    Triggers a high-priority FCM test message to all registered Cashier &amp; Admin devices to verify the cafe chime audio and the <code>[300, 100, 300, 100, 300]</code> vibration pattern.
+                  </p>
+                  <div className="pt-2">
+                    <button
+                      type="button"
+                      disabled={adminTestingNotification}
+                      onClick={handleAdminTestNotification}
+                      className="bg-[#c5a059] hover:bg-[#b08c47] text-black font-extrabold px-4 py-2 rounded-xl text-xs flex items-center gap-2 shadow-md shadow-[#c5a059]/20 transition-all cursor-pointer disabled:opacity-50"
+                    >
+                      <BellRing className={`w-3.5 h-3.5 ${adminTestingNotification ? 'animate-spin' : ''}`} />
+                      {adminTestingNotification ? 'Sending Push Alert...' : 'Send Test Push Alert to Devices'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* SOUND PRESET SELECTION & VOLUME SLIDER IN ADMIN SETTINGS */}
+              <div className={`p-4 rounded-xl border ${isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#080808] border-white/5'} space-y-4`}>
+                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 border-b pb-3 border-stone-200 dark:border-white/5">
+                  <div className="flex items-center gap-2 font-bold text-[#c5a059] text-xs">
+                    <Music className="w-4 h-4" />
+                    <span>Notification Tone Presets &amp; Loudness</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold text-stone-500 dark:text-white/50">Volume:</span>
+                    <span className="font-mono text-xs font-black px-2 py-0.5 rounded bg-[#c5a059]/20 text-[#c5a059]">
+                      {Math.round((notificationVolume ?? 0.85) * 100)}%
+                    </span>
+                  </div>
+                </div>
+
+                {/* Volume Slider */}
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setNotificationVolume(notificationVolume > 0 ? 0 : 0.85)}
+                    className={`p-2 rounded-lg border text-xs cursor-pointer ${
+                      notificationVolume === 0 
+                        ? 'bg-rose-500/20 text-rose-300 border-rose-500/30' 
+                        : isLight ? 'bg-stone-200 text-stone-700 border-stone-300' : 'bg-white/10 text-white border-white/10'
+                    }`}
+                  >
+                    {notificationVolume === 0 ? <VolumeX size={15} /> : <Volume2 size={15} />}
+                  </button>
+
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    value={notificationVolume ?? 0.85}
+                    onChange={(e) => setNotificationVolume(parseFloat(e.target.value))}
+                    className="flex-1 accent-[#c5a059] h-2 bg-stone-700 rounded-lg cursor-pointer"
+                  />
+
+                  <div className="flex gap-1.5">
+                    {[0.3, 0.6, 0.85, 1.0].map((v) => (
+                      <button
+                        key={v}
+                        type="button"
+                        onClick={() => setNotificationVolume(v)}
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded border transition-colors cursor-pointer ${
+                          Math.abs((notificationVolume ?? 0.85) - v) < 0.05
+                            ? 'bg-[#c5a059] text-black border-[#c5a059]'
+                            : isLight ? 'bg-stone-100 text-stone-700 border-stone-300' : 'bg-white/5 text-white/70 border-white/10'
+                        }`}
+                      >
+                        {Math.round(v * 100)}%
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Sound Tone Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-1">
+                  {NOTIFICATION_SOUNDS.map((sound) => {
+                    const isSelected = notificationSound === sound.id;
+                    return (
+                      <div
+                        key={sound.id}
+                        onClick={() => setNotificationSound(sound.id)}
+                        className={`p-3 rounded-xl border flex items-center justify-between gap-2 cursor-pointer transition-all ${
+                          isSelected
+                            ? isLight 
+                              ? 'bg-amber-50 border-[#c5a059] ring-1 ring-[#c5a059]/40 shadow-xs' 
+                              : 'bg-[#c5a059]/10 border-[#c5a059] ring-1 ring-[#c5a059]/40'
+                            : isLight 
+                              ? 'bg-white hover:bg-stone-100 border-stone-200' 
+                              : 'bg-[#0f1118] hover:bg-white/[0.03] border-white/5'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 ${
+                            isSelected ? 'border-[#c5a059] bg-[#c5a059]' : 'border-stone-400'
+                          }`}>
+                            {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-black" />}
+                          </div>
+                          <div className="truncate">
+                            <div className="flex items-center gap-1.5">
+                              <span className={`text-xs font-bold truncate ${isSelected ? 'text-[#c5a059]' : isLight ? 'text-stone-900' : 'text-white'}`}>
+                                {sound.name}
+                              </span>
+                              <span className={`text-[8px] px-1 py-0.2 rounded font-mono font-bold ${
+                                isSelected ? 'bg-[#c5a059]/20 text-[#c5a059]' : 'bg-white/10 text-stone-400'
+                              }`}>
+                                {sound.badge}
+                              </span>
+                            </div>
+                            <p className="text-[10px] text-stone-500 dark:text-white/40 truncate">
+                              {sound.description}
+                            </p>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setNotificationSound(sound.id);
+                            previewNotificationSound(sound.id, notificationVolume);
+                          }}
+                          className={`p-1.5 rounded-lg border flex items-center gap-1 shrink-0 transition-all cursor-pointer shadow-xs active:scale-95 ${
+                            isSelected
+                              ? 'bg-[#c5a059] text-black border-[#c5a059]'
+                              : isLight ? 'bg-stone-100 hover:bg-stone-200 text-stone-700 border-stone-300' : 'bg-white/5 hover:bg-white/10 text-white/80 border-white/15'
+                          }`}
+                        >
+                          <Play size={10} className={isSelected ? 'fill-black' : ''} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 

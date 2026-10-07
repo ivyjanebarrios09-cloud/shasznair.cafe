@@ -61,3 +61,79 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
+
+// ==========================================
+// BACKGROUND PUSH NOTIFICATIONS & LOCKSCREEN
+// ==========================================
+
+self.addEventListener('push', (event) => {
+  let data = {};
+  try {
+    if (event.data) {
+      data = event.data.json();
+    }
+  } catch (e) {
+    try {
+      data = { body: event.data.text() };
+    } catch (e2) {
+      data = {};
+    }
+  }
+
+  // Handle FCM payload format (notification object or data payload)
+  const notificationTitle = data.notification?.title || data.data?.title || data.title || '🔔 New POS Order Received!';
+  const notificationBody = data.notification?.body || data.data?.body || data.body || 'A new order has arrived. Tap to view transaction.';
+  const orderNumber = data.data?.orderNumber || data.orderNumber || '';
+  const orderId = data.data?.orderId || data.orderId || '';
+  const clickAction = data.data?.click_action || data.fcmOptions?.link || '/?view=pos';
+
+  const notificationOptions = {
+    body: notificationBody,
+    icon: '/coffee_logo.jpg',
+    badge: '/coffee_logo.jpg',
+    vibrate: [300, 100, 300, 100, 300], // Urgent rhythmic cafe pulse
+    requireInteraction: true,          // Keep notification on lockscreen until interacted
+    renotify: true,                    // Trigger sound/vibration every time
+    tag: orderNumber ? `pos-order-${orderNumber}` : `pos-order-${Date.now()}`,
+    data: {
+      url: clickAction,
+      orderId,
+      orderNumber,
+      timestamp: Date.now()
+    },
+    actions: [
+      { action: 'open_pos', title: '☕ Open POS Register' }
+    ]
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(notificationTitle, notificationOptions)
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  const targetUrl = event.notification.data?.url || '/?view=pos';
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      // Focus existing tab if open
+      for (const client of clientList) {
+        if ('focus' in client) {
+          client.postMessage({
+            type: 'NAVIGATE_POS_ORDER',
+            orderId: event.notification.data?.orderId,
+            orderNumber: event.notification.data?.orderNumber
+          });
+          return client.focus();
+        }
+      }
+      // Otherwise open a fresh window
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(targetUrl);
+      }
+    })
+  );
+});
+

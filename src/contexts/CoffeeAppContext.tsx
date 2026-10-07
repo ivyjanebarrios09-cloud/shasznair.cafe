@@ -37,6 +37,17 @@ import {
   UserRole
 } from '../types';
 import { DEMO_CATEGORIES, DEMO_PRODUCTS, DEMO_VOUCHERS, DEMO_REWARDS } from '../firebase/demoData';
+import { 
+  requestFcmToken, 
+  playOrderChime, 
+  setupForegroundFCMListener,
+  getSavedNotificationSound,
+  getSavedNotificationVolume,
+  setSavedNotificationSound,
+  setSavedNotificationVolume,
+  NotificationSoundType,
+  NOTIFICATION_SOUNDS 
+} from '../firebase/messaging';
 
 interface CoffeeAppContextType {
   // DB status check
@@ -57,6 +68,17 @@ interface CoffeeAppContextType {
   register: (email: string, password: string, name: string, phone: string, role: UserRole) => Promise<void>;
   logout: () => Promise<void>;
   simulateRole: (role: UserRole) => Promise<void>;
+
+  // Push Notification State & Actions
+  notificationPermission: NotificationPermission | 'unsupported';
+  isFcmEnabled: boolean;
+  notificationSound: string;
+  notificationVolume: number;
+  setNotificationSound: (sound: any) => void;
+  setNotificationVolume: (vol: number) => void;
+  previewNotificationSound: (sound?: any, vol?: number) => void;
+  enablePosNotifications: () => Promise<{ success: boolean; error?: string }>;
+  testPosNotification: (sound?: any, vol?: number) => Promise<{ success: boolean; error?: string }>;
 
   // Data lists
   categories: Category[];
@@ -498,6 +520,117 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }, 1500);
     return () => clearTimeout(timer);
   }, [dataLoading]);
+
+  // Push Notification States
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | 'unsupported'>(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      return Notification.permission;
+    }
+    return 'unsupported';
+  });
+  const [isFcmEnabled, setIsFcmEnabled] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return !!localStorage.getItem('shasznair_fcm_token');
+    }
+    return false;
+  });
+
+  const [notificationSound, setNotificationSoundState] = useState<NotificationSoundType>(getSavedNotificationSound);
+  const [notificationVolume, setNotificationVolumeState] = useState<number>(getSavedNotificationVolume);
+
+  const setNotificationSound = (sound: NotificationSoundType) => {
+    setNotificationSoundState(sound);
+    setSavedNotificationSound(sound);
+  };
+
+  const setNotificationVolume = (vol: number) => {
+    const clamped = Math.max(0, Math.min(1, vol));
+    setNotificationVolumeState(clamped);
+    setSavedNotificationVolume(clamped);
+  };
+
+  const previewNotificationSound = (sound?: NotificationSoundType, vol?: number) => {
+    playOrderChime(sound || notificationSound, vol !== undefined ? vol : notificationVolume);
+  };
+
+  // Automatically request token and initialize foreground listener when staff (cashier / admin) logs in
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // Update permission status
+    if ('Notification' in window) {
+      setNotificationPermission(Notification.permission);
+    }
+
+    const isStaff = currentUser?.role === 'cashier' || currentUser?.role === 'admin';
+
+    if (isStaff && 'Notification' in window && Notification.permission === 'granted') {
+      requestFcmToken(currentUser).then((res) => {
+        if (res.success) {
+          setIsFcmEnabled(true);
+        }
+      }).catch((err) => {
+        console.warn('[FCM] Token refresh warning:', err);
+      });
+    }
+
+    // Set up foreground message listener
+    let unsubscribeFn: (() => void) | null = null;
+    setupForegroundFCMListener((payload) => {
+      console.log('[FCM] Real-time order alert received in foreground:', payload);
+      // Play user selected notification chime sound with volume
+      playOrderChime(getSavedNotificationSound(), getSavedNotificationVolume());
+    }).then(unsub => {
+      if (typeof unsub === 'function') unsubscribeFn = unsub;
+    }).catch(err => {
+      console.warn('[FCM] Error attaching foreground listener:', err);
+    });
+
+    return () => {
+      if (unsubscribeFn) unsubscribeFn();
+    };
+  }, [currentUser?.role, currentUser?.uid]);
+
+  const enablePosNotifications = async (): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const res = await requestFcmToken(currentUser);
+      if (typeof window !== 'undefined' && 'Notification' in window) {
+        setNotificationPermission(Notification.permission);
+      }
+      if (res.success) {
+        setIsFcmEnabled(true);
+      }
+      return res;
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Failed to enable notifications' };
+    }
+  };
+
+  const testPosNotification = async (sound?: NotificationSoundType, vol?: number): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const targetSound = sound || notificationSound;
+      const targetVol = vol !== undefined ? vol : notificationVolume;
+      const token = typeof window !== 'undefined' ? localStorage.getItem('shasznair_fcm_token') : null;
+      const res = await fetch('/api/test-notification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token: token || undefined,
+          title: '🔔 POS Register Test Alert',
+          body: `Order notification test with sound: ${NOTIFICATION_SOUNDS.find(s => s.id === targetSound)?.name || 'Cafe Bell'}`
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to dispatch test notification');
+      }
+      // Trigger instant sound & vibration feedback locally with specified preset and volume
+      playOrderChime(targetSound, targetVol);
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Failed to dispatch test notification' };
+    }
+  };
 
   // Cart State
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -1567,6 +1700,25 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
       await batch.commit();
 
+      // Trigger FCM Push Notification to Cashier & Admin POS devices
+      try {
+        const itemsSummary = itemsList.map(i => `${i.quantity}x ${i.name}`).slice(0, 3).join(', ') + (itemsList.length > 3 ? ` +${itemsList.length - 3} more` : '');
+        fetch('/api/notify-new-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orderId: orderRef.id,
+            orderNumber,
+            customerName: orderCustomerName,
+            total,
+            orderType,
+            itemsSummary
+          })
+        }).catch(err => console.warn('[FCM] Notification dispatch error:', err));
+      } catch (fcmErr) {
+        console.warn('[FCM] Failed to trigger notification dispatch:', fcmErr);
+      }
+
       // Clear the local customer cart if not customCart
       if (!customCart) {
         clearCart();
@@ -2184,6 +2336,15 @@ export const CoffeeAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       loyaltyTransactions,
       settings,
       dataLoading,
+      notificationPermission,
+      isFcmEnabled,
+      notificationSound,
+      notificationVolume,
+      setNotificationSound,
+      setNotificationVolume,
+      previewNotificationSound,
+      enablePosNotifications,
+      testPosNotification,
       cart,
       addToCart,
       removeFromCart,

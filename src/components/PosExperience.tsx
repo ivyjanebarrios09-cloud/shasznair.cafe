@@ -7,8 +7,10 @@ import {
   Search, ShoppingCart, UserPlus, CreditCard, Sparkles, Trash2, X, Plus, Minus, 
   Check, Play, Pause, AlertCircle, Printer, LogOut, ShoppingBag, 
   UserCheck, Banknote, Clock, ChevronRight, Layers, ArrowLeft, Coffee, ReceiptText,
-  UtensilsCrossed, User, Smartphone, Store, Flame, ChevronDown, ChevronUp
+  UtensilsCrossed, User, Smartphone, Store, Flame, ChevronDown, ChevronUp,
+  Bell, BellRing, BellOff, Volume2, VolumeX, Sliders, Music
 } from 'lucide-react';
+import { NOTIFICATION_SOUNDS } from '../firebase/messaging';
 
 export const PosExperience: React.FC = () => {
   const {
@@ -22,7 +24,16 @@ export const PosExperience: React.FC = () => {
     updateOrderStatus,
     settings,
     currentUser,
-    logout
+    logout,
+    notificationPermission,
+    isFcmEnabled,
+    notificationSound,
+    notificationVolume,
+    setNotificationSound,
+    setNotificationVolume,
+    previewNotificationSound,
+    enablePosNotifications,
+    testPosNotification
   } = useCoffeeApp();
 
   const isLight = settings?.branding?.theme === 'light';
@@ -72,6 +83,40 @@ export const PosExperience: React.FC = () => {
   const [viewReceiptUrl, setViewReceiptUrl] = useState<string | null>(null);
   const [tenderingOrder, setTenderingOrder] = useState<Order | null>(null);
   const [tenderCashAmount, setTenderCashAmount] = useState<string>('');
+
+  // Push notification testing state & feedback
+  const [isTestingNotification, setIsTestingNotification] = useState(false);
+  const [notificationFeedback, setNotificationFeedback] = useState<string | null>(null);
+  const [showSoundModal, setShowSoundModal] = useState(false);
+
+  const handleTestNotification = async () => {
+    setIsTestingNotification(true);
+    setNotificationFeedback('Dispatching test alert...');
+    try {
+      const res = await testPosNotification();
+      if (res.success) {
+        setNotificationFeedback('✅ Push alert sent! Check sound & vibration.');
+      } else {
+        setNotificationFeedback(`⚠️ ${res.error || 'Failed to trigger alert'}`);
+      }
+    } catch (e: any) {
+      setNotificationFeedback(`⚠️ ${e.message}`);
+    } finally {
+      setIsTestingNotification(false);
+      setTimeout(() => setNotificationFeedback(null), 4000);
+    }
+  };
+
+  const handleEnableNotifications = async () => {
+    setNotificationFeedback('Requesting notification permission...');
+    const res = await enablePosNotifications();
+    if (res.success) {
+      setNotificationFeedback('✅ Push alerts active!');
+    } else {
+      setNotificationFeedback(`⚠️ ${res.error || 'Could not enable'}`);
+    }
+    setTimeout(() => setNotificationFeedback(null), 4000);
+  };
 
   // Dynamic Best Sellers calculation for POS from real orders
   const posBestSellers = useMemo(() => {
@@ -646,8 +691,73 @@ export const PosExperience: React.FC = () => {
           </div>
         </div>
 
-        {/* RIGHT SIDE: INSTALL APP + CASHIER PROFILE & LOGOUT */}
+        {/* RIGHT SIDE: PUSH NOTIFICATIONS + INSTALL APP + CASHIER PROFILE & LOGOUT */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {/* POS PUSH NOTIFICATION CONTROLS */}
+          <div className="flex items-center gap-1.5">
+            {notificationPermission === 'granted' ? (
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={handleTestNotification}
+                  disabled={isTestingNotification}
+                  title="Click to test order chime sound & lockscreen vibration"
+                  className={`text-[10px] sm:text-xs font-bold px-2 sm:px-2.5 py-1.5 rounded-xl border flex items-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-95 ${
+                    isLight 
+                      ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border-emerald-300' 
+                      : 'bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-300 border-emerald-500/40'
+                  }`}
+                >
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  </span>
+                  <BellRing className={`w-3.5 h-3.5 text-emerald-400 ${isTestingNotification ? 'animate-bounce' : ''}`} />
+                  <span className="hidden sm:inline">Alerts Active</span>
+                  <span className="text-[9px] px-1 py-0.2 rounded bg-black/20 text-emerald-300 font-mono">Test</span>
+                </button>
+              </div>
+            ) : notificationPermission === 'denied' ? (
+              <button
+                onClick={handleEnableNotifications}
+                title="Notifications are blocked in browser settings. Click to re-check."
+                className={`text-[10px] sm:text-xs font-bold px-2 py-1.5 rounded-xl border flex items-center gap-1.5 cursor-pointer ${
+                  isLight ? 'bg-amber-50 text-amber-800 border-amber-300' : 'bg-amber-950/40 text-amber-300 border-amber-500/30'
+                }`}
+              >
+                <BellOff className="w-3.5 h-3.5 text-amber-500" />
+                <span className="hidden sm:inline">Alerts Blocked</span>
+              </button>
+            ) : (
+              <button
+                onClick={handleEnableNotifications}
+                title="Enable instant sound and vibration when customer orders arrive"
+                className="text-[10px] sm:text-xs font-extrabold px-2.5 py-1.5 rounded-xl border border-[#c5a059]/60 bg-gradient-to-r from-[#c5a059] to-[#dfb86c] text-black hover:opacity-90 flex items-center gap-1.5 transition-all cursor-pointer shadow-md shadow-[#c5a059]/20 animate-pulse"
+              >
+                <Bell className="w-3.5 h-3.5 fill-black" />
+                <span>Enable Order Alerts</span>
+              </button>
+            )}
+
+            {/* SOUND & VOLUME MODAL BUTTON */}
+            <button
+              onClick={() => setShowSoundModal(true)}
+              title={`Alert Sound & Volume Settings (${Math.round((notificationVolume ?? 0.85) * 100)}%)`}
+              className={`text-[10px] sm:text-xs font-bold px-2 py-1.5 rounded-xl border flex items-center gap-1 transition-all cursor-pointer shadow-xs active:scale-95 ${
+                isLight 
+                  ? 'bg-stone-100 hover:bg-stone-200 text-stone-800 border-stone-300' 
+                  : 'bg-white/5 hover:bg-white/10 text-white/90 border-white/15'
+              }`}
+            >
+              {notificationVolume === 0 ? (
+                <VolumeX className="w-3.5 h-3.5 text-rose-400" />
+              ) : (
+                <Volume2 className="w-3.5 h-3.5 text-[#c5a059]" />
+              )}
+              <span className="font-mono text-[10px] font-bold hidden xs:inline">{Math.round((notificationVolume ?? 0.85) * 100)}%</span>
+              <Sliders className="w-3 h-3 text-stone-400 hidden sm:inline" />
+            </button>
+          </div>
+
           <InstallAppButton />
 
           {/* CASHIER PROFILE & LOGOUT */}
@@ -675,6 +785,20 @@ export const PosExperience: React.FC = () => {
           </div>
         </div>
       </header>
+
+      {/* NOTIFICATION STATUS FEEDBACK BANNER */}
+      {notificationFeedback && (
+        <div className={`border-b text-xs py-1.5 px-4 shadow-sm flex items-center justify-center gap-2 transition-all shrink-0 ${
+          notificationFeedback.startsWith('✅')
+            ? isLight ? 'bg-emerald-100 border-emerald-300 text-emerald-900 font-bold' : 'bg-emerald-950 border-emerald-800 text-emerald-200 font-bold'
+            : notificationFeedback.startsWith('⚠️')
+            ? isLight ? 'bg-amber-100 border-amber-300 text-amber-900 font-bold' : 'bg-amber-950 border-amber-800 text-amber-200 font-bold'
+            : isLight ? 'bg-blue-100 border-blue-300 text-blue-900 font-bold' : 'bg-blue-950 border-blue-800 text-blue-200 font-bold'
+        }`}>
+          <Volume2 className="w-3.5 h-3.5 animate-pulse" />
+          <span>{notificationFeedback}</span>
+        </div>
+      )}
 
       {/* STORE CLOSED BANNER */}
       {settings.storeStatus?.isOpen === false && (
@@ -2060,6 +2184,199 @@ export const PosExperience: React.FC = () => {
                 </div>
               );
             })()}
+          </div>
+        </div>
+      )}
+
+      {/* ALERT SOUND & VOLUME SELECTION MODAL */}
+      {showSoundModal && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className={`${
+            isLight ? 'bg-white text-stone-900 border-stone-200' : 'bg-[#12141c] text-white border-white/10'
+          } rounded-2xl border max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto`}>
+            {/* Modal Header */}
+            <div className={`flex justify-between items-center border-b ${isLight ? 'border-stone-200' : 'border-white/10'} pb-3.5`}>
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-[#c5a059]/15 text-[#c5a059]">
+                  <Music className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className={`font-serif font-extrabold text-base ${isLight ? 'text-stone-900' : 'text-white'} uppercase tracking-wide`}>
+                    Alert Sound &amp; Volume
+                  </h3>
+                  <p className={`text-[11px] ${isLight ? 'text-stone-500' : 'text-white/50'}`}>
+                    Customize the tone and loudness for incoming POS transaction alerts
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowSoundModal(false)}
+                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                  isLight ? 'hover:bg-stone-100 text-stone-500' : 'hover:bg-white/10 text-white/50'
+                }`}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* 1. VOLUME ADJUSTMENT SECTION */}
+            <div className={`p-4 rounded-xl border ${isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#0a0b10] border-white/5'} space-y-3`}>
+              <div className="flex justify-between items-center">
+                <label className="text-xs font-bold text-[#c5a059] uppercase tracking-wider flex items-center gap-1.5">
+                  {notificationVolume === 0 ? (
+                    <VolumeX className="w-4 h-4 text-rose-400" />
+                  ) : (
+                    <Volume2 className="w-4 h-4" />
+                  )}
+                  Alert Loudness Level
+                </label>
+                <span className="font-mono text-xs font-black px-2 py-0.5 rounded-lg bg-[#c5a059]/15 text-[#c5a059]">
+                  {Math.round((notificationVolume ?? 0.85) * 100)}%
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setNotificationVolume(notificationVolume > 0 ? 0 : 0.85)}
+                  title={notificationVolume === 0 ? "Unmute" : "Mute"}
+                  className={`p-2 rounded-lg border text-xs cursor-pointer transition-colors ${
+                    notificationVolume === 0 
+                      ? 'bg-rose-500/20 text-rose-300 border-rose-500/30' 
+                      : isLight ? 'bg-stone-200 text-stone-700 border-stone-300' : 'bg-white/10 text-white border-white/10'
+                  }`}
+                >
+                  {notificationVolume === 0 ? <VolumeX size={16} /> : <Volume2 size={16} />}
+                </button>
+
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  value={notificationVolume ?? 0.85}
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value);
+                    setNotificationVolume(val);
+                  }}
+                  className="flex-1 accent-[#c5a059] h-2 bg-stone-700 rounded-lg cursor-pointer"
+                />
+              </div>
+
+              <div className="flex gap-2 justify-end">
+                {[0.25, 0.5, 0.85, 1.0].map((level) => (
+                  <button
+                    key={level}
+                    type="button"
+                    onClick={() => setNotificationVolume(level)}
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded border transition-colors cursor-pointer ${
+                      Math.abs((notificationVolume ?? 0.85) - level) < 0.05
+                        ? 'bg-[#c5a059] text-black border-[#c5a059]'
+                        : isLight ? 'bg-stone-100 hover:bg-stone-200 text-stone-700 border-stone-300' : 'bg-white/5 hover:bg-white/10 text-white/70 border-white/10'
+                    }`}
+                  >
+                    {Math.round(level * 100)}%
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 2. SOUND PRESET SELECTION */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-[#c5a059] uppercase tracking-wider block">
+                Notification Tone Presets
+              </label>
+
+              <div className="space-y-2">
+                {NOTIFICATION_SOUNDS.map((sound) => {
+                  const isSelected = notificationSound === sound.id;
+                  return (
+                    <div
+                      key={sound.id}
+                      onClick={() => setNotificationSound(sound.id)}
+                      className={`p-3 rounded-xl border flex items-center justify-between gap-3 cursor-pointer transition-all ${
+                        isSelected
+                          ? isLight 
+                            ? 'bg-amber-50/80 border-[#c5a059] ring-1 ring-[#c5a059]/40 shadow-sm' 
+                            : 'bg-[#c5a059]/10 border-[#c5a059] ring-1 ring-[#c5a059]/40'
+                          : isLight 
+                            ? 'bg-stone-50 hover:bg-stone-100 border-stone-200' 
+                            : 'bg-[#0a0b10] hover:bg-white/[0.03] border-white/5'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                          isSelected ? 'border-[#c5a059] bg-[#c5a059]' : 'border-stone-400'
+                        }`}>
+                          {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-black" />}
+                        </div>
+                        <div className="truncate">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-xs font-bold ${isSelected ? 'text-[#c5a059]' : isLight ? 'text-stone-900' : 'text-white'}`}>
+                              {sound.name}
+                            </span>
+                            <span className={`text-[9px] px-1.5 py-0.2 rounded font-mono font-bold ${
+                              isSelected
+                                ? 'bg-[#c5a059]/20 text-[#c5a059]'
+                                : isLight ? 'bg-stone-200 text-stone-600' : 'bg-white/10 text-white/50'
+                            }`}>
+                              {sound.badge}
+                            </span>
+                          </div>
+                          <p className={`text-[10px] ${isLight ? 'text-stone-500' : 'text-white/40'} truncate`}>
+                            {sound.description}
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setNotificationSound(sound.id);
+                          previewNotificationSound(sound.id, notificationVolume);
+                        }}
+                        className={`text-[10px] font-bold px-2.5 py-1.5 rounded-lg border flex items-center gap-1 shrink-0 transition-all cursor-pointer shadow-xs active:scale-95 ${
+                          isSelected
+                            ? 'bg-[#c5a059] text-black border-[#c5a059] hover:bg-[#b08c47]'
+                            : isLight ? 'bg-white hover:bg-stone-100 text-stone-700 border-stone-300' : 'bg-white/5 hover:bg-white/10 text-white/80 border-white/15'
+                        }`}
+                      >
+                        <Play size={11} className={isSelected ? 'fill-black' : ''} />
+                        <span>Preview</span>
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className={`flex flex-col sm:flex-row justify-between items-center gap-2.5 pt-3 border-t ${
+              isLight ? 'border-stone-200' : 'border-white/10'
+            }`}>
+              <button
+                type="button"
+                onClick={() => {
+                  handleTestNotification();
+                }}
+                disabled={isTestingNotification}
+                className={`w-full sm:w-auto text-xs font-bold px-3.5 py-2 rounded-xl border flex items-center justify-center gap-1.5 cursor-pointer transition-colors ${
+                  isLight ? 'border-stone-300 hover:bg-stone-100 text-stone-800' : 'border-white/15 hover:bg-white/10 text-white/80'
+                }`}
+              >
+                <BellRing size={14} className={isTestingNotification ? 'animate-bounce text-[#c5a059]' : 'text-[#c5a059]'} />
+                <span>Test Alert Push</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowSoundModal(false)}
+                className="w-full sm:w-auto bg-[#c5a059] hover:bg-[#b08c47] text-black font-extrabold px-6 py-2 rounded-xl text-xs transition-all shadow-md cursor-pointer"
+              >
+                Done &amp; Save Preference
+              </button>
+            </div>
           </div>
         </div>
       )}
